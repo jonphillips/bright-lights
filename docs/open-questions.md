@@ -12,6 +12,9 @@
 - **Favorites list.** Opportunistic sources need one, so it needs a minimal home.
 - **Places.** Restaurants and bars near the apartment: in scope for v1 or not? If yes, lift Galavant's places parts
   rather than copying them.
-- **Stays.** Entered by hand at first. Calendar ingestion (Galavant ADR-0034) comes later.
+- **Stays.** Entered by hand at first. Calendar ingestion (Galavant ADR-0034) comes later. But suggesting when to
+  go needs home commitments as a constraint, so it may pull calendar reading earlier.
+- **Window scoring.** Is it computed in the app from predicted scores per listing, or does a chat model reason over
+  the candidates through MCP tools? The survey's listing horizons decide how far ahead it can work at all.
 - **House scaffolding** (project.yml, check-drift, githooks, TestFlight config) arrives with the first code slice,
   not before.
