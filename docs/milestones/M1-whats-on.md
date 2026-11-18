@@ -12,8 +12,8 @@ TestFlight and the CloudKit Production schema are M2.*
 - [ ] **S4** — Stays and What's on
 - [ ] **S5** — Rounds and browser capture
 
-Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. S1 is
-expanded below; S2 to S5 are outlines.
+Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. S1 and
+S2 are expanded below; S3 to S5 are outlines.
 
 ## S1 — Extraction engine (package only)
 
@@ -61,18 +61,97 @@ including its listing count and any wrong fields.
 
 **Not in S1:** fetching, persistence, the app, and the Mac.
 
-## S2 — App scaffold, schema, seeded sources (outline)
+## S2 — App scaffold, schema, seeded sources
 
-The XcodeGen project and the full house scaffolding (ADR-0001). The SQLiteData schema from ADR-0002 (`Household`,
-`Source`, `Listing`, `Stay`, `Reaction`) against the CloudKit **Development** container. Sources seeded from
-`registry.json` (its `mode`, `adapter`, `cadence` and `listing_url` fields), skipping `retired` and `skip` sources. A read-only Sources
-screen showing each source's method and last check. Adds the generated plists to `.gitignore`.
+**Goal:** a Bright Lights app that launches on iPad, iPhone and Mac, holds the ADR-0002 schema in SQLiteData synced
+to the CloudKit **Development** container, and shows the 44 sources seeded from `registry.json`.
+
+**Project and scaffolding (ADR-0001):**
+
+- **`project.yml`:** one multiplatform SwiftUI app target `BrightLights` (iOS and macOS destinations, deployment
+  target 27), bundle ID `com.jonphillips.BrightLights`, and CloudKit container `iCloud.com.jonphillips.BrightLights`.
+  Team and signing are as in Galavant's `project.yml`. Entitlements: iCloud (CloudKit), plus remote-notification
+  background mode for sync.
+- **Packages:** `BrightLightsLibrary`; the house's **patched SQLiteData** at
+  `../../jon-platform/Vendor/sqlite-data`, by path in both `project.yml` and `BrightLightsLibrary/Package.swift`
+  (jon-platform `persistence-and-sync.md`: a first upload needs the patch); and `swift-dependencies`. Nothing else
+  until a slice needs it.
+- **`.gitignore`:** list the generated `Info.plist` and `.entitlements` paths in the template's slot.
+- **`.githooks`:** copy Galavant's four regeneration files (`post-checkout`, `post-merge`, `post-rewrite`,
+  `xcodegen-sync`) next to the existing `pre-commit`, per jon-platform `drift-control.md`.
+- **`check-drift.sh`** adds `xcodegen generate`, then `xcodebuild build` for an iOS simulator and for macOS, both
+  with `-onlyUsePackageVersionsFromResolvedFile`, through `quiet-run`. Commit the project-level `Package.resolved`.
+
+**Schema (new module `BrightLightsSchema` in `BrightLightsLibrary`):**
+
+- **The tree,** with one real foreign key per table (house law 2): `Household` → `Source` → `Listing` → `Reaction`, and
+  `Household` → `Stay`. UUID primary keys, and no unique indexes (law 3).
+- **`Source`:**
+  - From the registry: `registryID`, name, type, priority, area, `mode`, `method`, optional `adapter`,
+    `adapterVenue`, `listingURL`, `registeredHosts` and `excludedHosts` (JSON text), and `cadence`.
+  - Check outcome, all empty until S3: `lastCheckedAt`, `lastCheckOutcome` (`never`, `succeeded`, `failed`),
+    `lastListingCount`, `consecutiveFailures`.
+- **`Listing`:**
+  - Identity and content: `stableKey`, title, performers (JSON text), room, `ticketURL`, `onSaleAt`.
+  - Time: `startsAt` plus a nullable `closesAt`. A null `closesAt` is `.performance(startsAt)`; a non-null one is
+    `.run(opens: startsAt, closes:)`. Expose the Swift `ExtractedListing.Time` enum over the two columns, so there's no
+    invalid combination.
+  - Enums: `status` (`listed`, `soldOut`, `cancelled`, `missing`), `rung`, `capturedBy` (`mac`, `browser`).
+  - Timestamps: `firstSeenAt`, `updatedAt`.
+- **`Stay`:** `arrivesOn`, plus a departure stored as `departureKind` (`booked`, `tentative`, `open`) and a nullable
+  `departsOn`. Expose a Swift enum that has the date only for booked and tentative.
+- **`Reaction`:** `kind` (`interested`, `booked`, `pass`, `went`), an optional note, an optional loose `authorID`, and
+  `updatedAt`. One reaction per listing is a **household** decision. That's deliberate, despite jon-platform's
+  one-row-per-person pattern for opinions: BRAINSTORM settled "no voting". The code-level upsert keeps it to one.
+- All enums are persisted as string raw values (house schema hygiene). Register migrations once; they're frozen
+  after this slice ships.
+
+**Seeding:**
+
+- **`Household.ensureDefault(in:)`:** mirror Galavant's `TravelParty.ensureDefault`
+  (`GalavantLibrary/Sources/GalavantSchema/TravelParty.swift`), including its duplicate convergence.
+- **`Source.syncFromRegistry(in:)`:** runs on every launch.
+  - Upserts by `registryID` from a bundled copy of `registry.json`: inserts sources that are missing, and updates
+    registry-owned fields on existing ones. It never touches check-outcome fields. It skips `retired` and `skip`
+    sources.
+  - Two devices seeding offline can create duplicates. Converge them per house law 3: the survivor is the lowest
+    `(createdAt, id)`; repoint its listings before deleting the losers.
+- **The bundled copy** is `BrightLightsSchema/Resources/registry.json`. `check-drift.sh` fails if it differs from
+  `docs/sources/registry.json`, so `docs/` stays the file Jon edits.
+
+**Sync:** a SQLiteData `SyncEngine` on the Development container, started per jon-platform `persistence-and-sync.md`.
+No sharing UI in this slice.
+
+**UI:** a read-only **Sources** screen: a `NavigationSplitView` on iPad and Mac, a stack on iPhone. Sources are
+grouped by mode (Automated, Manual), and each row shows the name, area, method (with adapter), cadence and last check
+("never" for now). The detail view shows every field and a link to `listingURL`. Use `@FetchAll`.
+
+**Tests (package):**
+
+- Migrations and the time and departure mappings.
+- `ensureDefault`.
+- `syncFromRegistry`: an insert, a config update that preserves outcome fields, retired and skipped sources left out,
+  and convergence of seeded duplicates (law 3 says to test with them).
+- The registry-copy check in `check-drift`.
+
+**Done when:** `check-drift` passes, including both app builds. The app launches in the iPad simulator and on the Mac
+and lists 44 sources: 29 automated and 15 manual. The PR adds a `device-passes.md` line: "Bright Lights S2: install
+from Xcode on the Mac and the iPad; the sources appear on both through CloudKit Development."
+
+**Not in S2:** fetching, creating listings, stays or reactions UI, sharing, TestFlight.
 
 ## S3 — The Mac checks the sources (outline)
 
 The role toggle and lease (ADR-0003, Vinyl Fever's pattern), the per-source cadence scheduler, polite fetching with
 the survey's pagination, `RenderedDOMFetcher` for rendered sources, the engine, the change-only upsert, check outcomes
 on `Source`, and the failure rule that feeds Rounds. Adds the mini's setup line to `device-passes.md`.
+
+Carried from the S1 review (PR #4):
+- **Canonicalize URL identities before keying.** Lowercase the host, collapse doubled slashes, and drop fragments and
+  trailing slashes. The Stand's page links one show both as `https://thestandnyc.com//shows/show/14184/...` and as
+  `/shows/show/14184/...`.
+- **Count a model row without a title separately** from rows with invalid dates.
+- **Decide what a date-only model start becomes,** such as a talk without a time. It's dropped today.
 
 ## S4 — Stays and What's on (outline)
 

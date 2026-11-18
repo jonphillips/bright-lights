@@ -1,6 +1,6 @@
 # ADR-0003: The app's Mac build on the always-on mini checks the automated sources
 
-*Status: proposed — 2026-11-18. Summary: Bright Lights for Mac, running on Jon's always-on Mac mini, holds the
+*Status: accepted — 2026-11-18 (PR #3). Summary: Bright Lights for Mac, running on Jon's always-on Mac mini, holds the
 checking role. It checks each automated source on that source's cadence, runs the extraction engine, and upserts
 listings into the shared database. It's Jon's own device running his own app, so it isn't a server.*
 
