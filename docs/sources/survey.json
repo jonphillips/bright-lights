@@ -24,8 +24,8 @@
       "recommended_method": "structured_html",
       "confidence": "high",
       "estimated_effort": "low",
-      "event_horizon_days": 24,
-      "event_horizon_note": "Observed up to about 24 days from the 2026-11-18 snapshot; not a guaranteed maximum.",
+      "event_horizon_days": 188,
+      "event_horizon_note": "Paginated listing pages 1–4 run through May 25, 2027 (188 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Listings change as shows are announced; cadence not published.",
       "dedupe_strategy": "Canonical show URL; fallback venue + start date/time + normalized headliner",
       "ticketing_platform": "Ticketmaster",
@@ -36,11 +36,15 @@
       "sample_fixture": "docs/sources/fixtures/bowery-ballroom.html",
       "evidence_urls": [
         "https://mercuryeastpresents.com/boweryballroom/",
+        "https://mercuryeastpresents.com/boweryballroom/page/2/",
+        "https://mercuryeastpresents.com/boweryballroom/page/3/",
+        "https://mercuryeastpresents.com/boweryballroom/page/4/",
         "https://mercuryeastpresents.com/boweryballroom/faq/"
       ],
       "observed_page_note": "Server-rendered show listing; no event JSON-LD on the venue listing page.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "WordPress venue listing uses pagination links for pages 1–4. Pages 2–4 were followed; page 4 contains the latest named date, May 25, 2027. Page 1 is the saved representative parser fixture."
     },
     "brooklyn-steel": {
       "name": "Brooklyn Steel",
@@ -52,7 +56,7 @@
       "feed_evidence_url": null,
       "jsonld_present": false,
       "robots_and_terms_notes": "The official Brooklyn Steel page links the public AEG/AXS JSON events endpoint. The AEG blob-host robots URL returned HTTP 400 (invalid input), so no directives were available there; the endpoint was fetched once at low rate. Terms for automated personal reuse not conclusively reviewed.",
-      "recommended_method": "official_api",
+      "recommended_method": "platform_feed",
       "confidence": "high",
       "estimated_effort": "low",
       "event_horizon_days": 336,
@@ -70,7 +74,8 @@
       ],
       "observed_page_note": "Official page links an AEG/AXS JSON resource shared across venues; filter records by venue.title == Brooklyn Steel.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "The official venue page links one AEG/AXS JSON response. The response contained 206 venue-family events with no next-page URL or cursor; filter on venue.title == Brooklyn Steel. It also includes Music Hall of Williamsburg records."
     },
     "brooklyn-bowl": {
       "name": "Brooklyn Bowl Brooklyn",
@@ -101,7 +106,8 @@
       ],
       "observed_page_note": "Server-rendered event cards; model event category and ticket add-ons separately.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "The page returns 12 event cards. Its Load More Events control was present but disabled, and no next-page link was present. The last visible card was Nov 25, 2026 (7 days from the snapshot)."
     },
     "beacon": {
       "name": "Beacon Theatre",
@@ -126,15 +132,18 @@
       "canonical_url": "https://www.bowerypresents.com/music-hall-of-williamsburg/",
       "operational_status": "active_confirmed",
       "ticketing_platform": "AEG/AXS",
-      "site_platform": "AEG/AXS event pages",
-      "recommended_method": "structured_html",
+      "site_platform": "AEG/AXS public JSON event feed",
+      "recommended_method": "platform_feed",
       "confidence": "low",
-      "notes": "Light pass plus status follow-up: the official Music Hall page remains on the AEG/Bowery venue family and lists shows during the venue’s final weeks; the location is slated to close after 2026. The direct homepage probe returned HTTP 200 for The Bowery Presents. AEG/AXS powers the shared event pages. No horizon or terms assessment in the light pass.",
+      "notes": "Light pass plus status follow-up: the official Music Hall page is on the AEG/Bowery venue family and lists shows during its final weeks; the location is slated to close after 2026. The direct homepage probe returned HTTP 200 for The Bowery Presents. AEG/AXS powers the shared event feed. No independent horizon or terms assessment in the light pass.",
       "evidence_urls": [
         "https://www.bowerypresents.com/music-hall-of-williamsburg/",
         "https://www.bowerypresents.com/"
       ],
-      "event_jsonld_present": false
+      "event_jsonld_present": false,
+      "api_evidence_url": "https://aegwebprod.blob.core.windows.net/json/resources/8/events/d099bg4x01/events.json",
+      "event_horizon_days": null,
+      "pagination_note": "Covered by the same AEG/AXS JSON response as Brooklyn Steel; filter the returned events by venue.title == Music Hall of Williamsburg. No independent route or horizon was assessed in the light pass."
     },
     "babys-all-right": {
       "name": "Baby's All Right",
@@ -334,11 +343,12 @@
       "sample_fixture": "docs/sources/fixtures/bell-house.json",
       "evidence_urls": [
         "https://www.thebellhouseny.com/",
-        "https://www.thebellhouseny.com/visit"
+        "https://www.thebellhouseny.com/shows"
       ],
       "observed_page_note": "Best early structured-data adapter candidate; JSON-LD has event ID and time.",
       "event_jsonld_present": true,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "The See Full Schedule link opens /shows. That list response includes 36 MusicEvent JSON-LD entries through Dec 17; the homepage JSON-LD includes a Dec 19 event. The schedule page has a List/Calendar toggle but no next-page or load-more control in the sampled response."
     },
     "ucb": {
       "name": "Upright Citizens Brigade NYC",
@@ -350,16 +360,16 @@
       "feed_evidence_url": null,
       "jsonld_present": true,
       "robots_and_terms_notes": "robots.txt returned 200 and permitted the site path. Public NY schedule and show pages render listings in HTML; feed discovered is a general site feed, not an event feed. Terms for automated personal reuse not fully reviewed.",
-      "recommended_method": "structured_html",
-      "confidence": "high",
+      "recommended_method": "rendered_scrape",
+      "confidence": "medium",
       "estimated_effort": "medium",
-      "event_horizon_days": 17,
-      "event_horizon_note": "Visible dated event cards run through Dec 5, 2026 (17 days from the snapshot); not a guaranteed maximum.",
+      "event_horizon_days": null,
+      "event_horizon_note": "Not measured past the first page: Dec 5, 2026 (17 days). The page advertises 69 additional events behind WP Grid Builder load-more; a manually assembled direct pagination request returned HTTP 403, and no retry or workaround was attempted.",
       "update_frequency": "Listings are added weeks ahead; lineups may change.",
       "dedupe_strategy": "Canonical dated show URL; fallback venue + date/time + show title",
       "ticketing_platform": "UCB first-party ticket checkout",
       "site_platform": "WordPress with show/event commerce plugin",
-      "needs_rendering": false,
+      "needs_rendering": true,
       "stable_event_id": "Canonical dated show page URL; page IDs are embedded in checkout links",
       "lineup_detail": "Detailed casts often available, but recurring shows may show TBA; UCB explicitly says lineup is subject to change.",
       "sample_fixture": "docs/sources/fixtures/ucb.html",
@@ -369,7 +379,8 @@
       ],
       "observed_page_note": "Use New York location filter; exclude Los Angeles and livestream-only events.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "The server response contains event cards through Dec 5 and a WP Grid Builder Load more (69) button. More cards require JavaScript rendering; a manually assembled one-shot request to the page’s render endpoint returned HTTP 403, so no retry or workaround was attempted. A normal rendered-page capture is needed to measure the complete horizon."
     },
     "union-hall": {
       "name": "Union Hall",
@@ -396,11 +407,12 @@
       "sample_fixture": "docs/sources/fixtures/union-hall.html",
       "evidence_urls": [
         "https://unionhallny.com/calendar",
-        "https://unionhallny.com/info"
+        "https://unionhallny.com/calendar?page=2"
       ],
       "observed_page_note": "Use public Eventbrite event pages where linked; preserve venue calendar URL as source.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "The Squarespace collection reports data-pagenum=1 and limit=16; the response showed eight upcoming event cards through Nov 25. No next-page control was rendered. A ?page=2 request remained on data-pagenum=1, so no later named date was exposed by the page route."
     },
     "the-stand": {
       "name": "The Stand NYC",
@@ -415,8 +427,8 @@
       "recommended_method": "structured_html",
       "confidence": "high",
       "estimated_effort": "medium",
-      "event_horizon_days": 3,
-      "event_horizon_note": "Visible schedule cards run through Nov 21, 2026 (3 days from the snapshot); not a guaranteed maximum.",
+      "event_horizon_days": 108,
+      "event_horizon_note": "Month pages checked through Jun 2027; the latest named show is Mar 6, 2027 (108 days from the snapshot). Apr–Jun pages had no show cards; not a guaranteed maximum.",
       "update_frequency": "Upcoming schedule is paginated by month; exact update cadence not published.",
       "dedupe_strategy": "Canonical show URL; fallback venue/room + date/time + title",
       "ticketing_platform": "Tixr (linked from official show cards)",
@@ -427,11 +439,18 @@
       "sample_fixture": "docs/sources/fixtures/the-stand.html",
       "evidence_urls": [
         "https://thestandnyc.com/shows",
-        "https://thestandnyc.com/shows/2026-11/P80"
+        "https://thestandnyc.com/shows/2026-12",
+        "https://thestandnyc.com/shows/2027-01",
+        "https://thestandnyc.com/shows/2027-02",
+        "https://thestandnyc.com/shows/2027-03",
+        "https://thestandnyc.com/shows/2027-04",
+        "https://thestandnyc.com/shows/2027-05",
+        "https://thestandnyc.com/shows/2027-06"
       ],
       "observed_page_note": "Server-rendered show cards include room, show time, lineup, and Tixr ticket links; generic Restaurant JSON-LD is present but is not an event feed.",
       "event_jsonld_present": false,
-      "article_jsonld_present": false
+      "article_jsonld_present": false,
+      "pagination_note": "The schedule links by month (/shows/YYYY-MM). Pages Dec 2026 through Jun 2027 were followed. Dec had shows through Dec 27; Jan and Feb had no show cards; Mar had a show on Mar 6; Apr, May and Jun had no show cards. The latest named date across these pages is Mar 6, 2027 (108 days from the snapshot). A future-month calendar link remains, so this is an observed snapshot horizon, not a hard cap."
     },
     "ny-comedy-club": {
       "name": "New York Comedy Club",
@@ -446,8 +465,8 @@
       "recommended_method": "structured_html",
       "confidence": "medium",
       "estimated_effort": "medium",
-      "event_horizon_days": 2,
-      "event_horizon_note": "Homepage ComedyEvent JSON-LD and featured schedule are dated through Nov 20, 2026 (2 days from the snapshot); not a guaranteed maximum.",
+      "event_horizon_days": 194,
+      "event_horizon_note": "Calendar month pages through May 2027; the May page lists events through May 31 (194 days from the snapshot) and has no next-month control.",
       "update_frequency": "Listings are short-horizon; cadence not published.",
       "dedupe_strategy": "Show URL or venue-room + date/time + normalized title",
       "ticketing_platform": "First-party checkout (vendor not identified)",
@@ -457,11 +476,19 @@
       "lineup_detail": "Named comics appear on many show listings; site copy warns of surprise drop-ins, so lineup is provisional.",
       "sample_fixture": "docs/sources/fixtures/ny-comedy-club.json",
       "evidence_urls": [
-        "https://newyorkcomedyclub.com/"
+        "https://newyorkcomedyclub.com/",
+        "https://newyorkcomedyclub.com/calendar",
+        "https://newyorkcomedyclub.com/calendar/2026-12",
+        "https://newyorkcomedyclub.com/calendar/2027-01",
+        "https://newyorkcomedyclub.com/calendar/2027-02",
+        "https://newyorkcomedyclub.com/calendar/2027-03",
+        "https://newyorkcomedyclub.com/calendar/2027-04",
+        "https://newyorkcomedyclub.com/calendar/2027-05"
       ],
       "observed_page_note": "Filter to NYC locations and retain room/location to avoid duplicates.",
       "event_jsonld_present": true,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "The calendar has direct month routes /calendar/YYYY-MM. November through May 2027 pages were followed; May lists events through May 31 and has no next-month link. This is the last month page with named shows in the observed listing."
     },
     "caveat": {
       "name": "Caveat",
@@ -472,13 +499,13 @@
       "api_evidence_url": "https://caveat.nyc/api/events/listings",
       "feed_evidence_url": null,
       "jsonld_present": false,
-      "robots_and_terms_notes": "robots.txt returned 200 and permitted the path. Public /events page and dated detail pages readable; no API or feed found. Terms for automated personal reuse not fully reviewed.",
-      "recommended_method": "official_api",
+      "robots_and_terms_notes": "robots.txt returned 200 and permitted the events path. The React page calls the first-party public JSON endpoint /api/events/listings; it returned 76 event records in one response. No login or challenge was involved. Terms for automated personal reuse not conclusively reviewed.",
+      "recommended_method": "platform_feed",
       "confidence": "high",
       "estimated_effort": "low",
       "event_horizon_days": 129,
       "event_horizon_note": "Public listings JSON returned 76 records, with the latest dated 2027-03-27 (129 days from the snapshot); not a guaranteed maximum.",
-      "update_frequency": "Listings added over time; dates visible into late December.",
+      "update_frequency": "New listings appear as announced; the sampled JSON response included events through 2027-03-27. Update cadence is not published.",
       "dedupe_strategy": "Canonical event URL; fallback date/time + title",
       "ticketing_platform": "Caveat checkout (provider not resolved)",
       "site_platform": "React site backed by public JSON endpoint",
@@ -492,7 +519,8 @@
       ],
       "observed_page_note": "The page is a React shell; the linked first-party frontend calls /api/events/listings, whose JSON records contain event, date, description, and ticket fields.",
       "event_jsonld_present": false,
-      "article_jsonld_present": false
+      "article_jsonld_present": false,
+      "pagination_note": "The React page calls /api/events/listings. One response returned 76 records with no next-page URL or cursor; latest record was Mar 27, 2027."
     },
     "littlefield": {
       "name": "Littlefield",
@@ -617,7 +645,8 @@
       ],
       "observed_page_note": "Could share Drupal extraction mechanics, but calendar path and content differ by school.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "The events-and-exhibitions page returned its listing cards directly in the page, including events through Dec 10. No next-page or load-more control was present in the sampled response."
     },
     "strand": {
       "name": "Strand Book Store Events",
@@ -680,7 +709,8 @@
       ],
       "observed_page_note": "WNYC event pages are structured HTML; venue association needs filtering.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": null,
+      "pagination_note": "The WNYC events page response included the venue cards directly; the latest named card was Dec 16. No next-page or load-more control was present in the sampled response."
     },
     "brooklyn-book-festival": {
       "name": "Brooklyn Book Festival",
@@ -757,7 +787,8 @@
       ],
       "observed_page_note": "Map production run separately from individual performance instances.",
       "event_jsonld_present": false,
-      "article_jsonld_present": false
+      "article_jsonld_present": false,
+      "pagination_note": "The official production calendar includes dated performance instances in its server response through Jul 3, 2027. No next-page or load-more control was present in the calendar fragment."
     },
     "playwrights-horizons": {
       "name": "Playwrights Horizons",
