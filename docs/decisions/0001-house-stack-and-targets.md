@@ -1,6 +1,6 @@
 # ADR-0001: The house stack, with iPad, iPhone and Mac targets from one XcodeGen project
 
-*Status: proposed — 2026-11-18. Summary: Bright Lights uses jon-platform's stack unchanged. One multiplatform app
+*Status: accepted — 2026-11-18 (PR #3). Summary: Bright Lights uses jon-platform's stack unchanged. One multiplatform app
 target covers iPad, iPhone and Mac, and reusable logic lives in a local SPM package.*
 
 ## Context

@@ -1,6 +1,6 @@
 # ADR-0005: Rounds — a due-list of sources, captured in the in-app browser while Jon reads
 
-*Status: proposed — 2026-11-18. Summary: Sources the Mac can't read, and automated sources that are failing, appear in
+*Status: accepted — 2026-11-18 (PR #3). Summary: Sources the Mac can't read, and automated sources that are failing, appear in
 **Rounds**: a checklist ordered by how overdue each one is. Tapping a source opens it in the persistent in-app
 browser, which captures the listings on every page Jon views on that source's site through the same extraction
 engine. Looking is capturing.*

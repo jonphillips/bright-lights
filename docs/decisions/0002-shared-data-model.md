@@ -1,6 +1,6 @@
 # ADR-0002: One shared household; listings are synced rows, upserted only when they change
 
-*Status: proposed — 2026-11-18. Summary: Everything descends from a single shared `Household` root, so inviting
+*Status: accepted — 2026-11-18 (PR #3). Summary: Everything descends from a single shared `Household` root, so inviting
 Wendy is a share, not a migration. Listings sync like any other row. Writers change a row only when its content
 changes, so nightly checks don't churn CloudKit.*
 
