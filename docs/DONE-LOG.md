@@ -6,7 +6,7 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 ## 2026-11-18 — Extraction engine (`m1-s1-extraction-engine`)
 
 - **Result:** Added the BrightLightsExtraction package with JSON-LD, Mercury East, AEG/AXS and Caveat adapters, model fallback, stable page hashing, copied fixtures, and package drift controls.
-- **Verification:** scripts/check-drift.sh passed SwiftLint and five deterministic tests. The live model produced five listings on one run; field review found cross-venue rows, duplicate/mismatched URLs, UTC-stamped local times, single events marked as runs, and inferred on-sale dates. Prompt and mapping safeguards were added, but later live repeats returned zero listings.
+- **Verification:** scripts/check-drift.sh passed SwiftLint and ten deterministic tests. A live run returned three The Stand listings; titles, rooms, start times and event URLs matched the fixture, and two The Stand West rows were excluded with a warning. A prior run emitted date-only performance starts; those are now rejected with a count warning.
 
 ## 2026-11-18 — Event source survey (`codex/source-survey`)
 

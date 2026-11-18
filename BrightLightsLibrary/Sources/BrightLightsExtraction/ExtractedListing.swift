@@ -72,11 +72,21 @@ public struct SourceDescriptor: Sendable, Equatable {
   public var id: String
   public var adapter: Adapter?
   public var registeredHosts: [String]
+  public var excludedHosts: [String]
+  public var adapterVenue: String?
 
-  public init(id: String, adapter: Adapter? = nil, registeredHosts: [String] = []) {
+  public init(
+    id: String,
+    adapter: Adapter? = nil,
+    registeredHosts: [String] = [],
+    excludedHosts: [String] = [],
+    adapterVenue: String? = nil
+  ) {
     self.id = id
     self.adapter = adapter
     self.registeredHosts = registeredHosts
+    self.excludedHosts = excludedHosts
+    self.adapterVenue = adapterVenue
   }
 }
 

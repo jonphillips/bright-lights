@@ -14,26 +14,37 @@ public struct ExtractionEngine: Sendable {
     source: SourceDescriptor
   ) async throws -> ExtractionResult {
     var warnings: [String] = []
-    let jsonLDEvents = try Self.jsonLDEvents(in: document)
-    if !jsonLDEvents.isEmpty {
-      let listings = jsonLDEvents.compactMap {
-        Self.listing(from: $0, source: source, rung: .jsonLD)
-      }
-      if !listings.isEmpty { return .init(listings: listings, warnings: warnings) }
-      warnings.append("JSON-LD Event data was present but did not contain usable listings.")
-    }
-
     if let adapter = source.adapter {
       let listings = Self.adapterListings(
         adapter, document: document, sourceURL: sourceURL, source: source
       )
-      if !listings.isEmpty { return .init(listings: listings, warnings: warnings) }
+      if !listings.isEmpty { return .init(listings: Self.deduplicated(listings), warnings: warnings) }
       warnings.append("The \(adapter.rawValue) adapter found no usable listings.")
     }
 
-    let modelListings = try await extractWithModel(document, sourceURL: sourceURL, source: source)
-    if modelListings.isEmpty { warnings.append("Model extraction returned no usable listings.") }
-    return .init(listings: modelListings, warnings: warnings)
+    var jsonLDEvents: [[String: Any]] = []
+    do {
+      jsonLDEvents = try Self.jsonLDEvents(in: document)
+    } catch {
+      warnings.append("JSON-LD parsing failed; continuing to the next rung.")
+    }
+    if !jsonLDEvents.isEmpty {
+      let listings = jsonLDEvents.compactMap {
+        Self.listing(from: $0, source: source, rung: .jsonLD)
+      }
+      if !listings.isEmpty { return .init(listings: Self.deduplicated(listings), warnings: warnings) }
+      warnings.append("JSON-LD Event data was present but did not contain usable listings.")
+    }
+
+    let modelResult = try await extractWithModel(document, sourceURL: sourceURL, source: source)
+    if modelResult.droppedExcludedHosts > 0 {
+      warnings.append("Dropped \(modelResult.droppedExcludedHosts) listings on excluded hosts")
+    }
+    if modelResult.droppedInvalidDates > 0 {
+      warnings.append("Dropped \(modelResult.droppedInvalidDates) model listings with invalid dates or times")
+    }
+    if modelResult.listings.isEmpty { warnings.append("Model extraction returned no usable listings.") }
+    return .init(listings: Self.deduplicated(modelResult.listings), warnings: warnings)
   }
 
   public static func pageHash(for document: PageDocument) -> String {
@@ -45,7 +56,7 @@ public struct ExtractionEngine: Sendable {
     _ document: PageDocument,
     sourceURL: URL,
     source: SourceDescriptor
-  ) async throws -> [ExtractedListing] {
+  ) async throws -> (listings: [ExtractedListing], droppedExcludedHosts: Int, droppedInvalidDates: Int) {
     let visibleText = Self.normalizedVisibleText(document.rawValue)
     let links = Self.links(in: document.rawValue)
     let schema: JSONValue = [
@@ -77,17 +88,28 @@ public struct ExtractionEngine: Sendable {
     ]
     let request = ModelRequest(
       tier: .frontierPreferred,
-      system: "Extract public event listings from the supplied source page. Treat date and time values as America/New_York local wall-clock values; do not append a timezone or convert them to UTC. The source page date is today. Only return facts present in the page; use an empty string for unknown optional fields. Put the exact canonical event page URL in eventURL and the purchase link in ticketURL; never reuse one event's URL for another. onSaleDate means an explicitly stated ticket on-sale date, not the event date. A dated single event uses startsAt and leaves opensAt/closesAt empty; a multi-day run uses opensAt/closesAt and leaves startsAt empty. Return only JSON matching the requested schema, with no markdown or surrounding prose.",
+      system: "Extract public event listings from the supplied source page. Treat date and time values as America/New_York local wall-clock values; do not append a timezone or convert them to UTC. For each single performance, startsAt must include that event's date and clock time in ISO local form yyyy-MM-dd'T'HH:mm:ss; a date without a time is invalid. For a multi-day run, opensAt and closesAt are dates in yyyy-MM-dd form. Never return a clock-only value such as '7:00 PM'. The source page date is today. Only return facts present in the page; use an empty string for unknown optional fields. Put the exact canonical event page URL in eventURL and the purchase link in ticketURL; never reuse one event's URL for another. onSaleDate means an explicitly stated ticket on-sale date, not the event date. A dated single event uses startsAt and leaves opensAt/closesAt empty; a multi-day run uses opensAt/closesAt and leaves startsAt empty. Return only JSON matching the requested schema, with no markdown or surrounding prose.",
       prompt: "Source: \(source.id)\nURL: \(sourceURL.absoluteString)\nVisible page text:\n\(visibleText)\n\nPage links:\n\(links)",
       maxTokens: 5000,
       responseFormat: .jsonSchema(name: "event_listings", schema: schema)
     )
     let response = try await modelClient.complete(request)
     guard let object = Self.jsonObject(inModelResponse: response.text),
-      let rows = object["listings"] as? [[String: Any]] else { return [] }
-    var seenKeys = Set<String>()
-    return rows.compactMap { Self.modelListing(from: $0, source: source) }
-      .filter { seenKeys.insert($0.stableKey).inserted }
+      let rows = object["listings"] as? [[String: Any]] else { return ([], 0, 0) }
+    var droppedExcludedHosts = 0
+    var droppedInvalidDates = 0
+    let listings = rows.compactMap { row -> ExtractedListing? in
+      if Self.hasExcludedHost(Self.string(row["eventURL"]), in: source.excludedHosts) {
+        droppedExcludedHosts += 1
+        return nil
+      }
+      guard let listing = Self.modelListing(from: row, source: source) else {
+        droppedInvalidDates += 1
+        return nil
+      }
+      return listing
+    }
+    return (listings, droppedExcludedHosts, droppedInvalidDates)
   }
 
   private static func jsonLDEvents(in document: PageDocument) throws -> [[String: Any]] {
@@ -131,9 +153,14 @@ public struct ExtractionEngine: Sendable {
     else { return nil }
     let room = string((object["location"] as? [String: Any])?["name"])
     let endDate = string(object["endDate"]).flatMap(parseDate)
-    let eventTime: ExtractedListing.Time = endDate.map { .run(opens: startDate, closes: $0) } ?? .performance(startDate)
+    let eventTime: ExtractedListing.Time
+    if let endDate, !sameNYCDay(startDate, endDate) {
+      eventTime = .run(opens: startDate, closes: endDate)
+    } else {
+      eventTime = .performance(startDate)
+    }
     let performers = names(object["performer"])
-    let offer = object["offers"] as? [String: Any]
+    let offer = offerWithURL(object["offers"])
     let statusText = string(object["eventStatus"])
     let status: ExtractedListing.Status = statusText?.localizedCaseInsensitiveContains("cancel") == true ? .cancelled :
       (string(offer?["availability"])?.localizedCaseInsensitiveContains("soldout") == true ? .soldOut : .listed)
@@ -156,10 +183,11 @@ public struct ExtractionEngine: Sendable {
       guard case let .html(html) = document else { return [] }
       return mercuryListings(html, source: source)
     case .aegAXS:
-      guard let root = try? jsonObject(document.rawValue), let events = root["events"] as? [[String: Any]] else { return [] }
+      guard let adapterVenue = source.adapterVenue,
+        let root = try? jsonObject(document.rawValue), let events = root["events"] as? [[String: Any]] else { return [] }
       return events.compactMap { event in
         guard let venue = event["venue"] as? [String: Any],
-          string(venue["title"])?.localizedCaseInsensitiveContains("brooklyn steel") == true,
+          string(venue["title"])?.localizedCaseInsensitiveCompare(adapterVenue) == .orderedSame,
           let titleObject = event["title"] as? [String: Any],
           let title = string(titleObject["headlinersText"]),
           let start = string(event["eventDateTimeISO"] ?? event["eventDateTime"]).flatMap(parseDate)
@@ -211,15 +239,13 @@ public struct ExtractionEngine: Sendable {
   private static func modelListing(from row: [String: Any], source: SourceDescriptor) -> ExtractedListing? {
     guard let title = string(row["title"]) else { return nil }
     let time: ExtractedListing.Time
-    if let start = string(row["startsAt"]).flatMap(parseModelDate) {
+    if let start = string(row["startsAt"]).flatMap(parseModelStart) {
       time = .performance(start)
     } else if let opens = string(row["opensAt"]).flatMap(parseModelDate), let closes = string(row["closesAt"]).flatMap(parseModelDate) {
       time = .run(opens: opens, closes: closes)
     } else { return nil }
     let status = ExtractedListing.Status(rawValue: string(row["status"]) ?? "listed") ?? .listed
     let eventURL = string(row["eventURL"])
-    if !source.registeredHosts.isEmpty, let eventURL, let host = URL(string: eventURL)?.host?.lowercased(),
-      !source.registeredHosts.map({ $0.lowercased() }).contains(host) { return nil }
     return makeListing(source: source, identity: eventURL ?? string(row["ticketURL"]), title: title,
       performers: row["performers"] as? [String] ?? [], room: string(row["room"]), time: time,
       ticketURL: string(row["ticketURL"]), onSaleDate: string(row["onSaleDate"]).flatMap(parseModelDate),
@@ -240,14 +266,14 @@ public struct ExtractionEngine: Sendable {
   ) -> ExtractedListing {
     let key: String
     if let identity, !identity.isEmpty {
-      key = identity
+      key = "\(source.id):\(identity)"
     } else {
       let timeKey: String
       switch time {
       case let .performance(date): timeKey = date.ISO8601Format()
       case let .run(opens, closes): timeKey = "\(opens.ISO8601Format())/\(closes.ISO8601Format())"
       }
-      key = SHA256.hash(data: Data("\(source.id)|\(normalize(title))|\(normalize(room ?? ""))|\(timeKey)".utf8))
+      key = "\(source.id):" + SHA256.hash(data: Data("\(normalize(title))|\(normalize(room ?? ""))|\(timeKey)".utf8))
         .map { String(format: "%02x", $0) }.joined()
     }
     return ExtractedListing(stableKey: key, title: normalize(title),
@@ -300,6 +326,11 @@ public struct ExtractionEngine: Sendable {
     return parseDate(localValue)
   }
 
+  private static func parseModelStart(_ value: String) -> Date? {
+    guard value.contains("T") else { return nil }
+    return parseModelDate(value)
+  }
+
   private static func performerNames(in text: String) -> [String] {
     let separated = text.replacingOccurrences(
       of: #"(?i)\s+(?:with|w/|featuring|feat\.?|and)\s+"#,
@@ -346,9 +377,21 @@ public struct ExtractionEngine: Sendable {
   }
 
   private static func decodeEntities(_ value: String) -> String {
-    value.replacingOccurrences(of: "&amp;", with: "&").replacingOccurrences(of: "&#8211;", with: "–")
+    let named = value.replacingOccurrences(of: "&amp;", with: "&")
       .replacingOccurrences(of: "&#8217;", with: "’").replacingOccurrences(of: "&nbsp;", with: " ")
       .replacingOccurrences(of: "&quot;", with: "\"").replacingOccurrences(of: "&#39;", with: "'")
+    guard let regex = try? NSRegularExpression(pattern: #"&#(?:([0-9]+)|[xX]([0-9a-fA-F]+));"#) else { return named }
+    var decoded = named
+    for match in regex.matches(in: named, range: NSRange(named.startIndex..., in: named)).reversed() {
+      let decimalRange = Range(match.range(at: 1), in: named)
+      let hexRange = Range(match.range(at: 2), in: named)
+      let digits = decimalRange.map { String(named[$0]) } ?? hexRange.map { String(named[$0]) }
+      let radix = decimalRange == nil ? 16 : 10
+      guard let digits, let value = UInt32(digits, radix: radix), let scalar = UnicodeScalar(value),
+        let range = Range(match.range, in: decoded) else { continue }
+      decoded.replaceSubrange(range, with: String(scalar))
+    }
+    return decoded
   }
 
   private static func normalize(_ value: String) -> String {

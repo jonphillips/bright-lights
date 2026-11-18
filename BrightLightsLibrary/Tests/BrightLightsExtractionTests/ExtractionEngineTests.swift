@@ -24,14 +24,14 @@ import Testing
     for (fixture, sourceID, count, firstTitle, firstStart, firstKey, lastTitle, lastStart, lastKey) in cases {
       let text = try fixtureText(fixture)
       let result = try await ExtractionEngine().extract(.json(text), sourceURL: sourceURL,
-        source: .init(id: sourceID, adapter: .mercuryEast))
+        source: .init(id: sourceID))
       #expect(result.listings.count == count)
       #expect(result.listings.first?.title == firstTitle)
       #expect(startISO(result.listings.first?.time) == firstStart)
-      #expect(result.listings.first?.stableKey == firstKey)
+      #expect(result.listings.first?.stableKey == "\(sourceID):\(firstKey)")
       #expect(result.listings.last?.title == lastTitle)
       #expect(startISO(result.listings.last?.time) == lastStart)
-      #expect(result.listings.last?.stableKey == lastKey)
+      #expect(result.listings.last?.stableKey == "\(sourceID):\(lastKey)")
       #expect(result.listings.allSatisfy { $0.rung == .jsonLD })
     }
   }
@@ -52,30 +52,32 @@ import Testing
       let value = try fixtureText(fixture)
       let document: PageDocument = fixture.hasSuffix(".html") ? .html(value) : .json(value)
       let result = try await ExtractionEngine().extract(document, sourceURL: sourceURL,
-        source: .init(id: sourceID, adapter: adapter))
+        source: .init(id: sourceID, adapter: adapter,
+          adapterVenue: adapter == .aegAXS ? "Brooklyn Steel" : nil))
       #expect(result.listings.count == count)
       #expect(result.listings.first?.title == firstTitle)
       #expect(startISO(result.listings.first?.time) == firstStart)
-      #expect(result.listings.first?.stableKey == firstKey)
+      #expect(result.listings.first?.stableKey == "\(sourceID):\(firstKey)")
       #expect(result.listings.last?.title == lastTitle)
       #expect(startISO(result.listings.last?.time) == lastStart)
-      #expect(result.listings.last?.stableKey == lastKey)
+      #expect(result.listings.last?.stableKey == "\(sourceID):\(lastKey)")
       #expect(result.listings.allSatisfy { $0.rung == .adapter })
     }
   }
 
   @Test("model rung maps recorded structured output, NYC time and multi-day runs")
   func modelMapping() async throws {
-    let output = #"{"listings":[{"title":"The Stand: Jane Doe","performers":["Jane Doe"],"room":"The Stand","startsAt":"2026-12-04T20:00:00Z","opensAt":"2026-12-04T19:00:00","closesAt":"2026-12-04T21:00:00","eventURL":"https://thestandnyc.com/show/jane-doe","ticketURL":"https://tickets.example/jane-doe","onSaleDate":"2026-11-20T10:00:00","status":"listed"},{"title":"Winter Repertory","performers":[],"room":"The Stand","startsAt":"","opensAt":"2026-12-01","closesAt":"2026-12-20","eventURL":"","ticketURL":"","onSaleDate":"","status":"listed"},{"title":"Wrong source","performers":[],"room":"Other room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://thestandwest.com/show/wrong","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let output = #"{"listings":[{"title":"The Stand: Jane Doe","performers":["Jane Doe"],"room":"The Stand","startsAt":"2026-12-04T20:00:00Z","opensAt":"2026-12-04T19:00:00","closesAt":"2026-12-04T21:00:00","eventURL":"https://thestandnyc.com/show/jane-doe","ticketURL":"https://tickets.example/jane-doe","onSaleDate":"2026-11-20T10:00:00","status":"listed"},{"title":"Winter Repertory","performers":[],"room":"The Stand","startsAt":"","opensAt":"2026-12-01","closesAt":"2026-12-20","eventURL":"","ticketURL":"","onSaleDate":"","status":"listed"},{"title":"Wrong source","performers":[],"room":"Other room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://thestandwest.com/show/wrong","ticketURL":"","onSaleDate":"","status":"listed"},{"title":"Wrong subdomain","performers":[],"room":"Other room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://events.thestandwest.com/show/wrong","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
     let result = try await withDependencies {
       $0.modelClient = StubModelClient.constant(output)
     } operation: {
       try await ExtractionEngine().extract(.html(try fixtureText("the-stand.html")), sourceURL: sourceURL,
-        source: .init(id: "the-stand", registeredHosts: ["thestandnyc.com"]))
+        source: .init(id: "the-stand", excludedHosts: ["thestandwest.com"]))
     }
     #expect(result.listings.count == 2)
     #expect(result.listings[0].rung == .model)
-    #expect(result.listings[0].stableKey == "https://thestandnyc.com/show/jane-doe")
+    #expect(result.listings[0].stableKey == "the-stand:https://thestandnyc.com/show/jane-doe")
+    #expect(result.warnings.contains("Dropped 2 listings on excluded hosts"))
     #expect(startISO(result.listings[0].time) == "2026-12-05T01:00:00Z")
     #expect(result.listings[0].performers == ["Jane Doe"])
     if case let .run(opens, closes) = result.listings[1].time {
@@ -92,15 +94,84 @@ import Testing
     let jsonLD = #"[{"@type":"Event","name":"Example","startDate":"2026-12-04T20:00:00-05:00","url":"https://example.com/event"}]"#
     let result = try await withDependencies { $0.modelClient = model } operation: {
       try await ExtractionEngine().extract(.json(jsonLD), sourceURL: sourceURL,
-        source: .init(id: "example", adapter: .mercuryEast))
+        source: .init(id: "example"))
     }
     #expect(result.listings.count == 1)
     #expect(result.listings[0].rung == .jsonLD)
 
-    let adapterResult = try await ExtractionEngine().extract(.html(try fixtureText("bowery-ballroom.html")),
-      sourceURL: sourceURL, source: .init(id: "bowery-ballroom", adapter: .mercuryEast))
+    let html = "<script type=\"application/ld+json\">\(jsonLD.dropFirst().dropLast())</script>" + (try fixtureText("bowery-ballroom.html"))
+    let adapterResult = try await ExtractionEngine().extract(.html(html), sourceURL: sourceURL,
+      source: .init(id: "bowery-ballroom", adapter: .mercuryEast))
     #expect(adapterResult.listings.count == 20)
     #expect(adapterResult.listings.allSatisfy { $0.rung == .adapter })
+  }
+
+  @Test("JSON-LD same-day end times and offer arrays map without losing ticket data")
+  func sameDayEndAndOfferArray() async throws {
+    let event = #"{"@type":"Event","name":"Late Set","startDate":"2026-12-04T20:00:00-05:00","endDate":"2026-12-04T22:00:00-05:00","url":"https://example.com/late-set","offers":[{"availability":"https://schema.org/InStock"},{"url":"https://tickets.example/late-set","validFrom":"2026-11-20T10:00:00-05:00","availability":"https://schema.org/SoldOut"}]}"#
+    let result = try await ExtractionEngine().extract(.json("[\(event),\(event)]"), sourceURL: sourceURL,
+      source: .init(id: "sample"))
+    #expect(result.listings.count == 1)
+    #expect(result.listings[0].stableKey == "sample:https://example.com/late-set")
+    #expect(result.listings[0].ticketURL?.absoluteString == "https://tickets.example/late-set")
+    #expect(result.listings[0].status == .soldOut)
+    #expect(result.listings[0].onSaleDate != nil)
+    #expect(startISO(result.listings[0].time) == "2026-12-05T01:00:00Z")
+  }
+
+  @Test("duplicate adapter and model keys are deduplicated in source namespaces")
+  func adapterAndModelDeduplication() async throws {
+    let caveat = #"{"records":[{"fields":{"Event":"Same show","google_start_time":"2026-12-04T20:00:00-05:00","MainRecordID":"shared-id"}},{"fields":{"Event":"Same show","google_start_time":"2026-12-04T20:00:00-05:00","MainRecordID":"shared-id"}}]}"#
+    let adapterResult = try await ExtractionEngine().extract(.json(caveat), sourceURL: sourceURL,
+      source: .init(id: "caveat-source", adapter: .caveatJSON))
+    #expect(adapterResult.listings.count == 1)
+    #expect(adapterResult.listings[0].stableKey == "caveat-source:shared-id")
+
+    let duplicate = #"{"listings":[{"title":"Same show","performers":[],"room":"Room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://example.com/same","ticketURL":"","onSaleDate":"","status":"listed"},{"title":"Same show","performers":[],"room":"Room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://example.com/same","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let modelResult = try await withDependencies {
+      $0.modelClient = StubModelClient.constant(duplicate)
+    } operation: {
+      try await ExtractionEngine().extract(.html("<main>Same show</main>"), sourceURL: sourceURL,
+        source: .init(id: "model-source"))
+    }
+    #expect(modelResult.listings.count == 1)
+    #expect(modelResult.listings[0].stableKey == "model-source:https://example.com/same")
+  }
+
+  @Test("malformed JSON warns and continues to the model")
+  func malformedJSONFallsThrough() async throws {
+    let output = #"{"listings":[{"title":"Recovered","performers":[],"room":"Room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let result = try await withDependencies {
+      $0.modelClient = StubModelClient.constant(output)
+    } operation: {
+      try await ExtractionEngine().extract(.json("{ malformed"), sourceURL: sourceURL,
+        source: .init(id: "malformed", adapter: .caveatJSON))
+    }
+    #expect(result.listings.count == 1)
+    #expect(result.listings[0].rung == .model)
+    #expect(result.warnings.contains("JSON-LD parsing failed; continuing to the next rung."))
+  }
+
+  @Test("model performance requires a complete local start time")
+  func modelRejectsDateOnlyPerformance() async throws {
+    let output = #"{"listings":[{"title":"Missing time","performers":[],"room":"Room","startsAt":"2026-12-04","opensAt":"","closesAt":"","eventURL":"","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let result = try await withDependencies {
+      $0.modelClient = StubModelClient.constant(output)
+    } operation: {
+      try await ExtractionEngine().extract(.html("<main>Missing time</main>"), sourceURL: sourceURL,
+        source: .init(id: "missing-time"))
+    }
+    #expect(result.listings.isEmpty)
+    #expect(result.warnings.contains("Dropped 1 model listings with invalid dates or times"))
+  }
+
+  @Test("numeric HTML entities are decoded in adapter titles")
+  func numericEntityDecoding() async throws {
+    let html = try fixtureText("bowery-ballroom.html")
+      .replacingOccurrences(of: ">Liana Flores</a>", with: ">&amp;#8220;Liana&amp;#038; Flores&amp;#8221;</a>")
+    let result = try await ExtractionEngine().extract(.html(html), sourceURL: sourceURL,
+      source: .init(id: "bowery-ballroom", adapter: .mercuryEast))
+    #expect(result.listings.first?.title == "“Liana& Flores”")
   }
 
   @Test("visible-text hashing ignores whitespace and script changes")
@@ -117,7 +188,7 @@ import Testing
     } operation: {
       try await ExtractionEngine().extract(.html(try fixtureText("the-stand.html")),
         sourceURL: URL(string: "https://thestandnyc.com/shows")!,
-        source: .init(id: "the-stand", registeredHosts: ["thestandnyc.com"]))
+        source: .init(id: "the-stand", excludedHosts: ["thestandwest.com"]))
     }
     print("Live model extracted \(result.listings.count) listings; warnings: \(result.warnings)")
     for listing in result.listings {
