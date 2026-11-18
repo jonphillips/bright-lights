@@ -1,0 +1,1380 @@
+{
+  "source": "https://aegwebprod.blob.core.windows.net/json/resources/8/events/d099bg4x01/events.json",
+  "meta": {
+    "total": 206,
+    "locale": "en-US",
+    "page": 1,
+    "rows": 100
+  },
+  "venue_filter": "venue.title == Brooklyn Steel",
+  "events": [
+    {
+      "eventId": "1706806",
+      "active": true,
+      "createdUTC": "2026-11-17T19:59:58",
+      "modifiedUTC": "2026-11-17T21:54:09",
+      "locale": "en-US",
+      "localeAvailable": {
+        "1": "en-US"
+      },
+      "title": {
+        "presentedBy": null,
+        "presentedByText": null,
+        "headliners": "The Music of  Hey Arnold! Live! ",
+        "headlinersText": "The Music of  Hey Arnold! Live! ",
+        "supporting": "Feat. Jim Lang and The PS 118 AllStars with Special Guest Craig Bartlett",
+        "supportingText": "Feat. Jim Lang and The PS 118 AllStars with Special Guest Craig Bartlett",
+        "tour": null,
+        "eventTitle": "The Music of  Hey Arnold! Live! ",
+        "eventTitleText": "The Music of  Hey Arnold! Live! "
+      },
+      "age": "16 & Over",
+      "publishStatus": 1,
+      "private": false,
+      "currency": "USD",
+      "currencySymbol": "$",
+      "eventDateTime": "2027-01-16T20:00:00",
+      "eventDateTimeZone": "America/New_York",
+      "eventDateTimeZoneAbbr": "EST",
+      "eventDateTimeUTC": "2027-01-17T01:00:00",
+      "eventDateTimeISO": "2027-01-16T20:00:00-05:00",
+      "additionalDates": [],
+      "expirationDateTime": null,
+      "expirationDateTimeUTC": null,
+      "doorDateTime": "2027-01-16T19:00:00",
+      "doorDateTimeUTC": "2027-01-17T00:00:00",
+      "announceDateTime": "2026-11-17T17:00:00",
+      "announceDateTimeTimeZone": "America/New_York",
+      "announceDateTimeUTC": "2026-11-17T22:00:00",
+      "presaleDateTime": null,
+      "presaleDateTimeTimeZone": "America/New_York",
+      "presaleDateTimeUTC": null,
+      "presaleEndDateTime": null,
+      "presaleEndDateTimeTimeZone": "America/New_York",
+      "presaleEndDateTimeUTC": null,
+      "onsaleDateTime": "2026-11-20T10:00:00",
+      "onsaleDateTimeTimeZone": "America/New_York",
+      "onsaleDateTimeZoneAbbr": "EST",
+      "onsaleDateTimeUTC": "2026-11-20T15:00:00",
+      "ticketing": {
+        "statusId": 1,
+        "status": "Coming Soon",
+        "presaleURL": null,
+        "ticketURL": "https://shop.axs.com/?c=axs&e=21269401648189153",
+        "url": "https://www.axs.com/events/1706806/the-music-of-hey-arnold-live-tickets",
+        "eventUrl": "https://www.axs.com/events/1706806/the-music-of-hey-arnold-live-tickets",
+        "ticketLinkExists": true
+      },
+      "ticketPrice": null,
+      "ticketPriceLow": "$0",
+      "ticketPriceHigh": "$0",
+      "doorPrice": null,
+      "doorPriceLow": "$0",
+      "doorPriceHigh": "$0",
+      "bio": null,
+      "description": "We are supporters of the Jazz Foundation of America (JFA), a national nonprofit providing compassionate and personalized support to jazz, blues, and roots musicians in need, as a result of age, illness or circumstances. JFA provides emergency financial support, housing and medical assistance, disaster relief and more. They also create meaningful work opportunities for musicians, by bringing live music into schools, senior centers, and creating hundreds of free-to-the public concerts.\n<p>&nbsp;</p>\n<p>&nbsp;</p>\nIf you are able, we ask that you consider a donation to the Jazz Foundation of America, and help support the 2,000+ musicians they currently serve. We thank you for supporting us and for supporting this organization that honors jazz, blues and roots music, by caring for those who create it. We hope you enjoy the show!\n<p>&nbsp;</p>\n<p>&nbsp;</p>\nwww.jazzfoundation.org/donate\n<p>&nbsp;</p>\n<p>&nbsp;</p>\nPreferred Terrace includes access to a prime viewing area on second floor balcony and the adjacent Ludlow Lounge, including private restroom.",
+      "venue": {
+        "venueId": "126144",
+        "active": true,
+        "locale": "en-US",
+        "localeAvailable": {
+          "1": "en-US"
+        },
+        "title": "Brooklyn Steel",
+        "address_line": "319 Frost Street, Brooklyn, NY 11222",
+        "address": "319 Frost Street",
+        "city": "Brooklyn",
+        "state": "NY",
+        "postalCode": "11222",
+        "country": "United States",
+        "countryCode": "US",
+        "timezone": "America/New_York",
+        "ada": null,
+        "keywords": [
+          "brooklin",
+          "brooklin steel",
+          "brooklin steele",
+          "brooklynne steel",
+          "brocklin steel",
+          "brooklynne steele",
+          "brockline steele",
+          "steele",
+          "stiele",
+          "steal",
+          "brooklin steal",
+          "brocklin steal"
+        ],
+        "skinCode": "brooklynsteel",
+        "currency": "USD",
+        "media": {
+          "10": {
+            "media_id": "4747789",
+            "width": 318,
+            "height": 187,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_10_64b9350c3237b.jpg"
+          },
+          "21": {
+            "media_id": "4747790",
+            "width": 678,
+            "height": 399,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_21_64b9350c59889.jpg"
+          },
+          "11": {
+            "media_id": "4747791",
+            "width": 238,
+            "height": 140,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_11_64b9350c7f6cc.jpg"
+          },
+          "12": {
+            "media_id": "4747792",
+            "width": 134,
+            "height": 79,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_12_64b9350c99151.jpg"
+          }
+        },
+        "links": [
+          {
+            "link_id": 1119712,
+            "link_title": "Parking",
+            "link_type_id": "17",
+            "link_href": "https://www.google.com/maps/dir//319+Frost+St,+Brooklyn,+NY+11222/@40.7193578,-73.9409722,17z/data=!3m1!4b1!4m9!4m8!1m0!1m5!1m1!1s0x89c2594d7e6716bb:0x1f9ee8f3055e8a46!2m2!1d-73.9387835!2d40.7193578!3e3",
+            "link_target": "_blank"
+          },
+          {
+            "link_id": 1119714,
+            "link_title": "Facebook Page Co-Host",
+            "link_type_id": "24",
+            "link_href": "https://www.facebook.com/bowerypresents/",
+            "link_target": "_blank"
+          },
+          {
+            "link_id": 1119715,
+            "link_title": "FAQ",
+            "link_type_id": "52",
+            "link_href": "https://www.bowerypresents.com/new-york-metro/contact-us/",
+            "link_target": "_blank"
+          }
+        ]
+      },
+      "associations": {
+        "performerIds": [],
+        "headliners": [],
+        "supportingActs": [],
+        "additionalPerformers": []
+      },
+      "media": {
+        "17": {
+          "media_id": "5517355",
+          "width": 678,
+          "height": 399,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_17_6afcb53e886c0.jpg"
+        },
+        "1": {
+          "media_id": "5517356",
+          "width": 318,
+          "height": 187,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_1_6afcb53ed67b6.jpg"
+        },
+        "2": {
+          "media_id": "5517357",
+          "width": 238,
+          "height": 140,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_2_6afcb53f236da.jpg"
+        },
+        "4": {
+          "media_id": "5517358",
+          "width": 134,
+          "height": 79,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_4_6afcb53f611dc.jpg"
+        },
+        "18": {
+          "media_id": "5517359",
+          "width": 564,
+          "height": 564,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_18_6afcb53f9f04e.jpg"
+        },
+        "3": {
+          "media_id": "5517360",
+          "width": 220,
+          "height": 220,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_3_6afcb53fe4253.jpg"
+        },
+        "23": {
+          "media_id": "5517361",
+          "width": 322,
+          "height": 322,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_23_6afcb540319e9.jpg"
+        },
+        "86": {
+          "media_id": "5517362",
+          "width": 1200,
+          "height": 628,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_86_6afcb54071515.jpg"
+        }
+      },
+      "relatedMedia": {
+        "1": {
+          "media_id": "5517356",
+          "width": 318,
+          "height": 187,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_1_6afcb53ed67b6.jpg"
+        },
+        "2": {
+          "media_id": "5517357",
+          "width": 238,
+          "height": 140,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_2_6afcb53f236da.jpg"
+        },
+        "3": {
+          "media_id": "5517360",
+          "width": 220,
+          "height": 220,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_3_6afcb53fe4253.jpg"
+        },
+        "4": {
+          "media_id": "5517358",
+          "width": 134,
+          "height": 79,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_4_6afcb53f611dc.jpg"
+        },
+        "23": {
+          "media_id": "5517361",
+          "width": 322,
+          "height": 322,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_23_6afcb540319e9.jpg"
+        },
+        "17": {
+          "media_id": "5517355",
+          "width": 678,
+          "height": 399,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_17_6afcb53e886c0.jpg"
+        },
+        "18": {
+          "media_id": "5517359",
+          "width": 564,
+          "height": 564,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_18_6afcb53f9f04e.jpg"
+        },
+        "86": {
+          "media_id": "5517362",
+          "width": 1200,
+          "height": 628,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/the-music-of-hey-arnold-live-tickets_01-16-27_86_6afcb54071515.jpg"
+        },
+        "81": {
+          "media_id": 0,
+          "width": "1770",
+          "height": "580",
+          "file_name": "https://s.axs.com/axs/bundles/aegaxs/images/defaults/1/1_1770_580.png"
+        },
+        "102": {
+          "media_id": 0,
+          "width": "860",
+          "height": "400",
+          "file_name": "https://s.axs.com/axs/bundles/aegaxs/images/defaults/1/1_860_400.png"
+        }
+      },
+      "links": [],
+      "olympics": null,
+      "keywords": []
+    },
+    {
+      "eventId": "1705126",
+      "active": true,
+      "createdUTC": "2026-11-16T21:35:47",
+      "modifiedUTC": "2026-11-17T22:18:04",
+      "locale": "en-US",
+      "localeAvailable": {
+        "1": "en-US"
+      },
+      "title": {
+        "presentedBy": null,
+        "presentedByText": null,
+        "headliners": "Nu Genea",
+        "headlinersText": "Nu Genea",
+        "supporting": null,
+        "supportingText": null,
+        "tour": "PEOPLE OF THE MOON",
+        "eventTitle": "Nu Genea",
+        "eventTitleText": "Nu Genea"
+      },
+      "age": "16 & Over",
+      "publishStatus": 1,
+      "private": false,
+      "currency": "USD",
+      "currencySymbol": "$",
+      "eventDateTime": "2027-02-20T20:00:00",
+      "eventDateTimeZone": "America/New_York",
+      "eventDateTimeZoneAbbr": "EST",
+      "eventDateTimeUTC": "2027-02-21T01:00:00",
+      "eventDateTimeISO": "2027-02-20T20:00:00-05:00",
+      "additionalDates": [],
+      "expirationDateTime": null,
+      "expirationDateTimeUTC": null,
+      "doorDateTime": "2027-02-20T19:00:00",
+      "doorDateTimeUTC": "2027-02-21T00:00:00",
+      "announceDateTime": "2026-11-17T17:00:00",
+      "announceDateTimeTimeZone": "America/New_York",
+      "announceDateTimeUTC": "2026-11-17T22:00:00",
+      "presaleDateTime": null,
+      "presaleDateTimeTimeZone": "America/New_York",
+      "presaleDateTimeUTC": null,
+      "presaleEndDateTime": null,
+      "presaleEndDateTimeTimeZone": "America/New_York",
+      "presaleEndDateTimeUTC": null,
+      "onsaleDateTime": "2026-11-20T12:00:00",
+      "onsaleDateTimeTimeZone": "America/New_York",
+      "onsaleDateTimeZoneAbbr": "EST",
+      "onsaleDateTimeUTC": "2026-11-20T17:00:00",
+      "ticketing": {
+        "statusId": 1,
+        "status": "Coming Soon",
+        "presaleURL": null,
+        "ticketURL": "https://shop.axs.com/?c=axs&e=21269401648189807",
+        "url": "https://www.axs.com/events/1705126/nu-genea-tickets",
+        "eventUrl": "https://www.axs.com/events/1705126/nu-genea-tickets",
+        "ticketLinkExists": true
+      },
+      "ticketPrice": null,
+      "ticketPriceLow": "$0",
+      "ticketPriceHigh": "$0",
+      "doorPrice": null,
+      "doorPriceLow": "$0",
+      "doorPriceHigh": "$0",
+      "bio": null,
+      "description": "Preferred Terrace includes access to a prime viewing area on second floor balcony and the adjacent Ludlow Lounge, including private restroom.",
+      "venue": {
+        "venueId": "126144",
+        "active": true,
+        "locale": "en-US",
+        "localeAvailable": {
+          "1": "en-US"
+        },
+        "title": "Brooklyn Steel",
+        "address_line": "319 Frost Street, Brooklyn, NY 11222",
+        "address": "319 Frost Street",
+        "city": "Brooklyn",
+        "state": "NY",
+        "postalCode": "11222",
+        "country": "United States",
+        "countryCode": "US",
+        "timezone": "America/New_York",
+        "ada": null,
+        "keywords": [
+          "brooklin",
+          "brooklin steel",
+          "brooklin steele",
+          "brooklynne steel",
+          "brocklin steel",
+          "brooklynne steele",
+          "brockline steele",
+          "steele",
+          "stiele",
+          "steal",
+          "brooklin steal",
+          "brocklin steal"
+        ],
+        "skinCode": "brooklynsteel",
+        "currency": "USD",
+        "media": {
+          "10": {
+            "media_id": "4747789",
+            "width": 318,
+            "height": 187,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_10_64b9350c3237b.jpg"
+          },
+          "21": {
+            "media_id": "4747790",
+            "width": 678,
+            "height": 399,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_21_64b9350c59889.jpg"
+          },
+          "11": {
+            "media_id": "4747791",
+            "width": 238,
+            "height": 140,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_11_64b9350c7f6cc.jpg"
+          },
+          "12": {
+            "media_id": "4747792",
+            "width": 134,
+            "height": 79,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_12_64b9350c99151.jpg"
+          }
+        },
+        "links": [
+          {
+            "link_id": 1119712,
+            "link_title": "Parking",
+            "link_type_id": "17",
+            "link_href": "https://www.google.com/maps/dir//319+Frost+St,+Brooklyn,+NY+11222/@40.7193578,-73.9409722,17z/data=!3m1!4b1!4m9!4m8!1m0!1m5!1m1!1s0x89c2594d7e6716bb:0x1f9ee8f3055e8a46!2m2!1d-73.9387835!2d40.7193578!3e3",
+            "link_target": "_blank"
+          },
+          {
+            "link_id": 1119714,
+            "link_title": "Facebook Page Co-Host",
+            "link_type_id": "24",
+            "link_href": "https://www.facebook.com/bowerypresents/",
+            "link_target": "_blank"
+          },
+          {
+            "link_id": 1119715,
+            "link_title": "FAQ",
+            "link_type_id": "52",
+            "link_href": "https://www.bowerypresents.com/new-york-metro/contact-us/",
+            "link_target": "_blank"
+          }
+        ]
+      },
+      "associations": {
+        "performerIds": [],
+        "headliners": [],
+        "supportingActs": [],
+        "additionalPerformers": []
+      },
+      "media": {
+        "17": {
+          "media_id": "5516268",
+          "width": 678,
+          "height": 399,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_17_6afb8283c858c.jpg"
+        },
+        "1": {
+          "media_id": "5516269",
+          "width": 318,
+          "height": 187,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_1_6afb828425bc7.jpg"
+        },
+        "2": {
+          "media_id": "5516270",
+          "width": 238,
+          "height": 140,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_2_6afb8284621cc.jpg"
+        },
+        "4": {
+          "media_id": "5516271",
+          "width": 134,
+          "height": 79,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_4_6afb82849e51c.jpg"
+        },
+        "18": {
+          "media_id": "5516272",
+          "width": 564,
+          "height": 564,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_18_6afb8284d869d.jpg"
+        },
+        "3": {
+          "media_id": "5516273",
+          "width": 220,
+          "height": 220,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_3_6afb8285349b5.jpg"
+        },
+        "23": {
+          "media_id": "5516274",
+          "width": 322,
+          "height": 322,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_23_6afb8285729e8.jpg"
+        },
+        "86": {
+          "media_id": "5516275",
+          "width": 1200,
+          "height": 628,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_86_6afb8285b2afe.jpg"
+        }
+      },
+      "relatedMedia": {
+        "1": {
+          "media_id": "5516269",
+          "width": 318,
+          "height": 187,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_1_6afb828425bc7.jpg"
+        },
+        "2": {
+          "media_id": "5516270",
+          "width": 238,
+          "height": 140,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_2_6afb8284621cc.jpg"
+        },
+        "3": {
+          "media_id": "5516273",
+          "width": 220,
+          "height": 220,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_3_6afb8285349b5.jpg"
+        },
+        "4": {
+          "media_id": "5516271",
+          "width": 134,
+          "height": 79,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_4_6afb82849e51c.jpg"
+        },
+        "23": {
+          "media_id": "5516274",
+          "width": 322,
+          "height": 322,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_23_6afb8285729e8.jpg"
+        },
+        "17": {
+          "media_id": "5516268",
+          "width": 678,
+          "height": 399,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_17_6afb8283c858c.jpg"
+        },
+        "18": {
+          "media_id": "5516272",
+          "width": 564,
+          "height": 564,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_18_6afb8284d869d.jpg"
+        },
+        "86": {
+          "media_id": "5516275",
+          "width": 1200,
+          "height": 628,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/nu-genea-tickets_02-20-27_86_6afb8285b2afe.jpg"
+        },
+        "81": {
+          "media_id": 0,
+          "width": "1770",
+          "height": "580",
+          "file_name": "https://s.axs.com/axs/bundles/aegaxs/images/defaults/1/1_1770_580.png"
+        },
+        "102": {
+          "media_id": 0,
+          "width": "860",
+          "height": "400",
+          "file_name": "https://s.axs.com/axs/bundles/aegaxs/images/defaults/1/1_860_400.png"
+        }
+      },
+      "links": [],
+      "olympics": null,
+      "keywords": []
+    },
+    {
+      "eventId": "1704414",
+      "active": true,
+      "createdUTC": "2026-11-13T21:10:52",
+      "modifiedUTC": "2026-11-18T19:58:14",
+      "locale": "en-US",
+      "localeAvailable": {
+        "1": "en-US"
+      },
+      "title": {
+        "presentedBy": null,
+        "presentedByText": null,
+        "headliners": "<a href=\"/artists/1118807/angrybaby-tickets\">Angrybaby</a>",
+        "headlinersText": "Angrybaby",
+        "supporting": "IN PARALLEL, <a href=\"/artists/1120603/jev-tickets\">JEV.</a>, Lutea",
+        "supportingText": "IN PARALLEL, JEV., Lutea",
+        "tour": null,
+        "eventTitle": "<a href=\"/artists/1118807/angrybaby-tickets\">Angrybaby</a>",
+        "eventTitleText": "Angrybaby"
+      },
+      "age": "21 & Over",
+      "publishStatus": 1,
+      "private": false,
+      "currency": "USD",
+      "currencySymbol": "$",
+      "eventDateTime": "2027-03-19T22:30:00",
+      "eventDateTimeZone": "America/New_York",
+      "eventDateTimeZoneAbbr": "EST",
+      "eventDateTimeUTC": "2027-03-20T02:30:00",
+      "eventDateTimeISO": "2027-03-19T22:30:00-04:00",
+      "additionalDates": [],
+      "expirationDateTime": null,
+      "expirationDateTimeUTC": null,
+      "doorDateTime": "2027-03-19T22:30:00",
+      "doorDateTimeUTC": "2027-03-20T02:30:00",
+      "announceDateTime": "2026-11-17T17:00:00",
+      "announceDateTimeTimeZone": "America/New_York",
+      "announceDateTimeUTC": "2026-11-17T22:00:00",
+      "presaleDateTime": null,
+      "presaleDateTimeTimeZone": "America/New_York",
+      "presaleDateTimeUTC": null,
+      "presaleEndDateTime": null,
+      "presaleEndDateTimeTimeZone": "America/New_York",
+      "presaleEndDateTimeUTC": null,
+      "onsaleDateTime": "2026-11-20T10:00:00",
+      "onsaleDateTimeTimeZone": "America/New_York",
+      "onsaleDateTimeZoneAbbr": "EST",
+      "onsaleDateTimeUTC": "2026-11-20T15:00:00",
+      "ticketing": {
+        "statusId": 1,
+        "status": "Coming Soon",
+        "presaleURL": null,
+        "ticketURL": "https://shop.axs.com/?c=axs&e=21269401648216079",
+        "url": "https://www.axs.com/events/1704414/angrybaby-tickets",
+        "eventUrl": "https://www.axs.com/events/1704414/angrybaby-tickets",
+        "ticketLinkExists": true
+      },
+      "ticketPrice": null,
+      "ticketPriceLow": "$0",
+      "ticketPriceHigh": "$0",
+      "doorPrice": null,
+      "doorPriceLow": "$0",
+      "doorPriceHigh": "$0",
+      "bio": null,
+      "description": "Preferred Terrace includes access to a prime viewing area on second floor balcony and the adjacent Ludlow Lounge, including private restroom.",
+      "venue": {
+        "venueId": "126144",
+        "active": true,
+        "locale": "en-US",
+        "localeAvailable": {
+          "1": "en-US"
+        },
+        "title": "Brooklyn Steel",
+        "address_line": "319 Frost Street, Brooklyn, NY 11222",
+        "address": "319 Frost Street",
+        "city": "Brooklyn",
+        "state": "NY",
+        "postalCode": "11222",
+        "country": "United States",
+        "countryCode": "US",
+        "timezone": "America/New_York",
+        "ada": null,
+        "keywords": [
+          "brooklin",
+          "brooklin steel",
+          "brooklin steele",
+          "brooklynne steel",
+          "brocklin steel",
+          "brooklynne steele",
+          "brockline steele",
+          "steele",
+          "stiele",
+          "steal",
+          "brooklin steal",
+          "brocklin steal"
+        ],
+        "skinCode": "brooklynsteel",
+        "currency": "USD",
+        "media": {
+          "10": {
+            "media_id": "4747789",
+            "width": 318,
+            "height": 187,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_10_64b9350c3237b.jpg"
+          },
+          "21": {
+            "media_id": "4747790",
+            "width": 678,
+            "height": 399,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_21_64b9350c59889.jpg"
+          },
+          "11": {
+            "media_id": "4747791",
+            "width": 238,
+            "height": 140,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_11_64b9350c7f6cc.jpg"
+          },
+          "12": {
+            "media_id": "4747792",
+            "width": 134,
+            "height": 79,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_12_64b9350c99151.jpg"
+          }
+        },
+        "links": [
+          {
+            "link_id": 1119712,
+            "link_title": "Parking",
+            "link_type_id": "17",
+            "link_href": "https://www.google.com/maps/dir//319+Frost+St,+Brooklyn,+NY+11222/@40.7193578,-73.9409722,17z/data=!3m1!4b1!4m9!4m8!1m0!1m5!1m1!1s0x89c2594d7e6716bb:0x1f9ee8f3055e8a46!2m2!1d-73.9387835!2d40.7193578!3e3",
+            "link_target": "_blank"
+          },
+          {
+            "link_id": 1119714,
+            "link_title": "Facebook Page Co-Host",
+            "link_type_id": "24",
+            "link_href": "https://www.facebook.com/bowerypresents/",
+            "link_target": "_blank"
+          },
+          {
+            "link_id": 1119715,
+            "link_title": "FAQ",
+            "link_type_id": "52",
+            "link_href": "https://www.bowerypresents.com/new-york-metro/contact-us/",
+            "link_target": "_blank"
+          }
+        ]
+      },
+      "associations": {
+        "performerIds": [
+          "1118807",
+          "1120603"
+        ],
+        "headliners": [
+          {
+            "performerId": "1118807",
+            "active": true,
+            "locale": "en-US",
+            "keywords": [
+              "AngryBaby",
+              "Angry Baby"
+            ],
+            "bio": null,
+            "media": {
+              "19": {
+                "media_id": 5034046,
+                "width": 678,
+                "height": 399,
+                "file_name": "https://images.discovery-prod.axs.com/2024/11/angrybaby_11-12-24_19_6732b87bdf807.jpg"
+              },
+              "5": {
+                "media_id": 5034047,
+                "width": 318,
+                "height": 187,
+                "file_name": "https://images.discovery-prod.axs.com/2024/11/angrybaby_11-12-24_5_6732b87cc0a47.jpg"
+              },
+              "6": {
+                "media_id": 5034048,
+                "width": 238,
+                "height": 140,
+                "file_name": "https://images.discovery-prod.axs.com/2024/11/angrybaby_11-12-24_6_6732b87d1ba89.jpg"
+              },
+              "9": {
+                "media_id": 5034049,
+                "width": 134,
+                "height": 79,
+                "file_name": "https://images.discovery-prod.axs.com/2024/11/angrybaby_11-12-24_9_6732b87ea46df.jpg"
+              },
+              "20": {
+                "media_id": 5034050,
+                "width": 564,
+                "height": 564,
+                "file_name": "https://images.discovery-prod.axs.com/2024/11/angrybaby_11-12-24_20_6732b87f0809e.jpg"
+              },
+              "7": {
+                "media_id": 5034051,
+                "width": 220,
+                "height": 220,
+                "file_name": "https://images.discovery-prod.axs.com/2024/11/angrybaby_11-12-24_7_6732b87f53541.jpg"
+              },
+              "24": {
+                "media_id": 5034052,
+                "width": 322,
+                "height": 322,
+                "file_name": "https://images.discovery-prod.axs.com/2024/11/angrybaby_11-12-24_24_6732b87f9327f.jpg"
+              },
+              "88": {
+                "media_id": 5034053,
+                "width": 1200,
+                "height": 628,
+                "file_name": "https://images.discovery-prod.axs.com/2024/11/angrybaby_11-12-24_88_6732b87fd4e6a.jpg"
+              }
+            },
+            "links": [
+              {
+                "link_id": 1113904,
+                "link_title": "Facebook Page",
+                "link_type_id": "12",
+                "link_href": "https://www.facebook.com/angrybabywah/",
+                "link_target": "_blank"
+              },
+              {
+                "link_id": 1113905,
+                "link_title": "Instagram",
+                "link_type_id": "49",
+                "link_href": "https://www.instagram.com/angrybaby_music/",
+                "link_target": "_blank"
+              }
+            ]
+          }
+        ],
+        "supportingActs": [
+          {
+            "performerId": "1120603",
+            "active": true,
+            "locale": "en-US",
+            "keywords": [],
+            "bio": null,
+            "media": {
+              "19": {
+                "media_id": 5339724,
+                "width": 678,
+                "height": 399,
+                "file_name": "https://images.discovery-prod.axs.com/2026/03/jev_03-06-26_19_69aabf5d69ca7.png"
+              },
+              "5": {
+                "media_id": 5339725,
+                "width": 318,
+                "height": 187,
+                "file_name": "https://images.discovery-prod.axs.com/2026/03/jev_03-06-26_5_69aabf5dc1f02.png"
+              },
+              "6": {
+                "media_id": 5339726,
+                "width": 238,
+                "height": 140,
+                "file_name": "https://images.discovery-prod.axs.com/2026/03/jev_03-06-26_6_69aabf5e05399.png"
+              },
+              "9": {
+                "media_id": 5339727,
+                "width": 134,
+                "height": 79,
+                "file_name": "https://images.discovery-prod.axs.com/2026/03/jev_03-06-26_9_69aabf5e38613.png"
+              },
+              "20": {
+                "media_id": 5339728,
+                "width": 564,
+                "height": 564,
+                "file_name": "https://images.discovery-prod.axs.com/2026/03/jev_03-06-26_20_69aabf5e9cbf1.png"
+              },
+              "7": {
+                "media_id": 5339729,
+                "width": 220,
+                "height": 220,
+                "file_name": "https://images.discovery-prod.axs.com/2026/03/jev_03-06-26_7_69aabf5ede48e.png"
+              },
+              "24": {
+                "media_id": 5339730,
+                "width": 322,
+                "height": 322,
+                "file_name": "https://images.discovery-prod.axs.com/2026/03/jev_03-06-26_24_69aabf5f313d0.png"
+              }
+            },
+            "links": [
+              {
+                "link_id": "1116202",
+                "link_title": "Official Website",
+                "link_type_id": "8",
+                "link_href": "https://www.thelonerjev.com/",
+                "link_target": "_none"
+              },
+              {
+                "link_id": "1116203",
+                "link_title": "Instagram",
+                "link_type_id": "49",
+                "link_href": "https://www.instagram.com/thelonerjev/",
+                "link_target": "_none"
+              }
+            ]
+          }
+        ],
+        "additionalPerformers": []
+      },
+      "media": {
+        "17": {
+          "media_id": "5514470",
+          "width": 678,
+          "height": 399,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_17_6af784c6d1379.jpg"
+        },
+        "1": {
+          "media_id": "5514471",
+          "width": 318,
+          "height": 187,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_1_6af784c73532a.jpg"
+        },
+        "2": {
+          "media_id": "5514472",
+          "width": 238,
+          "height": 140,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_2_6af784c777157.jpg"
+        },
+        "4": {
+          "media_id": "5514473",
+          "width": 134,
+          "height": 79,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_4_6af784c7b78f1.jpg"
+        },
+        "18": {
+          "media_id": "5514474",
+          "width": 564,
+          "height": 564,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_18_6af784c808458.jpg"
+        },
+        "3": {
+          "media_id": "5514475",
+          "width": 220,
+          "height": 220,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_3_6af784c84706c.jpg"
+        },
+        "23": {
+          "media_id": "5514476",
+          "width": 322,
+          "height": 322,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_23_6af784c88ad3c.jpg"
+        },
+        "86": {
+          "media_id": "5514477",
+          "width": 1200,
+          "height": 628,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_86_6af784c8caa24.jpg"
+        }
+      },
+      "relatedMedia": {
+        "1": {
+          "media_id": "5514471",
+          "width": 318,
+          "height": 187,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_1_6af784c73532a.jpg"
+        },
+        "2": {
+          "media_id": "5514472",
+          "width": 238,
+          "height": 140,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_2_6af784c777157.jpg"
+        },
+        "3": {
+          "media_id": "5514475",
+          "width": 220,
+          "height": 220,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_3_6af784c84706c.jpg"
+        },
+        "4": {
+          "media_id": "5514473",
+          "width": 134,
+          "height": 79,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_4_6af784c7b78f1.jpg"
+        },
+        "23": {
+          "media_id": "5514476",
+          "width": 322,
+          "height": 322,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_23_6af784c88ad3c.jpg"
+        },
+        "17": {
+          "media_id": "5514470",
+          "width": 678,
+          "height": 399,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_17_6af784c6d1379.jpg"
+        },
+        "18": {
+          "media_id": "5514474",
+          "width": 564,
+          "height": 564,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_18_6af784c808458.jpg"
+        },
+        "86": {
+          "media_id": "5514477",
+          "width": 1200,
+          "height": 628,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/angrybaby-tickets_03-19-27_86_6af784c8caa24.jpg"
+        },
+        "81": {
+          "media_id": 0,
+          "width": "1770",
+          "height": "580",
+          "file_name": "https://s.axs.com/axs/bundles/aegaxs/images/defaults/1/1_1770_580.png"
+        },
+        "102": {
+          "media_id": 0,
+          "width": "860",
+          "height": "400",
+          "file_name": "https://s.axs.com/axs/bundles/aegaxs/images/defaults/1/1_860_400.png"
+        }
+      },
+      "links": [
+        {
+          "link_id": 1113904,
+          "link_title": "Facebook Page",
+          "link_type_id": "12",
+          "link_href": "https://www.facebook.com/angrybabywah/",
+          "link_target": "_blank"
+        }
+      ],
+      "olympics": null,
+      "keywords": []
+    },
+    {
+      "eventId": "1694427",
+      "active": true,
+      "createdUTC": "2026-11-05T19:21:10",
+      "modifiedUTC": "2026-11-10T16:36:38",
+      "locale": "en-US",
+      "localeAvailable": {
+        "1": "en-US"
+      },
+      "title": {
+        "presentedBy": null,
+        "presentedByText": null,
+        "headliners": "<a href=\"/artists/802441/whitney-tickets\">Whitney</a>",
+        "headlinersText": "Whitney",
+        "supporting": "w/ Tyler Ballgame",
+        "supportingText": "w/ Tyler Ballgame",
+        "tour": "Light Upon The Lake (10th Anniversary Tour)",
+        "eventTitle": "<a href=\"/artists/802441/whitney-tickets\">Whitney</a>",
+        "eventTitleText": "Whitney"
+      },
+      "age": "16 & Over",
+      "publishStatus": 1,
+      "private": false,
+      "currency": "USD",
+      "currencySymbol": "$",
+      "eventDateTime": "2027-06-18T20:00:00",
+      "eventDateTimeZone": "America/New_York",
+      "eventDateTimeZoneAbbr": "EST",
+      "eventDateTimeUTC": "2027-06-19T00:00:00",
+      "eventDateTimeISO": "2027-06-18T20:00:00-04:00",
+      "additionalDates": [],
+      "expirationDateTime": null,
+      "expirationDateTimeUTC": null,
+      "doorDateTime": "2027-06-18T19:00:00",
+      "doorDateTimeUTC": "2027-06-18T23:00:00",
+      "announceDateTime": "2026-11-10T10:00:00",
+      "announceDateTimeTimeZone": "America/New_York",
+      "announceDateTimeUTC": "2026-11-10T15:00:00",
+      "presaleDateTime": null,
+      "presaleDateTimeTimeZone": "America/New_York",
+      "presaleDateTimeUTC": null,
+      "presaleEndDateTime": null,
+      "presaleEndDateTimeTimeZone": "America/New_York",
+      "presaleEndDateTimeUTC": null,
+      "onsaleDateTime": "2026-11-13T10:00:00",
+      "onsaleDateTimeTimeZone": "America/New_York",
+      "onsaleDateTimeZoneAbbr": "EST",
+      "onsaleDateTimeUTC": "2026-11-13T15:00:00",
+      "ticketing": {
+        "statusId": 1,
+        "status": "Buy Tickets",
+        "presaleURL": null,
+        "ticketURL": "https://shop.axs.com/?c=axs&e=21269401648088704",
+        "url": "https://www.axs.com/events/1694427/whitney-tickets",
+        "eventUrl": "https://www.axs.com/events/1694427/whitney-tickets",
+        "ticketLinkExists": true
+      },
+      "ticketPrice": null,
+      "ticketPriceLow": "$0",
+      "ticketPriceHigh": "$0",
+      "doorPrice": null,
+      "doorPriceLow": "$0",
+      "doorPriceHigh": "$0",
+      "bio": "<p><strong>Whitney Small Talk Tour 2026 - US / Canada</strong></p>\r\n<p>Whitney return to the road in 2026 with a North American tour celebrating their forthcoming fourth studio album <em>Small Talk</em> (out November 7, 2025). Formed in Chicago in 2015 by Julien Ehrlich and Max Kakacek, the band has earned a devoted following for their soulful blend of tender melancholy and radiant warmth.</p>\r\n<p>Their debut <em>Light Upon the Lake</em> introduced Whitney with the beloved single &ldquo;No Woman,&rdquo; earning Pitchfork&rsquo;s coveted Best New Music designation and praise for its &ldquo;<em>near flawless&hellip; low-key perfectionism</em>.&rdquo; Nearly a decade later, the band continues to evolve while preserving the intimacy and spirit that made them so cherished from the start.</p>\r\n<p>On this run, Whitney will share new songs from <em>Small Talk</em> alongside fan favorites, bringing their signature mix of laid-back charm and intricate musicianship to stages across the US and Canada, with stops in Los Angeles, Brooklyn, Toronto, Montreal, and more.</p>\r\n<p>&ldquo;<em>If you&rsquo;ve ever seen Whitney live, you already know what a treasure their performances are. The Chicago-based outfit, led by the effortlessly cool Julien Ehrlich and Max Kakacek, has a gift for crafting songs that feel both timeless and deeply personal - sunny yet melancholic, tender yet bold</em>.&rdquo; - We Write About Music</p>\r\n<p><strong>Follow Whitney</strong></p>\r\n<p>Instagram | TikTok | Website Bandcamp | Apple Music | Spotify</p>",
+      "description": "Preferred Terrace includes access to a prime viewing area on second floor balcony and the adjacent Ludlow Lounge, including private restroom.",
+      "venue": {
+        "venueId": "126144",
+        "active": true,
+        "locale": "en-US",
+        "localeAvailable": {
+          "1": "en-US"
+        },
+        "title": "Brooklyn Steel",
+        "address_line": "319 Frost Street, Brooklyn, NY 11222",
+        "address": "319 Frost Street",
+        "city": "Brooklyn",
+        "state": "NY",
+        "postalCode": "11222",
+        "country": "United States",
+        "countryCode": "US",
+        "timezone": "America/New_York",
+        "ada": null,
+        "keywords": [
+          "brooklin",
+          "brooklin steel",
+          "brooklin steele",
+          "brooklynne steel",
+          "brocklin steel",
+          "brooklynne steele",
+          "brockline steele",
+          "steele",
+          "stiele",
+          "steal",
+          "brooklin steal",
+          "brocklin steal"
+        ],
+        "skinCode": "brooklynsteel",
+        "currency": "USD",
+        "media": {
+          "10": {
+            "media_id": "4747789",
+            "width": 318,
+            "height": 187,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_10_64b9350c3237b.jpg"
+          },
+          "21": {
+            "media_id": "4747790",
+            "width": 678,
+            "height": 399,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_21_64b9350c59889.jpg"
+          },
+          "11": {
+            "media_id": "4747791",
+            "width": 238,
+            "height": 140,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_11_64b9350c7f6cc.jpg"
+          },
+          "12": {
+            "media_id": "4747792",
+            "width": 134,
+            "height": 79,
+            "file_name": "https://images.discovery-prod.axs.com/2023/07/brooklyn-steel_brooklyn_07-20-23_12_64b9350c99151.jpg"
+          }
+        },
+        "links": [
+          {
+            "link_id": 1119712,
+            "link_title": "Parking",
+            "link_type_id": "17",
+            "link_href": "https://www.google.com/maps/dir//319+Frost+St,+Brooklyn,+NY+11222/@40.7193578,-73.9409722,17z/data=!3m1!4b1!4m9!4m8!1m0!1m5!1m1!1s0x89c2594d7e6716bb:0x1f9ee8f3055e8a46!2m2!1d-73.9387835!2d40.7193578!3e3",
+            "link_target": "_blank"
+          },
+          {
+            "link_id": 1119714,
+            "link_title": "Facebook Page Co-Host",
+            "link_type_id": "24",
+            "link_href": "https://www.facebook.com/bowerypresents/",
+            "link_target": "_blank"
+          },
+          {
+            "link_id": 1119715,
+            "link_title": "FAQ",
+            "link_type_id": "52",
+            "link_href": "https://www.bowerypresents.com/new-york-metro/contact-us/",
+            "link_target": "_blank"
+          }
+        ]
+      },
+      "associations": {
+        "performerIds": [
+          "802441"
+        ],
+        "headliners": [
+          {
+            "performerId": "802441",
+            "active": true,
+            "locale": "en-US",
+            "keywords": [],
+            "bio": "<p><strong>Whitney Small Talk Tour 2026 - US / Canada</strong></p>\r\n<p>Whitney return to the road in 2026 with a North American tour celebrating their forthcoming fourth studio album <em>Small Talk</em> (out November 7, 2025). Formed in Chicago in 2015 by Julien Ehrlich and Max Kakacek, the band has earned a devoted following for their soulful blend of tender melancholy and radiant warmth.</p>\r\n<p>Their debut <em>Light Upon the Lake</em> introduced Whitney with the beloved single &ldquo;No Woman,&rdquo; earning Pitchfork&rsquo;s coveted Best New Music designation and praise for its &ldquo;<em>near flawless&hellip; low-key perfectionism</em>.&rdquo; Nearly a decade later, the band continues to evolve while preserving the intimacy and spirit that made them so cherished from the start.</p>\r\n<p>On this run, Whitney will share new songs from <em>Small Talk</em> alongside fan favorites, bringing their signature mix of laid-back charm and intricate musicianship to stages across the US and Canada, with stops in Los Angeles, Brooklyn, Toronto, Montreal, and more.</p>\r\n<p>&ldquo;<em>If you&rsquo;ve ever seen Whitney live, you already know what a treasure their performances are. The Chicago-based outfit, led by the effortlessly cool Julien Ehrlich and Max Kakacek, has a gift for crafting songs that feel both timeless and deeply personal - sunny yet melancholic, tender yet bold</em>.&rdquo; - We Write About Music</p>\r\n<p><strong>Follow Whitney</strong></p>\r\n<p>Instagram | TikTok | Website Bandcamp | Apple Music | Spotify</p>",
+            "media": {
+              "103": {
+                "media_id": "3840831",
+                "width": 860,
+                "height": 400,
+                "file_name": "https://images.discovery-prod.axs.com/2017/05/whitney_05-10-17_103_591352526ff11.jpg"
+              },
+              "19": {
+                "media_id": 5332579,
+                "width": 678,
+                "height": 399,
+                "file_name": "https://images.discovery-prod.axs.com/2026/02/whitney_02-24-26_19_699de394f0f68.png"
+              },
+              "5": {
+                "media_id": 5332580,
+                "width": 318,
+                "height": 187,
+                "file_name": "https://images.discovery-prod.axs.com/2026/02/whitney_02-24-26_5_699de39558902.png"
+              },
+              "6": {
+                "media_id": 5332581,
+                "width": 238,
+                "height": 140,
+                "file_name": "https://images.discovery-prod.axs.com/2026/02/whitney_02-24-26_6_699de39590d8f.png"
+              },
+              "9": {
+                "media_id": 5332582,
+                "width": 134,
+                "height": 79,
+                "file_name": "https://images.discovery-prod.axs.com/2026/02/whitney_02-24-26_9_699de395c412b.png"
+              },
+              "20": {
+                "media_id": 5332583,
+                "width": 564,
+                "height": 564,
+                "file_name": "https://images.discovery-prod.axs.com/2026/02/whitney_02-24-26_20_699de396404f5.png"
+              },
+              "7": {
+                "media_id": 5332584,
+                "width": 220,
+                "height": 220,
+                "file_name": "https://images.discovery-prod.axs.com/2026/02/whitney_02-24-26_7_699de39685a76.png"
+              },
+              "24": {
+                "media_id": 5332585,
+                "width": 322,
+                "height": 322,
+                "file_name": "https://images.discovery-prod.axs.com/2026/02/whitney_02-24-26_24_699de396cc39e.png"
+              },
+              "88": {
+                "media_id": 5332586,
+                "width": 1200,
+                "height": 628,
+                "file_name": "https://images.discovery-prod.axs.com/2026/02/whitney_02-24-26_88_699de3971c6dc.png"
+              }
+            },
+            "links": [
+              {
+                "link_id": "1044100",
+                "link_title": "Facebook",
+                "link_type_id": "12",
+                "link_href": "https://www.facebook.com/whitneychicago",
+                "link_target": "_blank"
+              },
+              {
+                "link_id": "1044101",
+                "link_title": "Twitter",
+                "link_type_id": "13",
+                "link_href": "https://twitter.com/whitneytheband",
+                "link_target": "_blank"
+              },
+              {
+                "link_id": "1044102",
+                "link_title": "Instagram",
+                "link_type_id": "49",
+                "link_href": "https://www.instagram.com/whitneyband/",
+                "link_target": "_blank"
+              },
+              {
+                "link_id": "1060054",
+                "link_title": "Official Website",
+                "link_type_id": "8",
+                "link_href": "http://www.whitneytheband.com/",
+                "link_target": "_blank"
+              },
+              {
+                "link_id": "1060055",
+                "link_title": "Featured Video",
+                "link_type_id": "15",
+                "link_href": "https://www.youtube.com/watch?v=SN-9ZAr2ePQ",
+                "link_target": "_blank"
+              },
+              {
+                "link_id": "1065535",
+                "link_title": "Youtube VEVO",
+                "link_type_id": "14",
+                "link_href": "https://www.youtube.com/channel/UClrvAC9LGEZGYENaIyubpig",
+                "link_target": "_blank"
+              }
+            ]
+          }
+        ],
+        "supportingActs": [],
+        "additionalPerformers": []
+      },
+      "media": {
+        "17": {
+          "media_id": "5507582",
+          "width": 678,
+          "height": 399,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_17_6aee06bf9f502.jpg"
+        },
+        "1": {
+          "media_id": "5507583",
+          "width": 318,
+          "height": 187,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_1_6aee06bfe87c5.jpg"
+        },
+        "2": {
+          "media_id": "5507584",
+          "width": 238,
+          "height": 140,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_2_6aee06c02d075.jpg"
+        },
+        "4": {
+          "media_id": "5507585",
+          "width": 134,
+          "height": 79,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_4_6aee06c068b00.jpg"
+        },
+        "18": {
+          "media_id": "5507586",
+          "width": 564,
+          "height": 564,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_18_6aee06c0a2fa5.jpg"
+        },
+        "3": {
+          "media_id": "5507587",
+          "width": 220,
+          "height": 220,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_3_6aee06c0dc864.jpg"
+        },
+        "23": {
+          "media_id": "5507588",
+          "width": 322,
+          "height": 322,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_23_6aee06c122ef0.jpg"
+        },
+        "86": {
+          "media_id": "5507589",
+          "width": 1200,
+          "height": 628,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_86_6aee06c16148b.jpg"
+        }
+      },
+      "relatedMedia": {
+        "1": {
+          "media_id": "5507583",
+          "width": 318,
+          "height": 187,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_1_6aee06bfe87c5.jpg"
+        },
+        "2": {
+          "media_id": "5507584",
+          "width": 238,
+          "height": 140,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_2_6aee06c02d075.jpg"
+        },
+        "3": {
+          "media_id": "5507587",
+          "width": 220,
+          "height": 220,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_3_6aee06c0dc864.jpg"
+        },
+        "4": {
+          "media_id": "5507585",
+          "width": 134,
+          "height": 79,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_4_6aee06c068b00.jpg"
+        },
+        "23": {
+          "media_id": "5507588",
+          "width": 322,
+          "height": 322,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_23_6aee06c122ef0.jpg"
+        },
+        "17": {
+          "media_id": "5507582",
+          "width": 678,
+          "height": 399,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_17_6aee06bf9f502.jpg"
+        },
+        "18": {
+          "media_id": "5507586",
+          "width": 564,
+          "height": 564,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_18_6aee06c0a2fa5.jpg"
+        },
+        "86": {
+          "media_id": "5507589",
+          "width": 1200,
+          "height": 628,
+          "file_name": "https://images.discovery-prod.axs.com/2026/11/whitney-tickets_06-18-27_86_6aee06c16148b.jpg"
+        },
+        "81": {
+          "media_id": 0,
+          "width": "1770",
+          "height": "580",
+          "file_name": "https://s.axs.com/axs/bundles/aegaxs/images/defaults/1/1_1770_580.png"
+        },
+        "102": {
+          "media_id": "3840831",
+          "width": 860,
+          "height": 400,
+          "file_name": "https://images.discovery-prod.axs.com/2017/05/whitney_05-10-17_103_591352526ff11.jpg"
+        }
+      },
+      "links": [
+        {
+          "link_id": "1044100",
+          "link_title": "Facebook",
+          "link_type_id": "12",
+          "link_href": "https://www.facebook.com/whitneychicago",
+          "link_target": "_blank"
+        },
+        {
+          "link_id": "1044101",
+          "link_title": "Twitter",
+          "link_type_id": "13",
+          "link_href": "https://twitter.com/whitneytheband",
+          "link_target": "_blank"
+        },
+        {
+          "link_id": "1060055",
+          "link_title": "Featured Video",
+          "link_type_id": "15",
+          "link_href": "https://www.youtube.com/watch?v=SN-9ZAr2ePQ",
+          "link_target": "_blank"
+        }
+      ],
+      "olympics": null,
+      "keywords": []
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    "headline": "Here are the best things to do in NYC this week, Nov 16–22",
+    "name": "Best Things to do in NYC This Week from Nov 16–22",
+    "image": "https://media.timeout.com/images/102744678/image.jpg",
+    "thumbnailUrl": "https://media.timeout.com/images/102744678/image.jpg",
+    "description": "The best things to do in NYC this week include a Stanley Kubrick retrospective, the third annual Yalla Fest and more.",
+    "author": [
+      {
+        "name": "Rachel Askinasi",
+        "@type": "Person",
+        "url": "https://www.timeout.com/profile/rachel-askinasi"
+      },
+      {
+        "name": "Christina Izzo",
+        "@type": "Person",
+        "url": "https://www.timeout.com/profile/christina-izzo"
+      }
+    ],
+    "creator": "Rachel Askinasi",
+    "publisher": {
+      "@type": "Organization",
+      "name": "Time Out",
+      "url": "https://www.timeout.com/newyork",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://www.timeout.com/dist/img/TO_logo2x.png"
+      }
+    },
+    "datePublished": "2026-11-16T05:00:00Z",
+    "dateModified": "2026-11-16T22:04:36Z",
+    "url": "https://www.timeout.com/newyork/things-to-do/things-to-do-in-new-york-this-week",
+    "keywords": [
+      "Things to do",
+      "Good for: Big name talent",
+      "Good for: Lively scene",
+      "Good for: Girls' night out",
+      "Good for: Culture vultures",
+      "Good for: Good for: Going in a group",
+      "Good for: Local flavor",
+      "Good for: Vibe: Late night",
+      "Good for: Local talent",
+      "dating: Good for: Date night",
+      "dating: Socializing",
+      "Categories: Things to do",
+      "Adults: Students"
+    ],
+    "articleSection": "New York"
+  }
+]

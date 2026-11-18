@@ -48,27 +48,27 @@
       "content_mode": "event",
       "canonical_url": "https://www.bowerypresents.com/brooklyn-steel/",
       "operational_status": "active_confirmed",
-      "api_evidence_url": null,
+      "api_evidence_url": "https://aegwebprod.blob.core.windows.net/json/resources/8/events/d099bg4x01/events.json",
       "feed_evidence_url": null,
       "jsonld_present": false,
-      "robots_and_terms_notes": "robots.txt returned 200 and permitted the site path. Venue-specific Bowery Presents page is server-readable and currently shows dates through May 2027. No event feed or documented official API found; terms for personal reuse not fully reviewed.",
-      "recommended_method": "structured_html",
+      "robots_and_terms_notes": "The official Brooklyn Steel page links the public AEG/AXS JSON events endpoint. The AEG blob-host robots URL returned HTTP 400 (invalid input), so no directives were available there; the endpoint was fetched once at low rate. Terms for automated personal reuse not conclusively reviewed.",
+      "recommended_method": "official_api",
       "confidence": "high",
       "estimated_effort": "low",
-      "event_horizon_days": 184,
-      "event_horizon_note": "Observed up to about 184 days from the 2026-11-18 snapshot; not a guaranteed maximum.",
+      "event_horizon_days": 336,
+      "event_horizon_note": "The linked venue-filtered payload includes a Brooklyn Steel event through Oct 20, 2027 (336 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Listings change as announcements are made; cadence not published.",
       "dedupe_strategy": "Canonical show URL; fallback Brooklyn Steel + local start date/time + headliner",
-      "ticketing_platform": "Bowery Presents ticket links (Ticketmaster on associated venues; confirm per event)",
-      "site_platform": "Bowery Presents custom event site",
+      "ticketing_platform": "AXS",
+      "site_platform": "AEG/AXS public JSON event feed (distinct from Bowery Ballroom’s WordPress event plugin)",
       "needs_rendering": false,
-      "stable_event_id": "Canonical show URL; ticket link may include a Ticketmaster event ID",
+      "stable_event_id": "AXS eventId",
       "lineup_detail": "Headliners and selected support acts appear on show cards; doors time is listed.",
-      "sample_fixture": "docs/sources/fixtures/brooklyn-steel.html",
+      "sample_fixture": "docs/sources/fixtures/brooklyn-steel.json",
       "evidence_urls": [
         "https://www.bowerypresents.com/brooklyn-steel/"
       ],
-      "observed_page_note": "Same Bowery Presents presentation as Music Hall of Williamsburg, but use venue-filtered page.",
+      "observed_page_note": "Official page links an AEG/AXS JSON resource shared across venues; filter records by venue.title == Brooklyn Steel.",
       "event_jsonld_present": false,
       "article_jsonld_present": null
     },
@@ -85,8 +85,8 @@
       "recommended_method": "structured_html",
       "confidence": "high",
       "estimated_effort": "medium",
-      "event_horizon_days": null,
-      "event_horizon_note": "Not measured in this pass.",
+      "event_horizon_days": 7,
+      "event_horizon_note": "Visible server-rendered cards run through Nov 25, 2026 (7 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Current calendar appears maintained; exact cadence not published.",
       "dedupe_strategy": "Canonical event URL; normalize paid add-ons and multi-night passes away from the primary show, then venue + time + title",
       "ticketing_platform": "Ticketing provider not resolved from event list",
@@ -109,29 +109,32 @@
       "content_mode": "event",
       "canonical_url": "https://www.msg.com/beacon-theatre",
       "operational_status": "access_blocked_or_stale_url",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "AXS",
+      "site_platform": "MSG venue page; calendar path is disallowed by robots",
       "recommended_method": "manual",
       "confidence": "low",
-      "notes": "Light pass access issue: original URL failed or direct access was blocked; canonical/status needs follow-up.",
+      "notes": "Light pass: MSG robots.txt returned HTTP 200 and disallows /beacon-theatre/calendar; the registry URL returned HTTP 404. Current canonical page is https://www.msg.com/beacon-theatre, but its calendar path is disallowed. AXS is the ticket vendor linked from the venue page.",
       "evidence_urls": [
         "https://www.msg.com/beacon-theatre"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "music-hall-williamsburg": {
       "name": "Music Hall of Williamsburg",
       "priority": "conditional",
       "content_mode": "event",
-      "canonical_url": "https://www.bowerypresents.com",
-      "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "canonical_url": "https://www.bowerypresents.com/music-hall-of-williamsburg/",
+      "operational_status": "active_confirmed",
+      "ticketing_platform": "AEG/AXS",
+      "site_platform": "AEG/AXS event pages",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass plus status follow-up: the official Music Hall page remains on the AEG/Bowery venue family and lists shows during the venue’s final weeks; the location is slated to close after 2026. The direct homepage probe returned HTTP 200 for The Bowery Presents. AEG/AXS powers the shared event pages. No horizon or terms assessment in the light pass.",
       "evidence_urls": [
-        "https://www.bowerypresents.com"
-      ]
+        "https://www.bowerypresents.com/music-hall-of-williamsburg/",
+        "https://www.bowerypresents.com/"
+      ],
+      "event_jsonld_present": false
     },
     "babys-all-right": {
       "name": "Baby's All Right",
@@ -139,14 +142,15 @@
       "content_mode": "event",
       "canonical_url": "https://babysallright.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "Squarespace",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://babysallright.com, page title \"Baby's All Right\". Ticket/platform evidence: not visible on sampled homepage; site platform: Squarespace. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://babysallright.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "kings-theatre": {
       "name": "Kings Theatre",
@@ -154,14 +158,15 @@
       "content_mode": "event",
       "canonical_url": "https://us.atgtickets.com/venues/kings-theatre-brooklyn/whats-on/",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "ATG Tickets",
+      "site_platform": "ATG Tickets",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://us.atgtickets.com/venues/kings-theatre-brooklyn/whats-on/, page title \"What's On | Upcoming Events at Kings Theatre | Official Box Office | ATG Tickets\". Ticket/platform evidence: ATG Tickets; site platform: ATG Tickets. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://us.atgtickets.com/venues/kings-theatre-brooklyn/whats-on/"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "forest-hills": {
       "name": "Forest Hills Stadium",
@@ -169,14 +174,15 @@
       "content_mode": "event",
       "canonical_url": "https://foresthillsstadium.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "platform not identified from homepage",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://foresthillsstadium.com, page title 'Forest Hills Stadium'. Ticket/platform evidence: not visible on sampled homepage; site platform: platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://foresthillsstadium.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "brooklyn-paramount": {
       "name": "Brooklyn Paramount",
@@ -184,14 +190,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.brooklynparamount.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "Ticketmaster",
+      "site_platform": "platform not identified from sampled homepage",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.brooklynparamount.com, page title ''. Ticket/platform evidence: Ticketmaster; site platform: platform not identified from sampled homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.brooklynparamount.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "town-hall": {
       "name": "The Town Hall",
@@ -202,12 +209,12 @@
       "api_evidence_url": null,
       "feed_evidence_url": null,
       "jsonld_present": false,
-      "robots_and_terms_notes": "robots.txt endpoint was unavailable during the probe; no access restriction inferred from that. Official events page is readable and links to tickets. Terms for automated personal reuse not conclusively reviewed.",
-      "recommended_method": "structured_html",
+      "robots_and_terms_notes": "The public listing page loads a React shell. Its official linked WordPress CMS endpoint returned HTTP 403; the CMS robots URL returned a login page rather than usable directives. No alternate route was attempted.",
+      "recommended_method": "manual",
       "confidence": "high",
       "estimated_effort": "low",
-      "event_horizon_days": 160,
-      "event_horizon_note": "Observed up to about 160 days from the 2026-11-18 snapshot; not a guaranteed maximum.",
+      "event_horizon_days": null,
+      "event_horizon_note": "Not measured; no permissible automated route was established.",
       "update_frequency": "Current and future shows listed; cadence not published.",
       "dedupe_strategy": "Canonical event page URL; fallback venue + date/time + normalized title",
       "ticketing_platform": "Ticketmaster (official event links)",
@@ -215,11 +222,11 @@
       "needs_rendering": false,
       "stable_event_id": "Per-event detail URL; ticket link carries external event reference",
       "lineup_detail": "Named artists/speakers on listings; lineups are usually a single act or billed event.",
-      "sample_fixture": "docs/sources/fixtures/town-hall.html",
+      "sample_fixture": null,
       "evidence_urls": [
         "https://www.thetownhall.org/events"
       ],
-      "observed_page_note": "Server-rendered official calendar page.",
+      "observed_page_note": "Manual check pending an accessible route and valid robots directives.",
       "event_jsonld_present": false,
       "article_jsonld_present": null
     },
@@ -229,14 +236,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.msg.com/radio-city-music-hall",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "Ticketmaster",
+      "site_platform": "MSG",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.msg.com/radio-city-music-hall, page title 'Radio City Music Hall | Official Site | New York City'. Ticket/platform evidence: Ticketmaster; site platform: MSG. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.msg.com/radio-city-music-hall"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "mercury-lounge": {
       "name": "Mercury Lounge",
@@ -244,14 +252,15 @@
       "content_mode": "event",
       "canonical_url": "https://mercuryeastpresents.com/mercurylounge/",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "Ticketmaster (linked from official show cards)",
+      "site_platform": "WordPress / Mercury East Presents event-discovery plugin",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass plus shared-platform check: robots.txt returned HTTP 200; the Mercury Lounge venue page returned HTTP 200 with title “Mercury Lounge – Mercury East Presents.” Its WordPress page uses the same Mercury East event-discovery plugin family as Bowery Ballroom, and show cards link to Ticketmaster. This supports grouping the two under one HTML adapter. Horizon and terms were not assessed.",
       "evidence_urls": [
         "https://mercuryeastpresents.com/mercurylounge/"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "irving-plaza": {
       "name": "Irving Plaza",
@@ -259,14 +268,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.irvingplaza.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "Ticketmaster",
+      "site_platform": "WordPress / Mercury East Presents event-discovery plugin",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.irvingplaza.com, page title 'Irving Plaza Tickets & Schedule | New York Concert Venue'. Ticket/platform evidence: Ticketmaster; site platform: WordPress / Mercury East Presents event-discovery plugin. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.irvingplaza.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "comedy-cellar": {
       "name": "Comedy Cellar",
@@ -277,12 +287,12 @@
       "api_evidence_url": null,
       "feed_evidence_url": null,
       "jsonld_present": true,
-      "robots_and_terms_notes": "robots.txt returned 200 and permitted the reservations path. Reservation page can be read without signing in; stop on CAPTCHA or any access challenge. No event feed/API found. Terms for automated personal reuse not fully reviewed.",
-      "recommended_method": "permitted_scrape",
+      "robots_and_terms_notes": "The public reservation page returned a reCAPTCHA challenge during this pass. No challenge was solved or bypassed; do not automate this route. The past-lineup page is also not a reliable advance roster.",
+      "recommended_method": "manual",
       "confidence": "medium",
       "estimated_effort": "medium",
       "event_horizon_days": null,
-      "event_horizon_note": "Not measured in this pass.",
+      "event_horizon_note": "Not measured; page presented reCAPTCHA.",
       "update_frequency": "Short horizon; check daily if kept. Lineup changes are possible.",
       "dedupe_strategy": "Venue/location + show ID or date/time + show format; do not merge different rooms or repeated sets",
       "ticketing_platform": "House reservation system",
@@ -290,14 +300,14 @@
       "needs_rendering": false,
       "stable_event_id": "Reservation show ID in query parameter; show/date/time tuple is the safer fallback",
       "lineup_detail": "Named headliner/featured hour shows are advertised; mixed bills can be listed by venue/time, and surprise drop-ins are not forecastable. Current and past-lineup pages show updates close to show date.",
-      "sample_fixture": "docs/sources/fixtures/comedy-cellar.html",
+      "sample_fixture": null,
       "evidence_urls": [
         "https://www.comedycellar.com/reservations/",
         "https://www.comedycellar.com/pastlineups/"
       ],
-      "observed_page_note": "Public reservation schedule is usable for time/title; lineup detail is short-horizon.",
+      "observed_page_note": "Manual check only; public reservation page presents reCAPTCHA.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": false
     },
     "bell-house": {
       "name": "The Bell House",
@@ -312,8 +322,8 @@
       "recommended_method": "structured_html",
       "confidence": "high",
       "estimated_effort": "low",
-      "event_horizon_days": null,
-      "event_horizon_note": "Not measured in this pass.",
+      "event_horizon_days": 31,
+      "event_horizon_note": "Homepage MusicEvent JSON-LD runs through Dec 19, 2026 (31 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Announcements update over time; cadence not published.",
       "dedupe_strategy": "Ticketmaster event ID; fallback venue + local start date/time + title",
       "ticketing_platform": "Ticketmaster",
@@ -321,7 +331,7 @@
       "needs_rendering": false,
       "stable_event_id": "Ticketmaster event ID and canonical event URL in MusicEvent JSON-LD",
       "lineup_detail": "Headliner and occasional support names are represented in event structured data.",
-      "sample_fixture": "docs/sources/fixtures/bell-house.html",
+      "sample_fixture": "docs/sources/fixtures/bell-house.json",
       "evidence_urls": [
         "https://www.thebellhouseny.com/",
         "https://www.thebellhouseny.com/visit"
@@ -343,8 +353,8 @@
       "recommended_method": "structured_html",
       "confidence": "high",
       "estimated_effort": "medium",
-      "event_horizon_days": 39,
-      "event_horizon_note": "Observed up to about 39 days from the 2026-11-18 snapshot; not a guaranteed maximum.",
+      "event_horizon_days": 17,
+      "event_horizon_note": "Visible dated event cards run through Dec 5, 2026 (17 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Listings are added weeks ahead; lineups may change.",
       "dedupe_strategy": "Canonical dated show URL; fallback venue + date/time + show title",
       "ticketing_platform": "UCB first-party ticket checkout",
@@ -374,8 +384,8 @@
       "recommended_method": "platform_feed",
       "confidence": "medium",
       "estimated_effort": "medium",
-      "event_horizon_days": null,
-      "event_horizon_note": "Not measured in this pass.",
+      "event_horizon_days": 7,
+      "event_horizon_note": "Visible Eventbrite cards run through Nov 25, 2026 (7 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Calendar maintained; cadence not published.",
       "dedupe_strategy": "Eventbrite event ID; fallback Union Hall + local date/time + title",
       "ticketing_platform": "Eventbrite",
@@ -405,11 +415,11 @@
       "recommended_method": "structured_html",
       "confidence": "high",
       "estimated_effort": "medium",
-      "event_horizon_days": null,
-      "event_horizon_note": "Not measured in this pass.",
+      "event_horizon_days": 3,
+      "event_horizon_note": "Visible schedule cards run through Nov 21, 2026 (3 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Upcoming schedule is paginated by month; exact update cadence not published.",
       "dedupe_strategy": "Canonical show URL; fallback venue/room + date/time + title",
-      "ticketing_platform": "The Stand first-party checkout (vendor not identified)",
+      "ticketing_platform": "Tixr (linked from official show cards)",
       "site_platform": "Custom event-listing site",
       "needs_rendering": false,
       "stable_event_id": "Show detail URL/slug; title/date/time repeated in schedule",
@@ -419,9 +429,9 @@
         "https://thestandnyc.com/shows",
         "https://thestandnyc.com/shows/2026-11/P80"
       ],
-      "observed_page_note": "Good comedy coverage, but distinguish The Stand West, Main Room, and Upstairs.",
+      "observed_page_note": "Server-rendered show cards include room, show time, lineup, and Tixr ticket links; generic Restaurant JSON-LD is present but is not an event feed.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": false
     },
     "ny-comedy-club": {
       "name": "New York Comedy Club",
@@ -436,8 +446,8 @@
       "recommended_method": "structured_html",
       "confidence": "medium",
       "estimated_effort": "medium",
-      "event_horizon_days": null,
-      "event_horizon_note": "Not measured in this pass.",
+      "event_horizon_days": 2,
+      "event_horizon_note": "Homepage ComedyEvent JSON-LD and featured schedule are dated through Nov 20, 2026 (2 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Listings are short-horizon; cadence not published.",
       "dedupe_strategy": "Show URL or venue-room + date/time + normalized title",
       "ticketing_platform": "First-party checkout (vendor not identified)",
@@ -445,12 +455,12 @@
       "needs_rendering": false,
       "stable_event_id": "Per-show detail URL; date/time/location tuple",
       "lineup_detail": "Named comics appear on many show listings; site copy warns of surprise drop-ins, so lineup is provisional.",
-      "sample_fixture": "docs/sources/fixtures/ny-comedy-club.html",
+      "sample_fixture": "docs/sources/fixtures/ny-comedy-club.json",
       "evidence_urls": [
         "https://newyorkcomedyclub.com/"
       ],
       "observed_page_note": "Filter to NYC locations and retain room/location to avoid duplicates.",
-      "event_jsonld_present": false,
+      "event_jsonld_present": true,
       "article_jsonld_present": null
     },
     "caveat": {
@@ -459,30 +469,30 @@
       "content_mode": "event",
       "canonical_url": "https://caveat.nyc/events/",
       "operational_status": "active_confirmed",
-      "api_evidence_url": null,
+      "api_evidence_url": "https://caveat.nyc/api/events/listings",
       "feed_evidence_url": null,
-      "jsonld_present": true,
+      "jsonld_present": false,
       "robots_and_terms_notes": "robots.txt returned 200 and permitted the path. Public /events page and dated detail pages readable; no API or feed found. Terms for automated personal reuse not fully reviewed.",
-      "recommended_method": "structured_html",
+      "recommended_method": "official_api",
       "confidence": "high",
       "estimated_effort": "low",
-      "event_horizon_days": 41,
-      "event_horizon_note": "Observed up to about 41 days from the 2026-11-18 snapshot; not a guaranteed maximum.",
+      "event_horizon_days": 129,
+      "event_horizon_note": "Public listings JSON returned 76 records, with the latest dated 2027-03-27 (129 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Listings added over time; dates visible into late December.",
       "dedupe_strategy": "Canonical event URL; fallback date/time + title",
       "ticketing_platform": "Caveat checkout (provider not resolved)",
-      "site_platform": "Custom site",
+      "site_platform": "React site backed by public JSON endpoint",
       "needs_rendering": false,
       "stable_event_id": "Per-event slug URL with date in path",
       "lineup_detail": "Comedic events name hosts and featured performers; science/story formats list guests where confirmed.",
-      "sample_fixture": "docs/sources/fixtures/caveat.html",
+      "sample_fixture": "docs/sources/fixtures/caveat.json",
       "evidence_urls": [
         "https://caveat.nyc/events/",
         "https://www.caveat.nyc/events/sorry-were-here-2026-08-19"
       ],
-      "observed_page_note": "Server-readable events; genre tags aid filtering.",
+      "observed_page_note": "The page is a React shell; the linked first-party frontend calls /api/events/listings, whose JSON records contain event, date, description, and ticket fields.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": false
     },
     "littlefield": {
       "name": "Littlefield",
@@ -490,14 +500,15 @@
       "content_mode": "event",
       "canonical_url": "https://littlefieldnyc.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "platform not identified from homepage",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://littlefieldnyc.com, page title 'Home - Littlefield'. Ticket/platform evidence: not visible on sampled homepage; site platform: platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://littlefieldnyc.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "gotham-comedy": {
       "name": "Gotham Comedy Club",
@@ -505,14 +516,15 @@
       "content_mode": "event",
       "canonical_url": "https://gothamcomedyclub.com/",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "platform not identified from homepage",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://gothamcomedyclub.com/, page title 'Gotham Comedy Club | New York, NY'. Ticket/platform evidence: not visible on sampled homepage; site platform: platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://gothamcomedyclub.com/"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "92ny": {
       "name": "92NY Talks",
@@ -523,12 +535,12 @@
       "api_evidence_url": null,
       "feed_evidence_url": null,
       "jsonld_present": false,
-      "robots_and_terms_notes": "robots.txt returned 200 and permitted the Talks path. Official listings span a separate 92NY calendar and talks section; homepage fetch alone is not representative. No documented public API or feed found. Terms for automated personal reuse not fully reviewed.",
-      "recommended_method": "structured_html",
+      "robots_and_terms_notes": "The talks page loads, but the robots URL returned an Imperva challenge document rather than usable directives. No challenge bypass was attempted.",
+      "recommended_method": "manual",
       "confidence": "medium",
       "estimated_effort": "medium",
-      "event_horizon_days": 60,
-      "event_horizon_note": "Observed up to about 60 days from the 2026-11-18 snapshot; not a guaranteed maximum.",
+      "event_horizon_days": null,
+      "event_horizon_note": "Visible Talks page ran through Dec 13, 2026 (25 days from the snapshot), but this is not an automation horizon because the robots endpoint returned a challenge document.",
       "update_frequency": "Talk listings observed into December; cadence not published.",
       "dedupe_strategy": "Canonical event URL; fallback title + local date/time",
       "ticketing_platform": "92NY first-party event/ticket pages",
@@ -536,12 +548,12 @@
       "needs_rendering": false,
       "stable_event_id": "Canonical event detail URL; 92NY event reference",
       "lineup_detail": "Talk guests and speakers are named in event pages; source includes a broad program mix, filter to Talks.",
-      "sample_fixture": "docs/sources/fixtures/92ny.html",
+      "sample_fixture": null,
       "evidence_urls": [
         "https://bigseason.92ny.org/talks",
         "https://my.92ny.org/events"
       ],
-      "observed_page_note": "Use the Talks-specific section, not full 92NY classes/program calendar.",
+      "observed_page_note": "Manual check pending an accessible route and valid robots directives.",
       "event_jsonld_present": false,
       "article_jsonld_present": null
     },
@@ -590,7 +602,7 @@
       "confidence": "high",
       "estimated_effort": "low",
       "event_horizon_days": 22,
-      "event_horizon_note": "Observed up to about 22 days from the 2026-11-18 snapshot; not a guaranteed maximum.",
+      "event_horizon_note": "Visible events page includes a listing through Dec 10, 2026 (22 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Weekly art/exhibition listings; other schools vary.",
       "dedupe_strategy": "Canonical event URL; fallback title + date/time; preserve multi-day exhibition ranges",
       "ticketing_platform": "Cooper Union first-party events",
@@ -613,14 +625,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.strandbooks.com/events",
       "operational_status": "access_blocked_or_stale_url",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "unknown; page returned 403",
+      "site_platform": "platform not identified; page returned 403",
       "recommended_method": "manual",
       "confidence": "low",
-      "notes": "Light pass access issue: original URL failed or direct access was blocked; canonical/status needs follow-up.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP Error 403: Forbidden. Ticket/platform evidence: unknown; page returned 403; site platform: platform not identified; page returned 403. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.strandbooks.com/events"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "symphony-space": {
       "name": "Symphony Space",
@@ -628,14 +641,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.symphonyspace.org",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "platform not identified from homepage",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.symphonyspace.org, page title 'Symphony Space | Performing Arts Center, Theater, Film'. Ticket/platform evidence: not visible on sampled homepage; site platform: platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.symphonyspace.org"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "greene-space": {
       "name": "The Greene Space / WNYC",
@@ -650,8 +664,8 @@
       "recommended_method": "structured_html",
       "confidence": "medium",
       "estimated_effort": "medium",
-      "event_horizon_days": null,
-      "event_horizon_note": "Not measured in this pass.",
+      "event_horizon_days": 28,
+      "event_horizon_note": "Visible event cards run through Dec 16, 2026 (28 days from the snapshot); not a guaranteed maximum.",
       "update_frequency": "Event pages updated as published; cadence not measured.",
       "dedupe_strategy": "Canonical event URL; fallback title + start date/time + venue",
       "ticketing_platform": "WNYC first-party ticket pages",
@@ -674,14 +688,15 @@
       "content_mode": "event",
       "canonical_url": "https://brooklynbookfestival.org",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "platform not identified from homepage",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://brooklynbookfestival.org, page title 'Home - Brooklyn Book Festival'. Ticket/platform evidence: not visible on sampled homepage; site platform: platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://brooklynbookfestival.org"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "public-theater": {
       "name": "The Public Theater",
@@ -742,7 +757,7 @@
       ],
       "observed_page_note": "Map production run separately from individual performance instances.",
       "event_jsonld_present": false,
-      "article_jsonld_present": null
+      "article_jsonld_present": false
     },
     "playwrights-horizons": {
       "name": "Playwrights Horizons",
@@ -750,14 +765,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.playwrightshorizons.org",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "platform not identified from homepage",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.playwrightshorizons.org, page title 'Playwrights Horizons'. Ticket/platform evidence: not visible on sampled homepage; site platform: platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.playwrightshorizons.org"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "broadway-com": {
       "name": "Broadway.com",
@@ -827,11 +843,11 @@
       "content_mode": "hybrid",
       "canonical_url": "https://www.broadwayworld.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "publishing/ticket-link platform not established",
       "recommended_method": "manual",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.broadwayworld.com, page title 'BroadwayWorld: Latest News, Coverage, Tickets for Broadway and Theatre Around the World'. Ticket/platform evidence: not visible on sampled homepage; site platform: publishing/ticket-link platform not established. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.broadwayworld.com"
       ]
@@ -842,14 +858,15 @@
       "content_mode": "event",
       "canonical_url": "https://nycomedyfestival.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "platform not identified from homepage",
       "recommended_method": "structured_html",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://nycomedyfestival.com, page title 'New York Comedy Festival &#8211; Official Website'. Ticket/platform evidence: not visible on sampled homepage; site platform: platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://nycomedyfestival.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "oh-my-rockness": {
       "name": "Oh My Rockness NYC",
@@ -888,14 +905,15 @@
       "content_mode": "event",
       "canonical_url": "https://donyc.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "publishing platform not identified from homepage",
       "recommended_method": "manual",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://donyc.com, page title 'doNYC | What to do in New York City'. Ticket/platform evidence: not visible on sampled homepage; site platform: publishing platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://donyc.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "timeout-ny": {
       "name": "Time Out New York",
@@ -919,14 +937,14 @@
       "needs_rendering": false,
       "stable_event_id": "Canonical article URL",
       "lineup_detail": "Editorial picks may name performers; no comprehensive show lineup.",
-      "sample_fixture": "docs/sources/fixtures/timeout-ny.html",
+      "sample_fixture": "docs/sources/fixtures/timeout-ny.json",
       "evidence_urls": [
         "https://www.timeout.com/newyork/things-to-do"
       ],
       "observed_page_note": "Editorial recommendations only per registry instruction.",
       "sample_url": "https://www.timeout.com/newyork/things-to-do/things-to-do-in-new-york-this-week",
       "event_jsonld_present": false,
-      "article_jsonld_present": false
+      "article_jsonld_present": true
     },
     "vulture": {
       "name": "Vulture / New York Magazine",
@@ -995,11 +1013,11 @@
       "content_mode": "editorial",
       "canonical_url": "https://www.theskint.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "publishing platform not identified from homepage",
       "recommended_method": "editorial_llm",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.theskint.com, page title 'the skint | free and cheap new york. every day.'. Ticket/platform evidence: not visible on sampled homepage; site platform: publishing platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.theskint.com"
       ]
@@ -1042,11 +1060,11 @@
       "content_mode": "hybrid",
       "canonical_url": "https://www.brooklynvegan.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "not visible on sampled homepage",
+      "site_platform": "publishing platform not identified from homepage",
       "recommended_method": "manual",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.brooklynvegan.com, page title 'BrooklynVegan'. Ticket/platform evidence: not visible on sampled homepage; site platform: publishing platform not identified from homepage. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.brooklynvegan.com"
       ]
@@ -1057,14 +1075,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.songkick.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "Songkick listings",
+      "site_platform": "Songkick",
       "recommended_method": "manual",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.songkick.com, page title 'Find the Best Concerts Near You, Tour Dates & Tickets Worldwide | Songkick'. Ticket/platform evidence: Songkick listings; site platform: Songkick. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.songkick.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "bandsintown": {
       "name": "Bandsintown",
@@ -1072,14 +1091,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.bandsintown.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "Bandsintown listings",
+      "site_platform": "Bandsintown",
       "recommended_method": "manual",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.bandsintown.com, page title 'Live Music, Concert Tickets & Tour Dates Near You | Bandsintown'. Ticket/platform evidence: Bandsintown listings; site platform: Bandsintown. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.bandsintown.com"
-      ]
+      ],
+      "event_jsonld_present": false
     },
     "eventbrite": {
       "name": "Eventbrite",
@@ -1087,14 +1107,15 @@
       "content_mode": "event",
       "canonical_url": "https://www.eventbrite.com",
       "operational_status": "active_site_response",
-      "ticketing_platform": "unknown (light pass)",
-      "site_platform": "unknown (light pass)",
+      "ticketing_platform": "Eventbrite listings",
+      "site_platform": "Eventbrite",
       "recommended_method": "manual",
       "confidence": "low",
-      "notes": "Light pass only: public homepage fetched or source search not resolved; event detail, terms, API/feed, and horizon not assessed. Registry research intent retained for later investigation.",
+      "notes": "Light pass: robots.txt returned HTTP 200; homepage request HTTP 200, final URL https://www.eventbrite.com, page title 'Eventbrite - Discover the Best Local Events & Things to Do'. Ticket/platform evidence: Eventbrite listings; site platform: Eventbrite. No event detail, horizon, or terms assessment in this pass.",
       "evidence_urls": [
         "https://www.eventbrite.com"
-      ]
+      ],
+      "event_jsonld_present": false
     }
   }
 }
