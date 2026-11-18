@@ -1,0 +1,132 @@
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "MusicEvent",
+    "name": "Duncan Trussell",
+    "image": "https://s1.ticketm.net/dam/a/033/b0d4f0b0-b534-436d-93f7-cd616b6c2033_1641561_TABLET_LANDSCAPE_LARGE_16_9.jpg",
+    "startDate": "2026-11-18T19:30:00",
+    "url": "https://www.ticketmaster.com/duncan-trussell-brooklyn-new-york-11-18-2026/event/300063701DCE9DB2",
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "name": "The Bell House",
+      "sameAs": "https://www.livenation.com/venue/KovZ917ARvk",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": {
+          "@type": "Country",
+          "name": "US"
+        },
+        "addressLocality": "Brooklyn",
+        "addressRegion": "NY",
+        "postalCode": "11215",
+        "streetAddress": "149 7th Street"
+      }
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "MusicEvent",
+    "name": "The Bell House Stand Up Showcase",
+    "image": "https://s1.ticketm.net/dam/e/363/43a4b1ae-b9ef-41fc-8ac3-6dc371321363_TABLET_LANDSCAPE_LARGE_16_9.jpg",
+    "startDate": "2026-11-19T19:30:00",
+    "url": "https://www.ticketmaster.com/the-bell-house-stand-up-showcase-brooklyn-new-york-11-19-2026/event/3000655D4E017633",
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "name": "The Bell House",
+      "sameAs": "https://www.livenation.com/venue/KovZ917ARvk",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": {
+          "@type": "Country",
+          "name": "US"
+        },
+        "addressLocality": "Brooklyn",
+        "addressRegion": "NY",
+        "postalCode": "11215",
+        "streetAddress": "149 7th Street"
+      }
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "MusicEvent",
+    "name": "Meg Stalter",
+    "image": "https://s1.ticketm.net/dam/a/699/0c72ff4f-61a6-40c7-894c-5f7d43c47699_TABLET_LANDSCAPE_LARGE_16_9.jpg",
+    "startDate": "2026-11-19T21:30:00",
+    "url": "https://www.ticketmaster.com/meg-stalter-brooklyn-new-york-11-19-2026/event/30006572D46D92EE",
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "name": "The Bell House",
+      "sameAs": "https://www.livenation.com/venue/KovZ917ARvk",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": {
+          "@type": "Country",
+          "name": "US"
+        },
+        "addressLocality": "Brooklyn",
+        "addressRegion": "NY",
+        "postalCode": "11215",
+        "streetAddress": "149 7th Street"
+      }
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "MusicEvent",
+    "name": "SOLD OUT - Fahim Anwar",
+    "image": "https://s1.ticketm.net/dam/a/5eb/c8055e6e-cab8-471d-8167-ddceccfd35eb_TABLET_LANDSCAPE_LARGE_16_9.jpg",
+    "startDate": "2026-11-20T19:30:00",
+    "url": "https://www.ticketmaster.com/sold-out-fahim-anwar-brooklyn-new-york-11-20-2026/event/300064B1253D7BCC",
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "name": "The Bell House",
+      "sameAs": "https://www.livenation.com/venue/KovZ917ARvk",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": {
+          "@type": "Country",
+          "name": "US"
+        },
+        "addressLocality": "Brooklyn",
+        "addressRegion": "NY",
+        "postalCode": "11215",
+        "streetAddress": "149 7th Street"
+      }
+    }
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "MusicEvent",
+    "name": "The George Lucas Talk Show",
+    "image": "https://s1.ticketm.net/dam/a/8e3/f2930501-9253-458f-9fc1-a4233aff98e3_TABLET_LANDSCAPE_LARGE_16_9.jpg",
+    "startDate": "2026-12-19T19:00:00",
+    "url": "https://www.ticketmaster.com/the-george-lucas-talk-show-brooklyn-new-york-12-19-2026/event/3000653B4011B32C",
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "location": {
+      "@type": "Place",
+      "name": "The Bell House",
+      "sameAs": "https://www.livenation.com/venue/KovZ917ARvk",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": {
+          "@type": "Country",
+          "name": "US"
+        },
+        "addressLocality": "Brooklyn",
+        "addressRegion": "NY",
+        "postalCode": "11215",
+        "streetAddress": "149 7th Street"
+      }
+    }
+  }
+]
