@@ -65,7 +65,7 @@ including its listing count and any wrong fields.
 
 The XcodeGen project and the full house scaffolding (ADR-0001). The SQLiteData schema from ADR-0002 (`Household`,
 `Source`, `Listing`, `Stay`, `Reaction`) against the CloudKit **Development** container. Sources seeded from
-`survey.json`, skipping Music Hall of Williamsburg (closing) and the survey's `skip` sources. A read-only Sources
+`registry.json` (its `mode`, `adapter`, `cadence` and `listing_url` fields), skipping `retired` and `skip` sources. A read-only Sources
 screen showing each source's method and last check. Adds the generated plists to `.gitignore`.
 
 ## S3 — The Mac checks the sources (outline)

@@ -9,7 +9,7 @@ engine. Looking is capturing.*
 
 The survey left six core sources that need a manual check: Comedy Cellar (reCAPTCHA), Town Hall (403 on its data),
 92NY (a bot challenge on its robots file), LIVE from NYPL (a JavaScript-only page), Playbill and Oh My Rockness.
-The Public Theater and the NYT are blocked outright. Several of these are Jon's favorites. A person in a real browser
+The Public Theater and the NYT block automated requests; the Public is a manual source in `registry.json`. Several of these are Jon's favorites. A person in a real browser
 passes all of them legitimately. Jon asked for a checklist that reminds him which sources to look at, and for capture
 while he's looking.
 

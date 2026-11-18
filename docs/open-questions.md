@@ -16,9 +16,3 @@
   again. Before a UCB adapter is planned, check whether a normal rendered page loads more without a challenge. If
   it needs anything beyond ordinary page JavaScript, keep UCB at first-page depth or make it manual. Don't work
   around the 403.
-- **The registry needs corrections from the survey:** Beacon's URL is stale (and MSG's robots file blocks its
-  calendar), Music Hall of Williamsburg closes at the end of 2026, and the 47-versus-49 count. Decide whether
-  `registry.json` stays Jon's frozen input, with `survey.json` authoritative, or gets corrected. M1 S2 seeds from
-  `survey.json` either way.
-- **When TestFlight and the Production schema arrive.** Planned for M2 with Wendy. Pull them earlier if Jon wants the
-  app on his own devices from TestFlight rather than Xcode during M1.

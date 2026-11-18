@@ -17,7 +17,7 @@ they change constantly. The survey found about 1,500 future listings across the 
 2. **Tables (M1):**
    - **`Source`:** a followed venue, presenter or feed. Holds its method (`automated` or `manual`, with the adapter
      name), canonical URL, registered hosts for browser capture, cadence, and the outcome of its last check (when,
-     success or failure, listing count). Seeded from `docs/sources/survey.json`.
+     success or failure, listing count). Seeded from `docs/sources/registry.json`.
    - **`Listing`:** something on at a source. Identity is a **stable key**: the source's canonical event URL or ID
      where the survey found one, otherwise a hash of source, normalized title, room and local start. Its time is an
      enum, never a pair of optional dates: `.performance(start)` or `.run(opens, closes)`. It also holds title,
