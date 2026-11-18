@@ -59,6 +59,8 @@ private struct SourceDetailView: View {
   var body: some View {
     Form {
       Section("Source") {
+        LabeledContent("ID", value: source.id.uuidString)
+        LabeledContent("Household ID", value: source.householdID.uuidString)
         LabeledContent("Name", value: source.name)
         LabeledContent("Type", value: source.type)
         LabeledContent("Priority", value: source.priority)
@@ -67,6 +69,7 @@ private struct SourceDetailView: View {
         LabeledContent("Method", value: source.methodLabel)
         LabeledContent("Cadence", value: source.cadence)
         LabeledContent("Registry ID", value: source.registryID)
+        LabeledContent("Added", value: source.createdAt.formatted())
       }
       Section("Checking") {
         LabeledContent("Last check", value: source.lastCheckedAt?.formatted() ?? "never")
