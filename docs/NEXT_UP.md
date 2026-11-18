@@ -1,6 +1,5 @@
-# Next Up — Survey the event sources
+# Next Up — nothing dispatched
 
-**Slices:** effort `source-survey`
-**Briefs:** [docs/efforts/source-survey.md](efforts/source-survey.md)
-**Done when:** per the brief
+Nothing dispatched.
+
 **Owed:** see [device-passes.md](device-passes.md)
