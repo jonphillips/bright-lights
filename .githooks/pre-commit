@@ -1,0 +1,18 @@
+#!/bin/sh
+# Drift-gate pre-commit hook. Enable on a clone with: git config core.hooksPath .githooks
+
+if ! git diff --cached --name-only --diff-filter=ACM | grep -q '\.swift$'; then
+  exit 0
+fi
+
+if ! command -v swiftlint >/dev/null 2>&1; then
+  echo "pre-commit: swiftlint not found — install it with 'brew install swiftlint' (or commit with --no-verify to skip)." >&2
+  exit 1
+fi
+
+swiftlint lint --strict --quiet
+status=$?
+if [ "$status" -ne 0 ]; then
+  echo "pre-commit: SwiftLint drift gate failed — fix the above or commit with --no-verify." >&2
+fi
+exit "$status"

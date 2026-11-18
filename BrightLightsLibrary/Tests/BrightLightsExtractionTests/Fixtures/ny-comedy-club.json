@@ -1,0 +1,1138 @@
+[
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "The Boy Friends ft: Jason Salmon, Keegan Tindall, Matt Lopes, Corey B, Alaina Hirschi, Myq Kaplan, Marcus Monroe",
+    "startDate": "2026-11-18T19:00:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club Upper West Side",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "236 W 78th Street",
+        "addressLocality": "New York",
+        "postalCode": "10024",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/the-boy-friends-ft-jason-salmon-keegan-tindall-matt-lopes-corey-b-alaina-hirschi-myq-kaplan-marcus-monroe",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T10:44:55-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/the-boy-friends-ft-jason-salmon-keegan-tindall-matt-lopes-corey-b-alaina-hirschi-myq-kaplan-marcus-monroe",
+    "image": "/img/events/The-Boy-Friends-NYCF-11-12-25-1080x1080-28371070-large-thumb.jpg",
+    "description": "The Boy Friends Comedy Show&mdash; a wildly unpredictable, 90-minute whirlwind of hilarity hosted by three of the hottest rising stars in comedy. Social media sensations and stand-up comics on the rise Corey B, Marcus Monroe, and Matt Lopes bring their freshest, funniest material to the stage. Plus, expect surprise drop-ins from some of the biggest names in comedy today. With chaos, charm, and side-splitting humor, this is one show you won&rsquo;t want to miss!FeaturingJason SalmonMatt LopesCorey BAlaina HirschiMyq KaplanMarcus MonroeKeegan Tindall",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club Upper West Side",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Matt Lopes"
+      },
+      {
+        "@type": "Person",
+        "name": "Corey B"
+      },
+      {
+        "@type": "Person",
+        "name": "Marcus Monroe"
+      },
+      {
+        "@type": "Person",
+        "name": "Myq Kaplan"
+      },
+      {
+        "@type": "Person",
+        "name": "Jason Salmon"
+      },
+      {
+        "@type": "Person",
+        "name": "Alaina Hirschi"
+      },
+      {
+        "@type": "Person",
+        "name": "Keegan Tindall"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Ashton Womack, Amy Cardinale, Olivia Carter, Maxwell Fine",
+    "startDate": "2026-11-18T19:45:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": " 241 East 24th Street",
+        "addressLocality": "New York",
+        "postalCode": "10010",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/ashton-womack-amy-cardinale-olivia-carter-maxwell-fine",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-07T11:17:13-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/ashton-womack-amy-cardinale-olivia-carter-maxwell-fine",
+    "image": "/img/comedians/Ashton-790e080f-large-thumb.jpg",
+    "description": "Get the authentic NYC stand-up comedy experience at New York Comedy Club! Enjoy a nightly showcase of the best comedians in the city, hot up-and-comers, plus hot-shot celebrity drop-ins, national and international touring comics, and more surprises!FeaturingAshton WomackAmy CardinaleOlivia CarterMaxwell Fine",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Amy Cardinale"
+      },
+      {
+        "@type": "Person",
+        "name": "Ashton Womack"
+      },
+      {
+        "@type": "Person",
+        "name": "Olivia Carter"
+      },
+      {
+        "@type": "Person",
+        "name": "Maxwell Fine"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Good Eggs ft: Mark Normand, Mike Cannon, Gary Vider, Lizzy Cassidy, Matt Ruby",
+    "startDate": "2026-11-18T20:00:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club on 4th Street",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "85 East 4th Street",
+        "addressLocality": "New York",
+        "postalCode": "10003",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/good-eggs-ft-mark-normand-mike-cannon-gary-vider-lizzy-cassidy-matt-ruby",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T10:45:27-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/good-eggs-ft-mark-normand-mike-cannon-gary-vider-lizzy-cassidy-matt-ruby",
+    "image": "/img/comedians/Untitled-design-68-03d90c28-large-thumb.png",
+    "description": "It&#39;s time for GOOD EGGS! Time Out NY called it &quot;one of the best weekly shows in the city&quot; and Thrillist said it&#39;s &quot;one of the best underground comedy shows in NYC.&quot; Presented by Mark Normand, Gary Vider, and Matt Ruby - who often perform in the lineup - it&#39;s an unmissable NYC comedy-scene staple and one of the longest-running independently produced comedy shows in town. Past surprise guests include Bill Burr, Jim Gaffigan, Hannibal Burress, Sarah Silverman, Aziz Ansari, and Anthony Jeselnik.FeaturingMark NormandMike CannonGary ViderLizzy CassidyMatt Ruby",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club on 4th Street",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Lizzy Cassidy"
+      },
+      {
+        "@type": "Person",
+        "name": "Mike Cannon"
+      },
+      {
+        "@type": "Person",
+        "name": "Mark Normand"
+      },
+      {
+        "@type": "Person",
+        "name": "Matt Ruby"
+      },
+      {
+        "@type": "Person",
+        "name": "Gary Vider"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Drew Lynch, Avi Liberman, Tyler Groce, Lili Michelle + Surprise Guest!",
+    "startDate": "2026-11-18T21:15:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club Upper West Side",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "236 W 78th Street",
+        "addressLocality": "New York",
+        "postalCode": "10024",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/drew-lynch-avi-liberman-tyler-groce-lili-michelle-surprise-guest",
+      "priceCurrency": "USD",
+      "price": "15.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T10:45:55-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/drew-lynch-avi-liberman-tyler-groce-lili-michelle-surprise-guest",
+    "image": "/img/comedians/Drew-Tour-Mic-c09f0a55-large-thumb.jpg",
+    "description": "A comic. A mic. A brick wall. A room full of fans. It doesn&rsquo;t get more New York than this. Tucked into the Upper West Side just minutes from Times Square, our club channels the raw energy of classic stand-up&mdash;every show is a showcase of multiple comics&mdash;from surprise drop-ins to laugh-out-loud regulars. It&rsquo;s where comedy lovers come for the real thing.FeaturingDrew LynchAvi LibermanTyler GroceLili Michelleand special guest",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club Upper West Side",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Avi Liberman"
+      },
+      {
+        "@type": "Person",
+        "name": "Drew Lynch"
+      },
+      {
+        "@type": "Person",
+        "name": "Lili Michelle"
+      },
+      {
+        "@type": "Person",
+        "name": "Tyler Groce"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Adam Ferrara, Jared Harvin, Vannessa Jackson, Alex Dragicevich + Surprise Guest!",
+    "startDate": "2026-11-18T22:00:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": " 241 East 24th Street",
+        "addressLocality": "New York",
+        "postalCode": "10010",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/adam-ferrara-jared-harvin-vannessa-jackson-alex-dragicevich-surprise-guest",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T10:46:30-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/adam-ferrara-jared-harvin-vannessa-jackson-alex-dragicevich-surprise-guest",
+    "image": "/img/comedians/adam-65d80734-large-thumb.png",
+    "description": "Get the authentic NYC stand-up comedy experience at New York Comedy Club! Enjoy a nightly showcase of the best comedians in the city, hot up-and-comers, plus hot-shot celebrity drop-ins, national and international touring comics, and more surprises!FeaturingAdam FerraraJared HarvinVannessa JacksonAlex Dragicevich",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Adam Ferrara"
+      },
+      {
+        "@type": "Person",
+        "name": "Alex Dragicevich"
+      },
+      {
+        "@type": "Person",
+        "name": "Jared Harvin"
+      },
+      {
+        "@type": "Person",
+        "name": "Vannessa Jackson"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Lili Michelle, Calise Hawkins, Adam Ferrara, Tom Cassidy, Napoleon Emill",
+    "startDate": "2026-11-18T22:30:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club on 4th Street",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "85 East 4th Street",
+        "addressLocality": "New York",
+        "postalCode": "10003",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/calise-hawkins-adam-ferrara-tom-cassidy-lili-michelle-napoleon-emill",
+      "priceCurrency": "USD",
+      "price": "15.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T10:46:58-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/calise-hawkins-adam-ferrara-tom-cassidy-lili-michelle-napoleon-emill",
+    "image": "/img/comedians/lilli-6fde07bf-large-thumb.jpg",
+    "description": "Wondering what to do in the East Village? Our New York stand up comedy showcase is one of the most fun things to do on a weeknight! From a casual date night to a spontaneous friends night out, you can&rsquo;t miss with an incredible stand up show that will become a great conversation piece over drinks or dinner later tonight and a favorite memory for years to come!FeaturingCalise HawkinsAdam FerraraTom CassidyLili MichelleNapoleon Emill",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club on 4th Street",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Adam Ferrara"
+      },
+      {
+        "@type": "Person",
+        "name": "Calise Hawkins"
+      },
+      {
+        "@type": "Person",
+        "name": "Tom Cassidy"
+      },
+      {
+        "@type": "Person",
+        "name": "Napoleon Emill"
+      },
+      {
+        "@type": "Person",
+        "name": "Lili Michelle"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Comedy Mob Presents: The Lineup",
+    "startDate": "2026-11-19T18:00:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": " 241 East 24th Street",
+        "addressLocality": "New York",
+        "postalCode": "10010",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/comedy-mob-presents-the-lineup-2026-11-19180000",
+      "priceCurrency": "USD",
+      "price": "0.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T10:47:37-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/comedy-mob-presents-the-lineup-2026-11-19180000",
+    "image": "/img/events/Thursday-Mic-NYCC-Comedy-Mob-973c0f7e-large-thumb.png",
+    "description": "FREE show (w/ one item minimum).NYC&rsquo;s most unpredictable comedy showcase - 10+ comics, rapid-fire sets, and zero filler. Some are rising stars, some are seasoned killers, and some might surprise you.Come see your new favorite comic before everyone else does.Every Thursday - 5:30 PMNew York Comedy Club (241 East 24th Street)Want to perform on the show? Read all the info here: https://www.comedymob.com/perform-with-us",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": []
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Judah Friedlander, Alingon Mitra, Jared Waters, Sam Evans",
+    "startDate": "2026-11-19T19:30:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club Upper West Side",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "236 W 78th Street",
+        "addressLocality": "New York",
+        "postalCode": "10024",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/judah-friedlander-alingon-mitra-jared-waters-sam-evans",
+      "priceCurrency": "USD",
+      "price": "0.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:06:04-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/judah-friedlander-alingon-mitra-jared-waters-sam-evans",
+    "image": "/img/comedians/judah-friedlander-fd670c6e-large-thumb.jpg",
+    "description": "Spent the day exploring the Met or strolling through Central Park? Cap it off with a night of killer stand-up just around the corner. Each show is a fast-paced showcase of top-tier comics, big laughs, and good vibes only&mdash;whether you&rsquo;re a local or in town for the weekend. It&rsquo;s intimate, unfiltered, and unforgettable&mdash;the perfect blend of neighborhood charm and New York edge.FeaturingJudah FriedlanderAlingon MitraJared WatersSam Evans",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club Upper West Side",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Sam Evans"
+      },
+      {
+        "@type": "Person",
+        "name": "Alingon Mitra"
+      },
+      {
+        "@type": "Person",
+        "name": "Jared Waters"
+      },
+      {
+        "@type": "Person",
+        "name": "Judah Friedlander"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Mike Britt, Katie Boyle, Jordan Rock, Emily Walsh",
+    "startDate": "2026-11-19T20:00:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club on 4th Street",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "85 East 4th Street",
+        "addressLocality": "New York",
+        "postalCode": "10003",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/mike-britt-katie-boyle-jordan-rock-emily-walsh",
+      "priceCurrency": "USD",
+      "price": "29.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:06:43-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/mike-britt-katie-boyle-jordan-rock-emily-walsh",
+    "image": "/img/comedians/Mike-Britt-a05c0970-large-thumb.jpg",
+    "description": "Nothing says downtown NYC like a microphone, a stool, a brick wall and a comedian. Stand up comedy has been a staple of Village nightlife for decades! The newly expanded New York Comedy Club is proud to join the thriving arts and entertainment scene in the East Village, building on our strong presence at our flagship location in Gramercy.FeaturingMike BrittKatie BoyleJordan RockEmily Walsh",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club on 4th Street",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Emily Walsh"
+      },
+      {
+        "@type": "Person",
+        "name": "Jordan Rock"
+      },
+      {
+        "@type": "Person",
+        "name": "Katie Boyle"
+      },
+      {
+        "@type": "Person",
+        "name": "Mike Britt"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Previously on Generational Curse... with Nore Davis",
+    "startDate": "2026-11-19T20:30:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": " 241 East 24th Street",
+        "addressLocality": "New York",
+        "postalCode": "10010",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/previously-on-generational-curse-with-nore-davis",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-08T12:31:57-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/previously-on-generational-curse-with-nore-davis",
+    "image": "/img/events/CLEANED-2-895a080c-large-thumb.jpg",
+    "description": "Nore Davis returns to New York Comedy Club one year since Generation Curse was recorded for one night only. \"Previously on Generational Curse...\" picks up where his profound special left off, with brand-new material on sickle cell, mental healing, and everything that happened next. Come see the next chapter before anyone else does.The albums that got him here:Home Game (2014)Away Game (2015)Too Woke (2018)Live from the Comedy Trap House (2020)??? (Nori) (2022)Element: A Solo Show Film (2024)40 (2025)Inner Child Specialist (2025)Generational Curse (2026)Now it's time for number 10. This is a New York night you don't want to miss.",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Nore Davis"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Jordan Rock, Jenny Zigrino, Gray West, Sam Evans",
+    "startDate": "2026-11-19T21:45:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club Upper West Side",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "236 W 78th Street",
+        "addressLocality": "New York",
+        "postalCode": "10024",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/jordan-rock-jenny-zigrino-gray-west-sam-evans",
+      "priceCurrency": "USD",
+      "price": "0.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T10:49:20-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/jordan-rock-jenny-zigrino-gray-west-sam-evans",
+    "image": "/img/comedians/jordan-rock-ae2309f6-large-thumb.jpg",
+    "description": "Spent the day exploring the Met or strolling through Central Park? Cap it off with a night of killer stand-up just around the corner. Each show is a fast-paced showcase of top-tier comics, big laughs, and good vibes only&mdash;whether you&rsquo;re a local or in town for the weekend. It&rsquo;s intimate, unfiltered, and unforgettable&mdash;the perfect blend of neighborhood charm and New York edge.FeaturingJordan RockJenny ZigrinoGray WestSam Evans",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club Upper West Side",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Sam Evans"
+      },
+      {
+        "@type": "Person",
+        "name": "Jordan Rock"
+      },
+      {
+        "@type": "Person",
+        "name": "Jenny Zigrino"
+      },
+      {
+        "@type": "Person",
+        "name": "Gray West"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Anxiety Attack ft: Mike Cannon, Mike Recine, Lili Michelle, Zac Amico, Lee Syatt, Bam Jacob's",
+    "startDate": "2026-11-19T22:15:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club on 4th Street",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "85 East 4th Street",
+        "addressLocality": "New York",
+        "postalCode": "10003",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/mike-cannon-mike-recine-lili-michelle-zac-amico-lee-syatt-bam-jacob-s",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:08:05-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/mike-cannon-mike-recine-lili-michelle-zac-amico-lee-syatt-bam-jacob-s",
+    "image": "/img/comedians/Mike-Cannon-5-17-25-Headshot-COLOR-dfe21053-large-thumb.jpg",
+    "description": "Nothing says downtown NYC like a microphone, a stool, a brick wall and a comedian. Stand up comedy has been a staple of Village nightlife for decades! The newly expanded New York Comedy Club is proud to join the thriving arts and entertainment scene in the East Village, building on our strong presence at our flagship location in Gramercy.FeaturingMike CannonMike RecineLili MichelleZac AmicoLee SyattBam Jacob&#39;s",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club on 4th Street",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Lili Michelle"
+      },
+      {
+        "@type": "Person",
+        "name": "Mike Recine"
+      },
+      {
+        "@type": "Person",
+        "name": "Lee Syatt"
+      },
+      {
+        "@type": "Person",
+        "name": "Mike Cannon"
+      },
+      {
+        "@type": "Person",
+        "name": "Zac Amico"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Katie Boyle, Mike Britt, Oscar Aydin, Ashton Womack, Caroline Hanes",
+    "startDate": "2026-11-19T22:30:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": " 241 East 24th Street",
+        "addressLocality": "New York",
+        "postalCode": "10010",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/katie-boyle-mike-britt-oscar-aydin-ashton-womack-caroline-hanes",
+      "priceCurrency": "USD",
+      "price": "15.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:09:48-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/katie-boyle-mike-britt-oscar-aydin-ashton-womack-caroline-hanes",
+    "image": "/img/comedians/Katie-Boyle-3-2025-Headshot-Sam-Cashell-ALT-85541390-large-thumb.jpg",
+    "description": "Get the authentic NYC stand up comedy experience at New York Comedy Club! Enjoy a nightly showcase of the best comedians in the city, hot up-and-comers, plus hotshot celebrity drop ins, national and international touring comics and more surprises!FeaturingMike BrittKatie BoyleOscar AydinAshton WomackCaroline Hanes",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Caroline Hanes"
+      },
+      {
+        "@type": "Person",
+        "name": "Mike Britt"
+      },
+      {
+        "@type": "Person",
+        "name": "Katie Boyle"
+      },
+      {
+        "@type": "Person",
+        "name": "Ashton Womack"
+      },
+      {
+        "@type": "Person",
+        "name": "Oscar Aydin"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Vinny Guadagnino, Isiah Kelly, Isabel Hagen, Fabrizio Copano, Jonathan Van Halem",
+    "startDate": "2026-11-20T18:00:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club on 4th Street",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "85 East 4th Street",
+        "addressLocality": "New York",
+        "postalCode": "10003",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/vinny-guadagnino-isiah-kelly-isabel-hagen-fabrizio-copano-jonathan-van-halem",
+      "priceCurrency": "USD",
+      "price": "20.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-11-13T15:08:56-05:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/vinny-guadagnino-isiah-kelly-isabel-hagen-fabrizio-copano-jonathan-van-halem",
+    "image": "/img/comedians/S1170019-2-2-9a060815-large-thumb.jpg",
+    "description": "Nothing says downtown NYC like a microphone, a stool, a brick wall and a comedian. Stand up comedy has been a staple of Village nightlife for decades! The newly expanded New York Comedy Club is proud to join the thriving arts and entertainment scene in the East Village, building on our strong presence at our flagship location in Gramercy.FeaturingIsiah KellyVinny GuadagninoIsabel HagenFabrizio CopanoJonathan Van Halem",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club on 4th Street",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Fabrizio Copano"
+      },
+      {
+        "@type": "Person",
+        "name": "Isabel Hagen"
+      },
+      {
+        "@type": "Person",
+        "name": "Isiah Kelly"
+      },
+      {
+        "@type": "Person",
+        "name": "Vinny Guadagnino"
+      },
+      {
+        "@type": "Person",
+        "name": "Jonathan Van Halem"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Secret Headliner ",
+    "startDate": "2026-11-20T18:15:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club Upper West Side",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "236 W 78th Street",
+        "addressLocality": "New York",
+        "postalCode": "10024",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/secret-headliner-1",
+      "priceCurrency": "USD",
+      "price": "29.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-27T11:56:32-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/secret-headliner-1",
+    "image": "/img/events/Secret-Headliner-April-16-Graphics-1072x680-2-dd14144d-large-thumb.jpg",
+    "description": "Our surprise Headliner series is a can&#39;t miss, with past acts like Chris Distefano, Sal Vulcano, Sam Morril, Mark Normand, Marcello Hernandez, Jeff Arcuri, and more!",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club Upper West Side",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": []
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Classy Comedy ft: Alvin Kuai, Chuck Nice, Amanda Gail, Matt Lopes, Dan Carney, Missy Baker",
+    "startDate": "2026-11-20T19:00:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": " 241 East 24th Street",
+        "addressLocality": "New York",
+        "postalCode": "10010",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/classy-comedy-ft-alvin-kuai-chuck-nice-amanda-gail-matt-lopes-dan-carney-missy-baker",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:15:27-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/classy-comedy-ft-alvin-kuai-chuck-nice-amanda-gail-matt-lopes-dan-carney-missy-baker",
+    "image": "/img/comedians/AlviKuai-8c4f08ba-main-image-8eb90f50-large-thumb.jpg",
+    "description": "Jason Salmon and Amanda Gail bring top-shelf comics to Classy Comedy, the longest-running show at New York Comedy Club. It&#39;s the connoisseur&rsquo;s choice. A super classy night on the town. No tie required.FeaturingChuck NiceMatt LopesDan CarneyAlvin KuaiAmanda GailJordan AdamsMaggie Naughton",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Amanda Gail"
+      },
+      {
+        "@type": "Person",
+        "name": "Jordan Adams"
+      },
+      {
+        "@type": "Person",
+        "name": "Maggie Naughton"
+      },
+      {
+        "@type": "Person",
+        "name": "Dan Carney"
+      },
+      {
+        "@type": "Person",
+        "name": "Alvin Kuai"
+      },
+      {
+        "@type": "Person",
+        "name": "Matt Lopes"
+      },
+      {
+        "@type": "Person",
+        "name": "Chuck Nice"
+      },
+      {
+        "@type": "Person",
+        "name": "Missy Baker"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Todd Barry, Mike Britt, Juan Nicolón, Jordan Adams",
+    "startDate": "2026-11-20T20:15:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club on 4th Street",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "85 East 4th Street",
+        "addressLocality": "New York",
+        "postalCode": "10003",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/todd-barry-mike-britt-juan-nicolon-jordan-adams",
+      "priceCurrency": "USD",
+      "price": "45.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:15:55-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/todd-barry-mike-britt-juan-nicolon-jordan-adams",
+    "image": "/img/imagetest/todd-barry-420x260-jpg-2f380cda-large-thumb.jpg",
+    "description": "Nothing says downtown NYC like a microphone, a stool, a brick wall and a comedian. Stand up comedy has been a staple of Village nightlife for decades! The newly expanded New York Comedy Club is proud to join the thriving arts and entertainment scene in the East Village, building on our strong presence at our flagship location in Gramercy.FeaturingTodd BarryMike BrittJuan Nicol&oacute;nJordan AdamsMaggie Naughton",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club on 4th Street",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Juan Nicolón"
+      },
+      {
+        "@type": "Person",
+        "name": "Todd Barry"
+      },
+      {
+        "@type": "Person",
+        "name": "Mike Britt"
+      },
+      {
+        "@type": "Person",
+        "name": "Jordan Adams"
+      },
+      {
+        "@type": "Person",
+        "name": "Maggie Naughton"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Isiah Kelly, Chuck Nice, Carmen Lynch, Sam Frank",
+    "startDate": "2026-11-20T20:30:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club Upper West Side",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "236 W 78th Street",
+        "addressLocality": "New York",
+        "postalCode": "10024",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/isiah-kelly-chuck-nice-carmen-lynch-sam-frank",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:16:24-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/isiah-kelly-chuck-nice-carmen-lynch-sam-frank",
+    "image": "/img/comedians/Untitled-design-22-06220c44-large-thumb.png",
+    "description": "Spent the day exploring the Met or strolling through Central Park? Cap it off with a night of killer stand-up just around the corner. Each show is a fast-paced showcase of top-tier comics, big laughs, and good vibes only&mdash;whether you&rsquo;re a local or in town for the weekend. It&rsquo;s intimate, unfiltered, and unforgettable&mdash;the perfect blend of neighborhood charm and New York edge.FeaturingIsiah KellyChuck NiceCarmen LynchSam Frank",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club Upper West Side",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Isiah Kelly"
+      },
+      {
+        "@type": "Person",
+        "name": "Carmen Lynch"
+      },
+      {
+        "@type": "Person",
+        "name": "Chuck Nice"
+      },
+      {
+        "@type": "Person",
+        "name": "Sam Frank"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Mike Britt, Nathan Macintosh, Alex Castagne, Sam Kochman, Shyam Subramanian + Surprise Guest!",
+    "startDate": "2026-11-20T21:15:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": " 241 East 24th Street",
+        "addressLocality": "New York",
+        "postalCode": "10010",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/mike-britt-nathan-macintosh-alex-castagne-sam-kochman-shyam-subramanian-surprise-guest",
+      "priceCurrency": "USD",
+      "price": "45.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:16:59-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/mike-britt-nathan-macintosh-alex-castagne-sam-kochman-shyam-subramanian-surprise-guest",
+    "image": "/img/comedians/Mike-Britt-a05c0970-large-thumb.jpg",
+    "description": "Get the authentic NYC stand up comedy experience at New York Comedy Club! Enjoy a nightly showcase of the best comedians in the city, hot up-and-comers, plus hotshot celebrity drop ins, national and international touring comics and more surprises!FeaturingNathan MacintoshAlex CastagneSam KochmanShyam Subramanian+ Surprise Guest",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Alex Castagne"
+      },
+      {
+        "@type": "Person",
+        "name": "Nathan Macintosh"
+      },
+      {
+        "@type": "Person",
+        "name": "Mike Britt"
+      },
+      {
+        "@type": "Person",
+        "name": "Sam Kochman"
+      },
+      {
+        "@type": "Person",
+        "name": "Shyam Subramanian"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Nathan Macintosh, Mike Britt, Juan Nicolón, + Surprise Guest!",
+    "startDate": "2026-11-20T22:30:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club on 4th Street",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "85 East 4th Street",
+        "addressLocality": "New York",
+        "postalCode": "10003",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/nathan-macintosh-mike-britt-juan-nicolon-surprise-guest",
+      "priceCurrency": "USD",
+      "price": "25.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-10-26T11:17:35-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/nathan-macintosh-mike-britt-juan-nicolon-surprise-guest",
+    "image": "/img/comedians/NathanMac-9722091d-large-thumb.jpg",
+    "description": "Nothing says downtown NYC like a microphone, a stool, a brick wall and a comedian. Stand up comedy has been a staple of Village nightlife for decades! The newly expanded New York Comedy Club is proud to join the thriving arts and entertainment scene in the East Village, building on our strong presence at our flagship location in Gramercy.FeaturingMike BrittNathan MacintoshJuan Nicol&oacute;nSam KochmanShyam SubramanianSurprise Guest",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club on 4th Street",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Juan Nicolón"
+      },
+      {
+        "@type": "Person",
+        "name": "Nathan Macintosh"
+      },
+      {
+        "@type": "Person",
+        "name": "Mike Britt"
+      },
+      {
+        "@type": "Person",
+        "name": "Sam Kochman"
+      },
+      {
+        "@type": "Person",
+        "name": "Shyam Subramanian"
+      }
+    ]
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "ComedyEvent",
+    "name": "Jack Grady (Comedy Magic Show)",
+    "startDate": "2026-11-20T22:45:00-05:00",
+    "location": {
+      "@type": "Place",
+      "name": "New York Comedy Club Upper West Side",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "236 W 78th Street",
+        "addressLocality": "New York",
+        "postalCode": "10024",
+        "addressRegion": "NY",
+        "addressCountry": "US"
+      }
+    },
+    "eventStatus": "https://schema.org/EventScheduled",
+    "eventAttendanceMode": "https://schema.org/OfflineEventAttendanceMode",
+    "offers": {
+      "@type": "Offer",
+      "url": "https://newyorkcomedyclub.com/events/jack-grady-comedy",
+      "priceCurrency": "USD",
+      "price": "29.00",
+      "availability": "https://schema.org/InStock",
+      "validFrom": "2026-07-17T10:49:38-04:00"
+    },
+    "url": "https://newyorkcomedyclub.com/events/jack-grady-comedy",
+    "image": "/img/events/Jack-Grady-NYCC-UWS-Nov-20-2026-Graphics-1072x680-2-235d1488-large-thumb.jpg",
+    "description": "Jack Grady is a comedy magician whose chaotic, unpredictable style has earned him a cult following and millions of fans across the internet. One of the most unique voices in magic today, Jack has a rare instinct for virality at its core, including delivering the shortest audition in &quot;America&rsquo;s Got Talent&quot; history and his documentary premiered at the 2026 &quot;New York Film Festival&quot;. He is also the first magician to ever step into a professional boxing match, and blends wit filled comedy with impossible magic. Jack&rsquo;s performances are fast paced, absurd, and completely original. Simply put, Jack Grady is one of the strangest and most hilarious acts you will ever experience, delivering a show that is as unforgettable as it is unpredictable.",
+    "organizer": {
+      "@type": "Organization",
+      "name": "New York Comedy Club Upper West Side",
+      "url": "https://newyorkcomedyclub.com"
+    },
+    "performer": [
+      {
+        "@type": "Person",
+        "name": "Jack Grady"
+      }
+    ]
+  }
+]
