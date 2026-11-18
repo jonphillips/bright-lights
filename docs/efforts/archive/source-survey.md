@@ -1,5 +1,8 @@
 # Effort: source survey
 
+**Status:** Dispatched
+**Summary:** Survey all registered NYC event sources and document access methods, coverage, horizons, and fixtures.
+
 *Architect brief, 2026-11-18. Research only: no app code, no Xcode project, no scaffolding.*
 
 ## Why

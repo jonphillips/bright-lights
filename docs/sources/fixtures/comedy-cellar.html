@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Comedy Cellar Reservation</title>
+		<meta name="viewport" content="initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0">
+		<meta name="theme-color" content="#141414">
+		<link rel="preconnect" href="https://fonts.googleapis.com">
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;700&display=swap" rel="stylesheet">
+		<!-- reCAPTCHA -->
+		<script src="https://www.google.com/recaptcha/enterprise.js?render=6LeTDGgqAAAAAFudOC3UqXV1NaAA4ieexq3VseRW"></script>		<style>
+			@font-face { 
+				font-family: "neuzon"; 
+				font-display: swap; 
+				src: url("/reservations/Neuzon-Regular.ttf") format("truetype")
+			}
+		</style>				
+		<link rel="stylesheet" type="text/css" href="styles.css?version=4.0.15">
+	</head>
+	<body class="ccgrf">
+		<script src="https://cdn.jsdelivr.net/npm/@easepick/bundle@1.2.1/dist/index.umd.min.js"></script>
+		<section class="ccgrf-parent">
+			
+<!-- Comedy Cellar Reservation Form -->
+<div class="ccgrf">
+<!-- panel 0 -->
+<div data-panel="0" class="panel panel-0">
+	<div class="panel-content">
+		<h2>Cancel Reservation</h2>
+		<div class="cancel-wrapper">
+			<form>
+				<div>
+					<span class="lbl-cancel-email">Enter your email:</span>
+					<div class="flex">
+						<input data-form-field="email3" class="txt-cancel-email" type="text" name="email" required>
+						<input id="btn_cancel_search" class="nav-button" type="button" value="Search">	
+					</div>					
+				</div>
+			</form>
+			<div id="cancel_confirm_wrapper" class="cancel-confirm-wrapper"></div>
+			<div id="cancel_info_wrapper" class="hidden">
+				<p>Your Reservation(s)</p>
+				Below is a list of reservations made with your email address.
+				<p>Please click &quot;Cancel&quot; next to the reservation you would like to cancel.</p>
+				<p>Please call us at <a href="tel:2122543480">212-254-3480</a> if you placed a reservation 
+				and cannot find it in this list.</p>
+				<div id="cancel_table_wrapper"></div>
+			</div>
+			<div id="cancel_result_wrapper" class="hidden">
+				No results.
+			</div>
+		</div>		
+	</div>
+	<div class="center-nav">
+		<input class="nav-button nav-button-single" data-panel-id="1" type="button" value="Make Reservation">
+	</div>
+</div>
+<!-- panel 0 -->
+<!-- panel 1 -->
+<div data-panel="1" class="active-panel panel panel-1">
+	<div class="panel-content">
+		<div class="intro-notes">
+			<div>
+				<img src="/reservations/img/id.svg">		
+			</div>
+			<div>
+				<p><strong>21 and over.</strong></p>
+				<p><a data-codebase="CB_RF100" target="_blank" href="mailto:liz@comedycellar.com?Subject=21%20and%20over%20exception%20Request">Email us</a> for exceptions if 18 with a parent</p>
+			</div>
+		</div>
+		<div class="intro-notes">
+			<div>
+				<img src="/reservations/img/group.svg">		
+			</div>
+			<div>
+				<p class="parties"><strong>Parties larger than 8 are NOT allowed in the MacDougal Street location and no larger than 4 in the Fat Black Pussy Cat location.</strong></p>
+				<p>
+					Our space is limited intimate and cozy. Even if split into multiple reservations we find that parties larger than this are usually noisy (even without meaning to be) and this disrupts the show. Multiple reservations resulting in groups larger than this will also not be honored. Over the years we have found this to be an essential rule to follow. Sorry for any inconvenience.
+				</p>				
+			</div>
+		</div>	
+		<div class="intro-notes">
+			<div>
+				<img src="/reservations/img/drinks.svg">
+			</div>
+			<div>
+				<p><strong>Two item minimum per person.</strong></p>
+				<p>Food or drink or bottle of water.</p>
+			</div>				
+		</div>
+	</div>
+	<div class="center-nav">
+		<input class="nav-button" data-panel-id="2" type="button" value="Make Reservation">
+		<input class="nav-button nav-button-minimal" data-panel-id="0" type="button" value="Cancel Reservation">
+	</div>
+</div>
+<!-- panel 1 -->
+<!-- panel 2 -->
+<div data-panel="2" class="panel panel-2">
+	<div class="panel-content">
+		<div>
+			<h2 class="lbl-title">Select Date:</h2>
+			<div class="calendar-wrapper">
+				<input id="datepicker">	
+			</div>	
+		</div>
+		<div id="scroll_target_2">
+			<h2><span>Select Showtime:</span><span>Scroll Down</span></h2>
+			<div class="showtimes-column">
+				<ul id="showtimes" class="ccgrf-list"></ul>
+				<div class="selected-meta">
+					<p class="selected-title">You've selected:</p>
+					<span id="lbl_selected_date">&nbsp;</span>
+					<span id="lbl_selected_showtime" class="hidden">&nbsp;</span>
+				</div>
+				<div class="center-nav">
+					<input class="nav-button nav-button-minimal" data-panel-id="1" type="button" value="Back">
+					<input class="nav-button" data-panel-id="3" disabled type="button" value="Next" disabled id="btn_panel_2_next">
+				</div>				
+			</div>
+		</div>	
+	</div>	
+</div>
+<!-- panel 2 -->
+<!-- panel 3 -->
+<div data-panel="3" class="panel">
+	<div class="panel-content">
+		<div>
+			<h2>Email</h2>
+			<div class="panel-date-header">
+				<div>
+					<div data-show-date-info class="show-date-info"></div>
+				</div>
+				<div>
+					<input type="button" class="nav-button" data-panel-id="2" value="Change Date">
+				</div>
+			</div>
+		</div>
+		<form id="form_email">
+			<div>
+				<label>
+					<span class="form-label">Email Address</span>
+					<input data-form-field="email1" required type="email" autocomplete="email">
+				</label>
+				<label>
+					<span class="form-label">Re-enter Email Address</span>
+					<input data-form-field="email2" required type="email" autocomplete="email">
+				</label>				
+			</div>
+		</form>
+	</div>	
+	<div class="center-nav">
+		<input id="btn_email_next" class="nav-button" data-panel-id="4" type="button" value="Next" disabled>
+	</div>	
+</div>
+<!-- panel 3 -->
+<!-- panel 4 -->
+<div data-panel="4" class="panel panel-4">
+	<div class="panel-content">
+		<h2>Sold Out</h2>
+		<div class="scrollable">
+			<div id="mint_message">
+				<div data-item-link class="mint-item">
+					<a target="_blank" href="http://mintcomedy.com/">
+						<img src="/reservations/img/mint/sold-out-660.png">
+					</a>
+				</div>
+			</div>
+			<h3>We cannot take anymore reservations for this show.</h3>
+			<p>
+				In order to avoid overbooking, remaining seats will be given out at the Comedy Cellar at show time.
+				If you would like to attend this show, we encourage you to come and join our standby lists.
+			</p>
+			<p>Standby Ticket Instructions</p>
+			<div class="venue-instructions">
+				<div>
+					<p><strong>Village Underground & Fat Black Pussycat Locations</strong></p>
+					<ul>
+						<li>Standby opens 2 hours before desired shows (one hour prior to the first show).</li>
+						<li>Go to the venue entrance on W 3rd wait near standby sign and write your name on the standby list.</li>
+					</ul>
+				</div>
+				<div>
+					<p><strong>MacDougal Street Location</strong></p>
+					<ul>
+						<li>Arrive 1 hour before desired showtime to join the standby list. This lists opens an hour prior to the show ONLY and can fill quickly.</li>
+						<li> Go to ally around corner from original location on Minetta Lane and wait near the standby sign and write your name on the standby list.</li>
+					</ul>
+				</div>
+				<div>
+					<p><strong>Note:</strong></p>
+					<p>Availability is not guaranteed—arrive early for the best chance - this is strongly recommend as spaces are limited, the standby list may fill up. Please plan accordingly as we do cap the lists at 20-30 people depending on show and room.</p>
+					<p>Seating is first-come first-serve AFTER our confirmed reservations are seated, so you must check in with the host as soon as you arrive to secure your position in line. You have a good chance of getting a seat, but we CANNOT guarantee that there will be room for you.</p>
+				</div>
+			</div>
+			<!--
+			<p>
+				CHECK OUT: <a href="http://www.timeout.com/newyork/comedy/the-comedy-cellars-new-venue-at-the-village-underground">
+				Time Out New York article</a> on our Village Underground room (right around the corner).
+			</p>
+			-->
+			<div id="available_shows_wrapper" class="hidden">
+				<p>If you would like a confirmed reservation for another one of our Comedy Cellar 
+				shows,	please click <span class="click-here" data-panel-id="2">here</span>, or select 
+				an available showtime below.</p>
+				<ul id="available_shows" class="ccgrf-list"></ul>
+			</div>
+			<div id="select_new_show_wrapper" class="hidden">
+				<p>
+					If you would like a confirmed reservation for another one of our Comedy Cellar shows, please 
+					click the <span class="desktop button-action">Change Date</span><span class="mobile button-action">Back</span> button below.
+				</p>
+			</div>
+		</div>
+	</div>
+	<div class="center-nav">
+		<input class="nav-button" data-panel-id="2" type="button" value="Change Date">
+		<input id="btn_45" class="nav-button" data-panel-id="5" type="button" value="Next" disabled data-src-panel="4">
+	</div>
+</div>
+<!-- panel 4 --><!-- panel 5 -->
+<div data-panel="5" class="panel">
+	<div class="panel-content">
+		<div>
+			<h2>Contact Info</h2>
+			<div class="panel-date-header">
+				<div>
+					<div data-show-date-info class="show-date-info"></div>
+				</div>
+				<div>
+					<input type="button" class="nav-button" data-panel-id="2" value="Change Date">
+				</div>
+			</div>
+		</div>
+		<form id="form_guest_info">
+			<div>
+				<label for="txt_guest_firstname">
+					<span>First Name</span>
+					<input id="txt_guest_firstname" data-form-field="firstName" type="text" autocomplete="given-name" required maxlength="50">
+				</label>
+				<label for="txt_guest_lastname">
+					<span>Last Name</span>
+					<input id="txt_guest_lastname" data-form-field="lastName" type="text" autocomplete="family-name" required maxlength="50">
+				</label>
+				<label for="option_guest_size">
+					<span>Size</span>
+					<select id="option_guest_size" data-form-field="size" size="1" required></select>
+					<span id="lbl_max_count" class="field-note">* 8 Maximum</span>
+				</label>
+				<label for="txt_guest_phone">
+					<span>Phone</span>
+					<input id="txt_guest_phone" data-form-field="phone" type="text" autocomplete="phone" maxlength="15" required>
+				</label>
+				<label for="option_guest_heard">
+					<span>How did you hear about us?</span>
+					<select id="option_guest_heard" data-form-field="howHeard" size="1">
+						<option value="Other">Other</option>
+						<option value="Been There">Been There</option>
+						<option value="Citysearch.com">Citysearch.com</option>
+						<option value="Comedian">Comedian</option>
+						<option value="Conan O'Brien">Conan O'Brien</option>
+						<option value="E-mail">E-mail</option>
+						<option value="Family/Friends">Family/Friends</option>
+						<option value="Guide Book">Guide Book</option>
+						<option value="Host Brought Me In">Host Brought Me In</option>
+						<option value="Hotel">Hotel</option>
+						<option value="Howard Stern">Howard Stern</option>
+						<option value="Internet">Internet</option>
+						<option value="Live In The Area">Live In The Area</option>
+						<option value="Magazine">Magazine</option>
+						<option value="New York Magazine">New York Magazine</option>
+						<option value="Newspaper">Newspaper</option>
+						<option value="NYU">NYU</option>
+						<option value="Olive Tree">Olive Tree</option>
+						<option value="Passed By">Passed By</option>
+						<option value="Phone Book">Phone Book</option>
+						<option value="Radio Show">Radio Show</option>
+						<option value="Time Out">Time Out</option>
+						<option value="TV Show">TV Show</option>
+						<option value="Village Voice">Village Voice</option>
+						<option value="Word of Mouth">Word of Mouth</option>
+						<option value="Zagat">Zagat</option>
+					</select>
+				</label>
+				<div class="sms">
+					<p><strong>ONE TIME SMS feedback authorization</strong></p>
+					<p class="message">
+						Frank customer feedback is essential to our success.  After the show, can we text
+						you a request for your comments?  We will <em>never</em> use the number again.
+					</p>
+					<select class="select-sms" data-form-field="smsOk" size="1" required>
+						<option value=""></option>
+						<option value="Yes" selected>Yes</option>
+						<option value="No">No</option>
+					</select>
+				</div>
+			</div>
+		</form>
+	</div>
+	<div class="center-nav">
+		<input class="nav-button nav-button-minimal" data-panel-id="3" type="button" value="Change Email" data-src-panel="5">
+		<input class="nav-button" data-panel-id="6" type="button" value="Next">
+	</div>
+</div>
+<!-- panel 5 -->
+<!-- panel 6 -->
+<div data-panel="6" class="panel">
+	<div class="panel-content">
+		<h2>Confirm Reservation Info</h2>
+		<div class="confirm-prompt">
+			<p class="verify-msg">
+				Please verify your reservation info then click <em>Make Reservation</em></span>.
+			</p>
+		</div>
+		<div class="confrm-wrapper">
+			<div>
+				<span class="confirm-header">Date:</span>
+				<span data-confirm-date>*</span>
+			</div>
+			<div>
+				<span class="confirm-header">Time:</span>
+				<span data-confirm-description>*</span>
+			</div>
+			<div>
+				<span class="confirm-header">First Name:</span>
+				<span data-confirm-field="firstName">*</span>
+			</div>
+			<div>
+				<span class="confirm-header">Last Name:</span>
+				<span data-confirm-field="lastName">*</span>
+			</div>
+			<div>
+				<span class="confirm-header">Size:</span>
+				<span data-confirm-field="size">*</span>
+			</div>
+			<div>
+				<span class="confirm-header">Phone:</span>
+				<span data-confirm-field="phone">*</span>
+			</div>
+			<div>
+				<span class="confirm-header">Email:</span>
+				<span data-confirm-field="email">*</span>
+			</div>
+			<div>
+				<span class="confirm-header">How Heard:</span>
+				<span data-confirm-field="howHeard">*</span>
+			</div>
+			<div>
+				<span class="confirm-header">Send SMS:</span>
+				<span data-confirm-field="smsOk">*</span>
+			</div>
+		</div>
+		<div class="recaptcha-desktop">
+			<p data-location="9800.100" class="recaptcha">This site is protected by reCAPTCHA and the Google
+    			<a href="https://policies.google.com/privacy">Privacy Policy</a> and
+    			<a href="https://policies.google.com/terms">Terms of Service</a> apply.</p></div>	</div>	
+	<div class="center-nav">
+		<input class="nav-button nav-button-minimal" data-panel-id="5" type="button" value="Edit Reservation Info" data-src-panel="6">
+		<input class="nav-button" data-panel-id="7" type="button" value="Make Reservation">
+	</div>
+	<div class="recaptcha-mobile">
+			<p data-location="9800.100" class="recaptcha">This site is protected by reCAPTCHA and the Google
+    			<a href="https://policies.google.com/privacy">Privacy Policy</a> and
+    			<a href="https://policies.google.com/terms">Terms of Service</a> apply.</p></div></div>
+<!-- panel 6 -->
+<!-- panel 7 -->
+<div data-panel="7" class="panel panel-7">
+	<div class="panel-content">		
+		<h2>Confirmation</h2>
+		<div class="scrollable">	
+			<div id="reservation_result" class="loading">
+				<img src="/reservations/img/loader.svg" alt="Loading">
+			</div>
+		</div>		
+	</div>	
+	<div id="confirm_btn_wrapper" class="center-nav">
+		<input id="btn_7" class="hidden nav-button" data-panel-id="2" type="button" value="Make Another Reservation">
+	</div>
+</div>
+<!-- panel 7 -->
+
+<!-- Reservation Form Config-->
+<script>window.ccgrfConfig = {"endpoint":"https:\/\/www.comedycellar.com\/reservations\/api","baseUrl":"https:\/\/www.comedycellar.com\/reservations","targetDate":{"date":"2026-11-18","timestamp":1795033493,"settime":false,"autoselect":false},"showInfo":null,"logDevice":false,"maxAgeSeconds":60,"insertMint":true,"autoselectYes":true,"phone":"212-254-3480","version":"4.0.15","privids":[20038157,20038158,20038159],"showpriv":false,"cca":"7f4bb3eec7a566ac20093acb4a4490033a371932b3766ebd856d5e3d8c4ac81d.MTc5NTAzNzA5My0xMDguMjAzLjMuMTk=","created":1795033493,"reCAPTCHA":{"siteKey":"6LeTDGgqAAAAAFudOC3UqXV1NaAA4ieexq3VseRW","enabled":true}};</script>
+<!-- Reservation Form Config-->
+
+<!-- Reservation script -->
+<script src="/reservations/functions.js?version=4.0.15"></script>
+<!-- Reservation script -->
+</div>
+<!-- Comedy Cellar Reservation Form -->
+		</section>
+		
+	</body>
+</html>
