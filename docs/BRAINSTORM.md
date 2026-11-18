@@ -1,7 +1,7 @@
 # Bright Lights — brainstorm and settled decisions
 
-*Captured 2026-11-18 from Jon's conversation with Claude. This is the seed for `PRODUCT.md`, which gets written
-after the source survey. Decisions marked **settled** are Jon's calls; don't re-litigate them.*
+*Captured 2026-11-18 from Jon's conversation with Claude. [`PRODUCT.md`](PRODUCT.md) and the decision records now
+supersede it; it stays as the record of how the ideas formed. Decisions marked **settled** are Jon's calls; don't re-litigate them.*
 
 ## The situation
 

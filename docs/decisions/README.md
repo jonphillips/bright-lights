@@ -1,0 +1,14 @@
+# Decisions
+
+Settled architecture. Check here before proposing a change, and don't re-litigate. General house decisions live in
+jon-platform `docs/adr/`.
+
+| ADR | Decision | Status |
+| --- | --- | --- |
+| [0001](0001-house-stack-and-targets.md) | The house stack; iPad, iPhone and Mac targets from one XcodeGen project | proposed |
+| [0002](0002-shared-data-model.md) | One shared household; listings are synced rows, upserted only when they change | proposed |
+| [0003](0003-the-mac-checks-the-sources.md) | The app's Mac build on the always-on mini checks automated sources | proposed |
+| [0004](0004-one-extraction-engine.md) | One extraction engine, deterministic first, with a model as the last resort | proposed |
+| [0005](0005-rounds-and-browser-capture.md) | Rounds: a due-list of sources, captured in the in-app browser while Jon reads | proposed |
+
+Status changes to **accepted** when Jon merges the plan PR that proposes it.
