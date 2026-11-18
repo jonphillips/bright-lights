@@ -61,6 +61,8 @@ this).
      they change?
    - Aggregators versus venues: does Oh My Rockness, DoNYC or Playbill cover enough venue listings to replace
      separate venue adapters, and is it allowed?
+   - **Horizon:** how far ahead does each core source publish named listings? Which ones are visible 4–8 weeks out?
+     The app will suggest which week to visit, and only sources with that much lead time can inform the choice.
    - Editorial: which sources have usable feeds?
    - Surprises, closures, and anything that should change the registry.
 3. Advance `docs/NEXT_UP.md` to "nothing dispatched" in the same PR.

@@ -29,6 +29,22 @@ stay is an arrival plus a tentative departure. That gives two time ranges:
   here, because most booking happens during the three weeks away. The best single alert is something like "this
   closes Jan 12, and you're only in town once more before then."
 
+**Suggesting when to go (added 2026-11-18).** Because stays float, the app can also answer the reverse question:
+which week next month is the best one to be in town? It ranks possible stays by how much they hold that matches
+Jon's taste (reactions, taste notes, model predictions). For example: "Feb 9–15 catches A, B and C; staying through
+the 16th adds D." Design points:
+
+- **Weight what's specific to that window.** A play running three months doesn't distinguish one week from another,
+  unless it closes. A one-night Town Hall talk, a podcast taping or a closing week does. A window's value is mostly
+  the good things you can only get then.
+- **Only advance listings can drive the choice.** Comedy lineups appear days ahead, so nightly sources add a constant
+  baseline ("the Cellar is good any night") rather than favoring one week. Season sources, one-off bookings and
+  on-sale dates do the choosing, which makes each source's listing horizon important.
+- **Home life limits the options.** Commitments on the shared calendar rule some windows out, so reading the
+  calendar matters earlier for this feature than for anything else.
+- **The model suggests and people decide**, as in Galavant. The output is two or three candidate windows with
+  reasons, never a booked stay.
+
 **Mostly venue-driven (settled).** About 90% of discovery comes from following venues and presenters. Jon tracks
 the artists he loves himself. A short **favorites** list still matters for the opportunistic sources, where only a
 favorite's name justifies a listing (Radio City, Songkick, Bandsintown in the registry). Sources update on two
