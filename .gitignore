@@ -1,0 +1,19 @@
+.DS_Store
+xcuserdata/
+*.xcuserstate
+.build/
+DerivedData/
+
+# Machine-local Claude Code overrides (permissions, sim UUIDs, abs paths).
+.claude/settings.local.json
+.claude/jon-platform
+
+# Background-agent worktrees (isolated checkouts, never committed)
+.claude/worktrees/
+
+# Throwaway probes and scratch output (source survey and the like)
+scratch/
+
+# Added with the first code slice, per jon-platform docs/ios:
+# drift-control.md (the XcodeGen <App>.xcodeproj block), testflight.md
+# (build/testflight/), and Config/Secrets.xcconfig if the app takes a key.
