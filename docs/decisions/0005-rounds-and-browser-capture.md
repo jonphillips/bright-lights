@@ -5,6 +5,10 @@
 browser, which captures the listings on every page Jon views on that source's site through the same extraction
 engine. Looking is capturing.*
 
+*Amended 2026-11-19 (Amendment 1, below): a source can declare a **capture helper**, a small bundled script that
+reveals the rest of the listings or reads data the page already holds. A helper only does what a reader could do
+with a few clicks. On a blocked source it runs only in Jon's visible browser session.*
+
 ## Context
 
 The survey left six core sources that need a manual check: Comedy Cellar (reCAPTCHA), Town Hall (403 on its data),
@@ -46,3 +50,68 @@ Both sibling apps already capture from an in-app browser through `WebExtractorKi
   Keychain too, as `LLMClientKit` already provides.
 - Rounds keeps the app working when sites change: a broken adapter becomes a checklist item, not a silent gap.
 - Passive capture only ever runs on pages Jon chose to open. That's personal browsing, not scraping.
+
+## Amendment 1 — capture helpers (2026-11-19)
+
+### Context
+
+`currentDOM()` already reads a page after its own JavaScript has run, so a JavaScript-only page (LIVE from NYPL)
+needs no extra code. Some pages still hold back listings: UCB shows about 17 days and puts 69 more events behind a
+WP Grid Builder "Load more" control (`open-questions.md`), and other calendars page by month or lazy-load as you
+scroll. Some pages also carry their listings as JSON in the page itself, which is sturdier to read than the layout.
+`WebBrowserView` already runs injected JavaScript (its opt-in consent clicker), so running a script per source uses a
+mechanism that already exists. The rule from PRODUCT.md and ADR-0003 point 4 still holds: never get around a CAPTCHA,
+challenge, login or 403.
+
+### Decision
+
+1. **A source can declare a capture helper** (registry `capture_helper`, `Source.captureHelper`), named like an
+   adapter so related sites can share one. Helpers are `.js` files bundled with `BrightLightsLibrary`, one per name.
+   A source without a helper captures exactly as before.
+2. **A helper does one of two things, or both:**
+   - **Reveal:** click a named control on the page ("Load more", "Next month", "Show all dates") or scroll to the
+     end, and wait for the page to grow.
+   - **Read:** return the listings data the page already holds (inline JSON, a `window` state object), or the
+     event-list part of the DOM with navigation and ads removed.
+3. **A helper only does what a reader could do on that page with a few clicks.** It may click and scroll on the
+   current page, and read the DOM and data the page has already loaded. It may not call `fetch` or XHR itself,
+   navigate to another URL, fill in forms, read cookies or storage, or touch a challenge widget. Limits:
+   - At most 5 reveal steps per run (a source can lower this, not raise it).
+   - At least 1 second between steps, to match ADR-0003's politeness rules.
+   - It stops as soon as it sees a challenge (a reCAPTCHA, hCaptcha or Turnstile frame, a Cloudflare challenge
+     page), when the page doesn't grow after a step, or when the control is gone.
+   - It returns what it has so far and reports why it stopped: `done`, `limit`, `noGrowth`, `noControl` or
+     `challenge`.
+4. **Where helpers run depends on the source, not the device:**
+   - **Manual sources** (blocked to automated requests): only in the in-app browser, on a page Jon opened, while
+     it's on screen. Reveal steps run on the source's listing page during passive capture. The chip shows their
+     progress, and Jon can stop them. On other pages of the source, only read helpers run.
+   - **Automated sources:** also in the Mac's headless render (ADR-0003 point 5). There they apply only to a page
+     that loaded with no challenge, and each reveal step counts as a request under ADR-0003's rate rules. A
+     `challenge` stop counts as a failed check (ADR-0003 point 6). The headless fetcher keeps its fresh,
+     non-persistent data store, so a challenge Jon passed in the browser is never reused unattended.
+5. **The helper's output goes into the same extraction engine** (ADR-0004) as just another document: HTML for the
+   usual ladder, JSON for a declared adapter. Helpers don't add a rung. The engine stays pure. The stop reason and
+   step count go into the check's warnings and log, so a broken helper shows up. The model-call ration hashes the
+   helper's output, so a trimmed event list changes the hash only when listings change.
+6. **A helper never makes capture worse.** If it throws, times out (10 seconds overall) or returns nothing, capture
+   falls back to plain `currentDOM()`.
+7. **`WebExtractorKit` gets one generic seam:** an optional after-load script on `RenderedDOMFetcher.Options`, whose
+   result is returned with the document. The package stays domain-free, and the browser side needs no package change
+   because the host already holds the `WebPage`.
+8. **Tests:**
+   - Each read helper is tested against its source's saved fixture, loaded in a `WebPage`.
+   - Each reveal helper is tested for its stop conditions against fixtures with the control removed or with a
+     challenge frame added.
+   - Live reveal runs are opt-in tests and never part of `check-drift`, like the model rung.
+
+### Consequences
+
+- **UCB comes first.** Its first dispatch also answers the open question: does the rendered page load more without
+  a challenge? If "Load more" returns a 403 or a challenge inside the page, the helper stops at `noGrowth` or
+  `challenge`, and UCB stays at first-page depth. Nothing works around it.
+- Helpers for manual sources get added from experience: after a few Rounds show where plain capture misses
+  listings, not in advance. S5 ships plain capture.
+- Helpers are per-site code and will break when sites change, as adapters do. Rule 6 makes a break degrade to plain
+  capture, and rule 5 makes it visible.
+- Reading a source more deeply also helps the open question on marking one-page sources `missing`.
