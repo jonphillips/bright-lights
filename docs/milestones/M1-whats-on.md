@@ -12,8 +12,8 @@ TestFlight and the CloudKit Production schema are M2.*
 - [ ] **S4** — Stays and What's on
 - [ ] **S5** — Rounds and browser capture
 
-Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. S1 and
-S2 are expanded below; S3 to S5 are outlines.
+Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. S1 to S3
+are expanded below; S4 and S5 are outlines.
 
 ## S1 — Extraction engine (package only)
 
@@ -136,22 +136,212 @@ grouped by mode (Automated, Manual), and each row shows the name, area, method (
 
 **Done when:** `check-drift` passes, including both app builds. The app launches in the iPad simulator and on the Mac
 and lists 44 sources: 29 automated and 15 manual. The PR adds a `device-passes.md` line: "Bright Lights S2: install
-from Xcode on the Mac and the iPad; the sources appear on both through CloudKit Development."
+from Xcode on the Mac and the iPad with sync on; after both have synced and relaunched, each lists 44 sources (not
+88), and one source's detail shows the same ID and Household ID on both."
+
+*Corrected in the S2 review (PR #6): each device seeds its own 44 sources, so "the sources appear on both" passed
+without sync. Matching IDs prove the two devices converged on one set.*
 
 **Not in S2:** fetching, creating listings, stays or reactions UI, sharing, TestFlight.
 
-## S3 — The Mac checks the sources (outline)
+## S3 — The Mac checks the sources
 
-The role toggle and lease (ADR-0003, Vinyl Fever's pattern), the per-source cadence scheduler, polite fetching with
-the survey's pagination, `RenderedDOMFetcher` for rendered sources, the engine, the change-only upsert, check outcomes
-on `Source`, and the failure rule that feeds Rounds. Adds the mini's setup line to `device-passes.md`.
+**Goal:** the Mac that holds the checking role reads every automated source on its cadence, politely. It writes
+listings with the change-only upsert, and records each check's outcome on `Source`, so the iPad shows real listings
+and an honest last-check time for each source. The Mac checks inside the app process (ADR-0003 Amendment 1).
 
-Carried from the S1 review (PR #4):
-- **Canonicalize URL identities before keying.** Lowercase the host, collapse doubled slashes, and drop fragments and
-  trailing slashes. The Stand's page links one show both as `https://thestandnyc.com//shows/show/14184/...` and as
-  `/shows/show/14184/...`.
-- **Count a model row without a title separately** from rows with invalid dates.
-- **Decide what a date-only model start becomes,** such as a talk without a time. It's dropped today.
+**Builds on S2 (PR #6):** sources are read through S2's one-row-per-`registryID` query, and `syncFromRegistry` only
+writes a source when a field changes.
+
+**Schema (one new migration; S2's migration stays frozen):**
+
+- **`Household` gains the lease:** `checkerDeviceID` (UUID text), `checkerDeviceName` and `checkerClaimedAt`, all
+  nullable. The device ID alone decides who holds the role, and the name is only a label. A takeover writes all three
+  in one update.
+- **`Source` gains:**
+  - `pagination`: JSON text, nullable, registry-owned (below).
+  - `retiredAt`: nullable (below).
+  - `lastContentHash`: nullable; set only by model-rung checks (below).
+  - `lastCheckNote`: nullable; the check's warnings or error, in plain words, up to 500 characters.
+- **Create the CloudKit Development fields with `cktool`,** for S2's columns as well as these. Follow jon-platform
+  `persistence-and-sync.md` § "Adding a synced table or column": a fresh export, your additions, `validate-schema`,
+  Jon's OK on the diff, then import. S2 relied on a build, which creates a field only once some row fills it, so
+  nil-only columns such as `lastCheckedAt` are missing.
+
+**The registry (registry 1.3; edit `docs/sources/registry.json` and copy it into the bundle):**
+
+- **An optional `pagination` per source.** If it's absent, the checker reads one page. Two kinds come from the
+  survey's notes:
+  - `{"kind": "pages", "template": "…/page/{n}/", "first": 2, "max": 6}` reads `listing_url`, then pages from
+    `first` up. It stops at a page with no listings, a non-200 response, or `max`. Use it for `bowery-ballroom` and
+    `mercury-lounge` (`https://mercuryeastpresents.com/<venue>/page/{n}/`).
+  - `{"kind": "months", "template": "…/{yyyy-MM}", "months_ahead": N}` reads `listing_url`, then the current NYC
+    month through N months ahead. It doesn't stop at an empty month, because The Stand has gaps. Use it for
+    `the-stand` (`https://thestandnyc.com/shows/{yyyy-MM}`, 7) and `ny-comedy-club`
+    (`https://newyorkcomedyclub.com/calendar/{yyyy-MM}`, 6).
+  - Every other source reads one page. That includes `irving-plaza`: confirm in the live pass whether its site
+    paginates, and report it rather than guessing. UCB stays at first-page depth with no "Load more"
+    (open-questions).
+- **Retired sources.** When a source leaves the seedable set (retired, `skip`, or gone from the registry),
+  `syncFromRegistry` sets `retiredAt`. If the source returns, it clears it. A retired source is never checked and
+  isn't listed on the Sources screen. Its rows and listings stay, so reactions keep their history, and ADR-0002's
+  pruning still applies.
+
+**The role (ADR-0003 and its Amendment 1):**
+
+- **This Mac's identity** is a device-local UUID in `@Shared(.appStorage)` (law 4), plus the Mac's localized host
+  name.
+- **Settings** (a gear on the Sources screen; the first Settings screen):
+  - **Mac:** a "Check sources on this Mac" toggle.
+    - Turning it on when another Mac holds the role asks first: "<name> is checking now. Make this Mac the checker?"
+      Then it writes the lease, registers the app as a login item with `SMAppService.mainApp`, and runs one pass
+      straight away. Vinyl Fever learned not to wait for the next tick (its M13).
+    - Turning it off unregisters the login item. The lease stays until another Mac takes it.
+    - Show the lease holder, and when macOS needs approval, a note with an **Open Login Items** button
+      (`SMAppService.openSystemSettingsLoginItems()`).
+    - A **Check all now** button runs every automated source regardless of cadence. It shows only while this Mac holds
+      the role.
+  - **iPad and iPhone:** a read-only line saying which Mac checks, and when the household's most recent check ran.
+  - **Every platform:** the model key field, through `LLMClientKit`'s `APIKeyStore` in the app's default access
+    group, as in Galavant's Settings.
+  - **Sync:** the checker requires sync to be on. If sync is off, the toggle explains that and does nothing.
+- **The Mac app stays running with no window open while it holds the role** (an `NSApplicationDelegateAdaptor`
+  returning false from `applicationShouldTerminateAfterLastWindowClosed`). Reopening the app shows a window again.
+- **A Mac that doesn't hold the lease never checks,** including one whose toggle is still on (tested).
+
+**The scheduler (Mac only):**
+
+- **An `NSBackgroundActivityScheduler`** repeats hourly with a generous tolerance. Each tick runs one pass if this
+  Mac holds the lease and isn't already running a pass. Hold a `ProcessInfo` activity for the length of a pass, so App
+  Nap can't stall it.
+- **Due rules** are a pure function of `(source, now, stays)`, tested:
+  - `nightly`: due when the last check is more than 20 hours old.
+  - `weekly`: due when the last check is more than 6 days and 20 hours old.
+  - A source that has never been checked is due.
+  - During a stay, every source counts as nightly. A stay covers a day from 2 days before `arrivesOn` through
+    `departsOn`. For an open departure, use 7 days after arrival. Stays can't be entered until S4, but the rule reads
+    the table now.
+- **A pass** checks due automated sources one at a time, the longest-overdue first.
+
+**Fetching (a `@DependencyClient`, so tests never touch the network):**
+
+- **Identify honestly:** a `User-Agent` of `BrightLights/<version> (personal, non-commercial)`. No cookies carry
+  over between passes, and the checker never logs in.
+- **robots.txt:** fetch it once per host per pass. Honor `Disallow` for our agent and for `*`, and honor
+  `Crawl-delay`. If robots.txt is unreachable, as with AEG's blob host (HTTP 400 in the survey), treat it as having
+  no rules, the way the survey did. A disallowed path fails the check with a note.
+- **Pace:** wait at least 1 second between requests, or the crawl delay if it's longer. Requests are serial; there
+  are no parallel fetches.
+- **Challenges count as failures:** HTTP 403 or 429, a CAPTCHA or bot-challenge page (detect the common markers),
+  or a login redirect. The checker never retries around one within a pass.
+- **`rendered_scrape` sources** use `WebExtractorKit`'s `RenderedDOMFetcher.renderedDocument(of:)`. That adds
+  `WebExtractorKit` to the app, as ADR-0001 point 5 planned; add its SEAM-LEDGER or EXTRACTION-NOTES row.
+- **JSON sources** (`platform_feed` with `aegAXS` or `caveatJSON`) are read as `PageDocument.json`. Everything else
+  is read as `.html`.
+
+**Extracting and the model ration (ADR-0004 point 4):**
+
+- **Run the engine on each page** and merge the results by stable key.
+- **Hash every page** with `ExtractionEngine.pageHash(for:)` and combine the page hashes. A check that used the
+  model rung saves the combined hash in `lastContentHash`. A check that didn't clears it.
+- **The skip:** if the next check's combined hash matches, skip extraction entirely. Record a success with the
+  previous count, and the note "unchanged; model not called". Sources that use the deterministic rungs always run
+  the engine, because the visible-text hash can't see a change inside JSON-LD. Their change-only upsert keeps the
+  writes down.
+- **No model key:** a model-rung source fails with the note "no model key".
+- **Log each model call** to OSLog with the source ID, page count and listing count (ADR-0004 consequences).
+- **Carried from the S1 review (PR #4), in the engine:**
+  - **Canonicalize URL identities before keying:** lowercase the host, collapse doubled slashes, and drop fragments
+    and trailing slashes. The Stand links one show as both `https://thestandnyc.com//shows/show/14184/...` and
+    `/shows/show/14184/...`.
+  - **Count a model row with no title separately** from rows with invalid dates.
+  - **A start with a date but no time is dropped and counted** in its own warning. This decides the open question:
+    a date-only start never becomes midnight. If talks go missing because of it, the counts will show it, and we
+    revisit.
+
+**The upsert (ADR-0002 point 3), in `BrightLightsSchema`, tested:**
+
+- **Match by `stableKey` within the source.** Read through a one-row-per-key rule: the survivor is the lowest
+  `(firstSeenAt, id)`.
+- **On write, converge any duplicates for a key.** Repoint their reactions to the survivor, then delete the losers.
+  The browser (S5) is a second writer of the same keys, so duplicates will happen.
+- **New key:** insert with `firstSeenAt` and `updatedAt` set to now, and `capturedBy: .mac`.
+- **Existing key:**
+  - Compare the content fields: title, performers, room, ticket URL, on-sale time, time, and status. Write only if
+    one differs. That write also refreshes `rung`, `capturedBy` and `updatedAt`.
+  - A provenance change alone isn't a write.
+  - Map the engine's status straight across; it never produces `missing`.
+- **Missing listings:**
+  - On a complete, successful check, a future listing of this source that the check didn't return becomes
+    `missing`.
+  - A `missing` listing that comes back becomes `listed` again.
+  - A partial check never marks anything missing. That's one where page 1 succeeded but a later page failed: the
+    check counts as a success with a note.
+- **Pruning,** once per pass: delete past listings with no reaction 30 days after they end (`closesAt`, or else
+  `startsAt`). Reactions keep their listings.
+- **One `Listing` query helper** holds the one-row-per-key rule, so S4 reads through it too.
+
+**Check outcomes on `Source`, written once at the end of each source's check:**
+
+- **On success:** set `lastCheckedAt`, `lastCheckOutcome = .succeeded`, `lastListingCount`, `consecutiveFailures = 0`
+  and `lastCheckNote` (the warnings, if any).
+- **On failure:** set `lastCheckedAt`, `.failed`, and the note, and increment `consecutiveFailures`. Leave the count
+  and the listings untouched.
+- **Zero is a failure:** a check that returns no listings when `lastListingCount` was 3 or more counts as failed,
+  with the note "returned no listings (was N)". Its listings aren't marked missing.
+- **`Source.needsManualLook`:** add this computed property, true when `consecutiveFailures >= 3` or the latest
+  failure was the zero drop. S5's Rounds reads it.
+
+**UI:**
+
+- **Sources rows** show the last check as relative time and its outcome, with a warning badge when
+  `needsManualLook` is true.
+- **The detail view** shows the check note and the source's current listings, read-only and deduplicated: the date,
+  title and status, soonest first. That's enough to verify S3 on the iPad; S4 builds the real views.
+
+**Tests (package; all network and model calls stubbed):**
+
+- The due rules: nightly, weekly, never checked, and a stay window that includes an open departure.
+- The lease: a non-holder does nothing, a takeover writes all three fields, and a toggle turned off leaves the lease.
+- **robots.txt parsing:** our agent versus `*`, `Crawl-delay`, and an unreachable file.
+- **Pagination:**
+  - `pages` stops at an empty page and at `max`.
+  - `months` reads past an empty month.
+  - A failed later page makes a partial check.
+- **A pass over the fixtures:** stubbed fetches of `bowery-ballroom.html`, `brooklyn-steel.json` and `caveat.json`
+  insert their listings and record their outcomes.
+- **Running the same pass again writes nothing.** Use S2's `SyncMetadata` probe to prove it.
+- **The upsert:**
+  - A changed title updates the row.
+  - A provenance-only change doesn't.
+  - A missing listing is marked, then restored.
+  - A partial check marks nothing missing.
+  - Seeded duplicate listings converge and keep their reaction.
+  - Pruning keeps a past listing that has a reaction.
+- **The model ration:** an unchanged hash never calls the stub model, and a changed one does.
+- **The failure rule:** three failures in a row, and the drop to zero.
+- **`syncFromRegistry`:** retiring a source and bringing it back, and pagination round-trips through the column.
+- **The engine:**
+  - Keys from the two forms of the Stand URL are equal.
+  - A missing title gets its own count.
+  - A date-only start gets its own count.
+
+**Done when:** `check-drift` passes; closeout (ADR-0005 D16).
+
+- **The live pass:** the PR reports one real **Check all now** on Jon's laptop, with sync on, from a clean store. Give
+  a table of every automated source: its outcome, listing count, rung, pages read, and note. Also give the number of
+  model calls and the pass's total time. Then run a second **Check all now** straight away and report how many
+  listing rows it wrote; it should be close to zero.
+- **The gate it owes,** for the mini's setup (ADR-0003 Consequences): on the Mac mini, install from Xcode, turn sync
+  on, enter the model key, turn on "Check sources on this Mac" and approve the login item. After a night, the iPad
+  shows last-check times and listings for the automated sources.
+
+**Not in S3:**
+
+- Stays UI, What's on, and reactions UI (S4).
+- Rounds and browser capture (S5).
+- Notifications.
+- A UCB "Load more".
 
 ## S4 — Stays and What's on (outline)
 

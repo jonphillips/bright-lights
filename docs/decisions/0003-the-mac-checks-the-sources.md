@@ -4,6 +4,9 @@
 checking role. It checks each automated source on that source's cadence, runs the extraction engine, and upserts
 listings into the shared database. It's Jon's own device running his own app, so it isn't a server.*
 
+*Amended 2026-11-18 (Amendment 1, below) while planning M1 S3: the checker runs inside the app process, not as a
+separate launchd agent, and the lease is three synced columns on `Household`.*
+
 ## Context
 
 Phone background refresh can't reliably check about 20 sites. Jon agreed the Mac mini (arriving late November 2026)
@@ -35,3 +38,24 @@ rule forbids a custom backend; the house reads a household app running on the ho
 - Nothing happens while no Mac holds the role. The app shows the time of each source's last check, so this is visible.
 - The mini's setup (jon-platform `always-on-mac.md`) gains a Bright Lights step: install, sign in, and turn on
   "Check sources on this Mac". That goes in `device-passes.md` when M1 S3 lands.
+
+## Amendment 1 — one process, and a lease on the household (2026-11-18)
+
+Planning M1 S3 showed that two parts of Vinyl Fever's pattern don't carry over.
+
+1. **The checker runs in the app process** (replaces point 1's "login-item agent"). Vinyl Fever's poller is a
+   separate launchd agent, the app binary run headless every hour, and it's safe because it writes files to iCloud
+   Drive. Bright Lights writes SQLiteData rows. A headless agent would be a second process with its own `SyncEngine`
+   over the same database. If it ran stopped, its writes wouldn't upload until the app next started. If it ran live
+   alongside the open app, two engines would share one metadatabase. Instead, "Check sources on this Mac" registers
+   the app itself as a login item (`SMAppService.mainApp`). On the Mac, the app stays running with no window while
+   it holds the role, and an `NSBackgroundActivityScheduler` runs the passes. One process means one engine.
+2. **The lease lives on `Household`,** not in a file. It's three nullable synced columns: `checkerDeviceID`,
+   `checkerDeviceName` and `checkerClaimedAt`. The device ID is device-local, in `@Shared(.appStorage)` (law 4), and
+   it alone decides who holds the role. A takeover writes all three in one update. If two Macs take over at once,
+   CloudKit keeps the last write per field. The ID field then still names exactly one Mac, and the other Mac stops at
+   its next pass.
+3. **The Mac needs CloudKit pushes,** because the old holder should see a takeover promptly. The Mac build declares
+   the macOS push entitlement, `com.apple.developer.aps-environment`. The iOS key doesn't apply on macOS (S2 review).
+   Even without a push, the next pass still reads the lease before doing anything.
+
