@@ -40,8 +40,8 @@ import Testing
   func adapters() async throws {
     let cases: [(String, SourceDescriptor.Adapter, String, Int, String, String, String, String, String, String)] = [
       ("bowery-ballroom.html", .mercuryEast, "bowery-ballroom", 20, "Liana Flores", "2026-11-19T00:00:00Z",
-       "https://mercuryeastpresents.com/tm-event/liana-flores/", "Wild Pink", "2026-12-13T00:00:00Z",
-       "https://mercuryeastpresents.com/tm-event/wild-pink/"),
+       "https://mercuryeastpresents.com/tm-event/liana-flores", "Wild Pink", "2026-12-13T00:00:00Z",
+       "https://mercuryeastpresents.com/tm-event/wild-pink"),
       ("brooklyn-steel.json", .aegAXS, "brooklyn-steel", 4, "The Music of Hey Arnold! Live!", "2027-01-17T01:00:00Z",
        "1706806", "Whitney", "2027-06-19T00:00:00Z", "1694427"),
       ("caveat.json", .caveatJSON, "caveat", 4, "Pitch Roast Live", "2026-11-19T00:00:00Z",
@@ -162,7 +162,50 @@ import Testing
         source: .init(id: "missing-time"))
     }
     #expect(result.listings.isEmpty)
+    #expect(result.warnings.contains("Dropped 1 model listings with date-only starts"))
+  }
+
+  @Test("model rows with no title and invalid times have separate counts")
+  func modelDropCounts() async throws {
+    let output = #"{"listings":[{"title":"","performers":[],"room":"Room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"","ticketURL":"","onSaleDate":"","status":"listed"},{"title":"Invalid date","performers":[],"room":"Room","startsAt":"not a date","opensAt":"","closesAt":"","eventURL":"","ticketURL":"","onSaleDate":"","status":"listed"}] }"#
+    let result = try await withDependencies {
+      $0.modelClient = StubModelClient.constant(output)
+    } operation: {
+      try await ExtractionEngine().extract(.html("<main>Shows</main>"), sourceURL: sourceURL,
+        source: .init(id: "drop-counts"))
+    }
+    #expect(result.warnings.contains("Dropped 1 model listings with no title"))
     #expect(result.warnings.contains("Dropped 1 model listings with invalid dates or times"))
+  }
+
+  @Test("URL identity canonicalizes host, doubled and trailing slashes, and fragments")
+  func canonicalURLIdentity() async throws {
+    let events = #"[{"@type":"Event","name":"The Stand Show","startDate":"2026-12-04T20:00:00-05:00","url":"https://TheStandNYC.com//shows/show/14184/performer/#tickets"},{"@type":"Event","name":"The Stand Show","startDate":"2026-12-04T20:00:00-05:00","url":"https://thestandnyc.com/shows/show/14184/performer"}]"#
+    let result = try await ExtractionEngine().extract(.json(events), sourceURL: sourceURL,
+      source: .init(id: "the-stand"))
+    #expect(result.listings.count == 1)
+    #expect(result.listings[0].stableKey == "the-stand:https://thestandnyc.com/shows/show/14184/performer")
+  }
+
+  @Test("model event URLs resolve relative to the page before canonicalization")
+  func modelRelativeURLIdentity() async throws {
+    let pageURL = URL(string: "https://thestandnyc.com/events")!
+    let relative = #"{"listings":[{"title":"The Stand Show","performers":[],"room":"The Stand","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"/shows/show/14184/performer/","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let absolute = #"{"listings":[{"title":"The Stand Show","performers":[],"room":"The Stand","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://thestandnyc.com//shows/show/14184/performer","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let relativeResult = try await withDependencies {
+      $0.modelClient = StubModelClient.constant(relative)
+    } operation: {
+      try await ExtractionEngine().extract(.html("<main>The Stand Show</main>"), sourceURL: pageURL,
+        source: .init(id: "the-stand"))
+    }
+    let absoluteResult = try await withDependencies {
+      $0.modelClient = StubModelClient.constant(absolute)
+    } operation: {
+      try await ExtractionEngine().extract(.html("<main>The Stand Show</main>"), sourceURL: pageURL,
+        source: .init(id: "the-stand"))
+    }
+    #expect(relativeResult.listings.first?.stableKey == "the-stand:https://thestandnyc.com/shows/show/14184/performer")
+    #expect(relativeResult.listings.first?.stableKey == absoluteResult.listings.first?.stableKey)
   }
 
   @Test("numeric HTML entities are decoded in adapter titles")

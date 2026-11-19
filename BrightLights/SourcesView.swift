@@ -3,8 +3,9 @@ import SQLiteData
 import SwiftUI
 
 struct SourcesView: View {
-  @FetchAll(Source.canonical.order(by: \.name)) private var sources
+  @FetchAll(Source.active.order(by: \.name)) private var sources
   @State private var selectedSourceID: Source.ID?
+  @State private var showingSettings = false
 
   private var selectedSource: Source? { sources.first { $0.id == selectedSourceID } }
 
@@ -23,6 +24,11 @@ struct SourcesView: View {
         }
       }
       .navigationTitle("Sources")
+      .toolbar {
+        ToolbarItem(placement: .primaryAction) {
+          Button { showingSettings = true } label: { Label("Settings", systemImage: "gear") }
+        }
+      }
     } detail: {
       if let selectedSource {
         SourceDetailView(source: selectedSource)
@@ -30,6 +36,7 @@ struct SourcesView: View {
         ContentUnavailableView("Choose a source", systemImage: "calendar.badge.clock")
       }
     }
+    .sheet(isPresented: $showingSettings) { NavigationStack { SettingsView() } }
   }
 }
 
@@ -43,6 +50,14 @@ private struct SourceRow: View {
         .font(.subheadline).foregroundStyle(.secondary)
       Text("Checks \(source.cadence) · \(source.lastCheckOutcome.rawValue)")
         .font(.caption).foregroundStyle(.secondary)
+      if let checked = source.lastCheckedAt {
+        Text("Checked \(checked, style: .relative) ago")
+          .font(.caption).foregroundStyle(.secondary)
+      }
+      if source.needsManualLook {
+        Label("Needs a manual look", systemImage: "exclamationmark.triangle.fill")
+          .font(.caption).foregroundStyle(.orange)
+      }
     }
     .padding(.vertical, 3)
   }
@@ -50,6 +65,14 @@ private struct SourceRow: View {
 
 private struct SourceDetailView: View {
   let source: Source
+  @FetchAll private var listings: [Listing]
+
+  init(source: Source) {
+    self.source = source
+    self._listings = FetchAll(
+      Listing.canonical.where { $0.sourceID.eq(source.id) }.order(by: \.startsAt)
+    )
+  }
 
   var body: some View {
     Form {
@@ -71,6 +94,16 @@ private struct SourceDetailView: View {
         LabeledContent("Outcome", value: source.lastCheckOutcome.rawValue)
         LabeledContent("Listings", value: source.lastListingCount.map(String.init) ?? "—")
         LabeledContent("Consecutive failures", value: String(source.consecutiveFailures))
+        if let note = source.lastCheckNote { Text(note).foregroundStyle(.secondary) }
+      }
+      Section("Current listings") {
+        ForEach(listings) { listing in
+          VStack(alignment: .leading) {
+            Text(listing.title)
+            Text("\(listing.startsAt.formatted()) · \(listing.status.rawValue)")
+              .font(.caption).foregroundStyle(.secondary)
+          }
+        }
       }
       Section("Capture") {
         LabeledContent("Adapter", value: source.adapter ?? "—")

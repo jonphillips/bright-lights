@@ -62,3 +62,19 @@ public struct Listing: Identifiable, Equatable, Sendable {
     }
   }
 }
+
+public extension Listing {
+  /// One deterministic representative per `(sourceID, stableKey)`.
+  static var canonical: Where<Listing> {
+    Listing.where { listing in
+      !Listing.as(EarlierListing.self).where { candidate in
+        candidate.sourceID.eq(listing.sourceID)
+          && candidate.stableKey.eq(listing.stableKey)
+          && (candidate.firstSeenAt.lt(listing.firstSeenAt)
+            || (candidate.firstSeenAt.eq(listing.firstSeenAt) && candidate.id.lt(listing.id)))
+      }.exists()
+    }
+  }
+}
+
+private enum EarlierListing: AliasName {}

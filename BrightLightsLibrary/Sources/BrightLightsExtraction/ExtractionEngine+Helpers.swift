@@ -1,6 +1,21 @@
 import Foundation
 
 extension ExtractionEngine {
+  public func hasDeterministicRung(_ document: PageDocument, sourceURL: URL, source: SourceDescriptor) -> Bool {
+    !deterministicListings(document, sourceURL: sourceURL, source: source).isEmpty
+  }
+
+  public func deterministicListings(
+    _ document: PageDocument, sourceURL: URL, source: SourceDescriptor
+  ) -> [ExtractedListing] {
+    if let adapter = source.adapter {
+      let listings = Self.adapterListings(adapter, document: document, sourceURL: sourceURL, source: source)
+      if !listings.isEmpty { return Self.deduplicated(listings) }
+    }
+    guard let events = try? Self.jsonLDEvents(in: document) else { return [] }
+    return Self.deduplicated(events.compactMap { Self.listing(from: $0, source: source, rung: .jsonLD) })
+  }
+
   static func deduplicated(_ listings: [ExtractedListing]) -> [ExtractedListing] {
     var seenKeys = Set<String>()
     return listings.filter { seenKeys.insert($0.stableKey).inserted }

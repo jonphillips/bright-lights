@@ -1,5 +1,5 @@
 {
-  "registry_version": "1.2",
+  "registry_version": "1.3",
   "as_of": "2026-11-18",
   "purpose": "NYC cultural discovery for one-week-per-month visits; personalized intimate music, stand-up, live podcasts, talks and theater",
   "about": "The curated list of sources Bright Lights follows, and the seed for the Source table (M1 S2). Corrected from the 2026-11-18 source survey; survey.json holds the evidence behind each field. mode: automated (the Mac checks it, ADR-0003), manual (Rounds and the in-app browser, ADR-0005), or skip. method: how the survey found it can be read. adapter: a named ADR-0004 adapter, if any. cadence: how often to check outside a stay (manual sources are weekly so Rounds doesn't nag while away); every source is checked nightly during a stay. registered_hosts: sites where browser capture applies (a host or any subdomain of it, ADR-0005). excluded_hosts: links to drop from model extraction, such as a sister venue (ADR-0004 amendment). adapter_venue: the venue filter for a shared adapter feed.",
@@ -32,7 +32,13 @@
       "cadence": "weekly",
       "operational_status": "active_confirmed",
       "horizon_days_observed": 188,
-      "extraction_focus": "performer, date, doors/show time, ticket link, genre, sold-out status"
+      "extraction_focus": "performer, date, doors/show time, ticket link, genre, sold-out status",
+      "pagination": {
+        "kind": "pages",
+        "template": "https://mercuryeastpresents.com/boweryballroom/page/{n}/",
+        "first": 2,
+        "max": 6
+      }
     },
     {
       "id": "brooklyn-steel",
@@ -44,6 +50,7 @@
       "content_mode": "event",
       "website": "https://www.bowerypresents.com",
       "listing_url": "https://www.bowerypresents.com/brooklyn-steel/",
+      "feed_url": "https://aegwebprod.blob.core.windows.net/json/resources/8/events/d099bg4x01/events.json",
       "registered_hosts": [
         "bowerypresents.com"
       ],
@@ -260,7 +267,13 @@
       "cadence": "weekly",
       "operational_status": "active_site_response",
       "horizon_days_observed": null,
-      "extraction_focus": "artist discovery and show dates"
+      "extraction_focus": "artist discovery and show dates",
+      "pagination": {
+        "kind": "pages",
+        "template": "https://mercuryeastpresents.com/mercurylounge/page/{n}/",
+        "first": 2,
+        "max": 8
+      }
     },
     {
       "id": "irving-plaza",
@@ -277,7 +290,6 @@
       ],
       "mode": "automated",
       "method": "structured_html",
-      "adapter": "mercuryEast",
       "cadence": "weekly",
       "operational_status": "active_site_response",
       "horizon_days_observed": null,
@@ -384,7 +396,12 @@
       "extraction_focus": "show lineup by date/time, comics, tickets",
       "excluded_hosts": [
         "thestandwest.com"
-      ]
+      ],
+      "pagination": {
+        "kind": "months",
+        "template": "https://thestandnyc.com/shows/{yyyy-MM}",
+        "months_ahead": 7
+      }
     },
     {
       "id": "ny-comedy-club",
@@ -404,7 +421,12 @@
       "cadence": "nightly",
       "operational_status": "active_confirmed",
       "horizon_days_observed": 194,
-      "extraction_focus": "multiple locations, show names, comedians, recurring series"
+      "extraction_focus": "multiple locations, show names, comedians, recurring series",
+      "pagination": {
+        "kind": "months",
+        "template": "https://newyorkcomedyclub.com/calendar/{yyyy-MM}",
+        "months_ahead": 6
+      }
     },
     {
       "id": "caveat",
@@ -416,6 +438,7 @@
       "content_mode": "event",
       "website": "https://www.caveat.nyc",
       "listing_url": "https://caveat.nyc/events/",
+      "feed_url": "https://caveat.nyc/api/events/listings",
       "registered_hosts": [
         "caveat.nyc"
       ],
