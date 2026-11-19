@@ -16,3 +16,9 @@
   again. Before a UCB adapter is planned, check whether a normal rendered page loads more without a challenge. If
   it needs anything beyond ordinary page JavaScript, keep UCB at first-page depth or make it manual. Don't work
   around the 403.
+- **The household survivor once Wendy joins (M2).** M1 converges duplicate households by the lowest `(createdAt, id)`
+  (S2 review, PR #6). That's safe while every device is Jon's and writes one private zone. With sharing, a
+  participant's device can create its own household and 44 sources before it accepts the share. The survivor must
+  then be the shared root, whatever its order: a participant's local household must never win, and must never pull
+  the shared rows into a private zone. Decide it in the M2 sharing slice, with a seeded-duplicate test. Galavant has
+  the same question about its party (galavant `docs/open-questions.md`).
