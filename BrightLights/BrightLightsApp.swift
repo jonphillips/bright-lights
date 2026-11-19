@@ -4,6 +4,7 @@ import OSLog
 import SQLiteData
 import SwiftUI
 import BrightLightsSchema
+import Sharing
 
 @main
 struct BrightLightsApp: App {
@@ -12,6 +13,10 @@ struct BrightLightsApp: App {
 #endif
 
   init() {
+    @Shared(.appStorage("brightLights.checkerDeviceID")) var checkerDeviceID = ""
+    if UUID(uuidString: checkerDeviceID) == nil {
+      $checkerDeviceID.withLock { $0 = UUID().uuidString }
+    }
     do {
       try prepareDependencies {
         try $0.bootstrapBrightLightsDatabase()

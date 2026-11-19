@@ -3,12 +3,9 @@ import SQLiteData
 import SwiftUI
 
 struct SourcesView: View {
-  @FetchAll(Source.canonical.order(by: \.name)) private var allSources
-  @FetchAll private var allListings: [Listing]
+  @FetchAll(Source.active.order(by: \.name)) private var sources
   @State private var selectedSourceID: Source.ID?
   @State private var showingSettings = false
-
-  private var sources: [Source] { allSources.filter { $0.retiredAt == nil } }
 
   private var selectedSource: Source? { sources.first { $0.id == selectedSourceID } }
 
@@ -34,7 +31,7 @@ struct SourcesView: View {
       }
     } detail: {
       if let selectedSource {
-        SourceDetailView(source: selectedSource, listings: allListings.filter { $0.sourceID == selectedSource.id })
+        SourceDetailView(source: selectedSource)
       } else {
         ContentUnavailableView("Choose a source", systemImage: "calendar.badge.clock")
       }
@@ -68,14 +65,13 @@ private struct SourceRow: View {
 
 private struct SourceDetailView: View {
   let source: Source
-  let listings: [Listing]
+  @FetchAll private var listings: [Listing]
 
-  private var distinctListings: [Listing] {
-    Dictionary(grouping: listings, by: \.stableKey).values.compactMap { rows in
-      rows.min { lhs, rhs in
-        lhs.firstSeenAt == rhs.firstSeenAt ? lhs.id.uuidString < rhs.id.uuidString : lhs.firstSeenAt < rhs.firstSeenAt
-      }
-    }
+  init(source: Source) {
+    self.source = source
+    self._listings = FetchAll(
+      Listing.canonical.where { $0.sourceID.eq(source.id) }.order(by: \.startsAt)
+    )
   }
 
   var body: some View {
@@ -101,7 +97,7 @@ private struct SourceDetailView: View {
         if let note = source.lastCheckNote { Text(note).foregroundStyle(.secondary) }
       }
       Section("Current listings") {
-        ForEach(distinctListings.sorted { $0.startsAt < $1.startsAt }) { listing in
+        ForEach(listings) { listing in
           VStack(alignment: .leading) {
             Text(listing.title)
             Text("\(listing.startsAt.formatted()) · \(listing.status.rawValue)")

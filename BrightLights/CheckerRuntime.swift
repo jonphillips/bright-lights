@@ -27,7 +27,7 @@ enum CheckerRuntime {
     activity.repeats = true
     activity.schedule { completion in
       Task { @MainActor in
-        _ = await checkIfHolder()
+        _ = await check(all: false)
         completion(.finished)
       }
     }
@@ -43,28 +43,24 @@ enum CheckerRuntime {
     await check(all: all)
   }
 
-  private static func checkIfHolder() async -> [SourceCheckReport] {
-    @Shared(.appStorage("brightLights.checkerDeviceID")) var deviceID = ""
-    guard let id = UUID(uuidString: deviceID) else { return [] }
-    @Dependency(\.defaultDatabase) var db
-    guard let household = try? await db.read({ try Household.fetchAll($0).first }), household.checkerDeviceID == id else { return [] }
-    return await check(all: false)
-  }
-
   private static func check(all: Bool) async -> [SourceCheckReport] {
-    guard UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled") else { return [] }
     guard !isChecking else { return [] }
+    isChecking = true
+    defer { isChecking = false }
+    let syncEnabled = UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled")
+    let checkerEnabled = UserDefaults.standard.bool(forKey: "brightLights.checkerEnabled")
+    guard syncEnabled, checkerEnabled else { return [] }
     @Shared(.appStorage("brightLights.checkerDeviceID")) var deviceID = ""
     guard let id = UUID(uuidString: deviceID) else { return [] }
     @Dependency(\.defaultDatabase) var db
-    guard let household = try? await db.read({ try Household.fetchAll($0).first }), household.checkerDeviceID == id else { return [] }
-    isChecking = true
+    let mayCheck = (try? await db.read {
+      try CheckerLease.mayCheck(deviceID: id, checkerEnabled: checkerEnabled, syncEnabled: syncEnabled, in: $0)
+    }) == true
+    guard mayCheck else { return [] }
     let activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiatedAllowingIdleSystemSleep], reason: "Checking Bright Lights sources")
+    defer { ProcessInfo.processInfo.endActivity(activity) }
     let checker = SourceChecker()
-    let reports = await checker.runPass(in: db, checkAll: all)
-    ProcessInfo.processInfo.endActivity(activity)
-    isChecking = false
-    return reports
+    return await checker.runPass(in: db, checkAll: all)
   }
 }
 #endif

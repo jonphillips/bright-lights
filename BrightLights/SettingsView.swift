@@ -11,7 +11,7 @@ import ServiceManagement
 #endif
 
 struct SettingsView: View {
-  @FetchAll private var households: [Household]
+  @FetchAll(Household.canonical) private var households: [Household]
   @FetchAll private var sources: [Source]
   @Dependency(\.defaultDatabase) private var db
   @Dependency(\.defaultSyncEngine) private var syncEngine
@@ -20,15 +20,14 @@ struct SettingsView: View {
   @State private var modelProvider: FrontierProvider = .anthropic
   @State private var showTakeover = false
   @State private var statusNote: String?
+  @State private var lastPassReports: [SourceCheckReport] = []
+  @State private var lastPassDuration: TimeInterval?
   @Shared(.appStorage("brightLights.checkerDeviceID")) private var deviceIDString = ""
   @Shared(.appStorage("brightLights.checkerEnabled")) private var checkerEnabled = false
   @Shared(.appStorage("BrightLightsCloudKitSyncEnabled")) private var syncEnabled = false
 
   private var household: Household? { households.first }
-  private var deviceID: UUID {
-    if let id = UUID(uuidString: deviceIDString) { return id }
-    let id = UUID(); $deviceIDString.withLock { $0 = id.uuidString }; return id
-  }
+  private var deviceID: UUID? { UUID(uuidString: deviceIDString) }
 
   var body: some View {
     Form {
@@ -54,9 +53,32 @@ struct SettingsView: View {
           Button("Open Login Items") { SMAppService.openSystemSettingsLoginItems() }
         }
         if syncEnabled, household?.checkerDeviceID == deviceID {
-          Button("Check all now") { Task { await CheckerRuntime.checkNow(all: true) } }
+          Button("Check all now") {
+            Task {
+              let startedAt = Date.now
+              lastPassReports = await CheckerRuntime.checkNow(all: true)
+              lastPassDuration = Date.now.timeIntervalSince(startedAt)
+            }
+          }
         }
       }
+      if !lastPassReports.isEmpty {
+        Section("Last manual pass") {
+          if let lastPassDuration {
+            LabeledContent("Duration", value: lastPassDuration.formatted(.number.precision(.fractionLength(1))) + " s")
+          }
+          LabeledContent("Model calls", value: String(lastPassReports.reduce(0) { $0 + $1.modelCalls }))
+          LabeledContent("Listing rows written", value: String(lastPassReports.reduce(0) { $0 + $1.rowsWritten }))
+          ForEach(lastPassReports) { report in
+            VStack(alignment: .leading, spacing: 2) {
+              Text(sources.first { $0.id == report.sourceID }?.name ?? report.sourceID.uuidString)
+              Text("\(report.outcome.rawValue) · \(report.listingCount) listings · \(report.rungs.map(\.rawValue).joined(separator: ", ")) · \(report.pagesRead) pages · \(report.modelCalls) model calls · \(report.rowsWritten) rows written")
+                .font(.caption).foregroundStyle(.secondary)
+              if let note = report.note { Text(note).font(.caption).foregroundStyle(.secondary) }
+              }
+            }
+          }
+        }
       #else
       Section("Source checking") {
         LabeledContent("Checking Mac", value: household?.checkerDeviceName ?? "Not configured")
@@ -92,15 +114,12 @@ struct SettingsView: View {
     guard syncEnabled else {
       statusNote = "Turn on CloudKit sync before enabling source checks."; return
     }
-    guard let household else { statusNote = "Household is not available yet."; return }
+    guard household != nil else { statusNote = "Household is not available yet."; return }
+    guard let deviceID else { statusNote = "This Mac's checker identity is not available yet."; return }
     let name = Host.current().localizedName ?? ProcessInfo.processInfo.hostName
     do {
       try SMAppService.mainApp.register()
-      try db.write { transactionDB in
-        try Household.find(household.id).update {
-          $0.checkerDeviceID = #bind(deviceID); $0.checkerDeviceName = #bind(name); $0.checkerClaimedAt = #bind(Date.now)
-        }.execute(transactionDB)
-      }
+      try db.write { transactionDB in try CheckerLease.claim(deviceID: deviceID, name: name, at: .now, in: transactionDB) }
       $checkerEnabled.withLock { $0 = true }
       statusNote = nil
       CheckerRuntime.startIfEnabled()

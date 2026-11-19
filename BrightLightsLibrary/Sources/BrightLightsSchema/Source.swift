@@ -28,6 +28,7 @@ public struct Source: Identifiable, Equatable, Sendable {
   public var adapter: String?
   public var adapterVenue: String?
   public var listingURL: String
+  public var feedURL: String?
   public var registeredHosts: String
   public var excludedHosts: String
   public var cadence: String
@@ -44,7 +45,7 @@ public struct Source: Identifiable, Equatable, Sendable {
   public init(
     id: UUID, householdID: UUID, registryID: String, name: String, type: String,
     priority: String, area: String, mode: SourceMode, method: String, adapter: String? = nil,
-    adapterVenue: String? = nil, listingURL: String, registeredHosts: String,
+    adapterVenue: String? = nil, listingURL: String, feedURL: String? = nil, registeredHosts: String,
     excludedHosts: String = "[]", cadence: String, lastCheckedAt: Date? = nil,
     lastCheckOutcome: SourceCheckOutcome = .never, lastListingCount: Int? = nil,
     consecutiveFailures: Int = 0, pagination: String? = nil, retiredAt: Date? = nil,
@@ -53,7 +54,7 @@ public struct Source: Identifiable, Equatable, Sendable {
     self.id = id; self.householdID = householdID; self.registryID = registryID
     self.name = name; self.type = type; self.priority = priority; self.area = area
     self.mode = mode; self.method = method; self.adapter = adapter; self.adapterVenue = adapterVenue
-    self.listingURL = listingURL; self.registeredHosts = registeredHosts
+    self.listingURL = listingURL; self.feedURL = feedURL; self.registeredHosts = registeredHosts
     self.excludedHosts = excludedHosts; self.cadence = cadence
     self.lastCheckedAt = lastCheckedAt; self.lastCheckOutcome = lastCheckOutcome
     self.lastListingCount = lastListingCount; self.consecutiveFailures = consecutiveFailures
@@ -63,12 +64,15 @@ public struct Source: Identifiable, Equatable, Sendable {
   }
 
   public var needsManualLook: Bool {
-    consecutiveFailures >= Self.manualLookFailureThreshold || lastCheckNote?.hasPrefix("returned no listings") == true
+    consecutiveFailures >= Self.manualLookFailureThreshold
+      || (lastCheckOutcome == .failed && lastCheckNote?.hasPrefix("returned no listings (was") == true)
   }
 }
 
 public extension Source {
-  static var active: Where<Source> { Source.where { $0.retiredAt.is(nil) } }
+  static var active: Where<Source> {
+    Source.canonical.where { $0.retiredAt.is(nil) }
+  }
 
   /// One stable representative per registry identity. This read-time convergence
   /// also hides duplicate seeds arriving from another device before the next launch.

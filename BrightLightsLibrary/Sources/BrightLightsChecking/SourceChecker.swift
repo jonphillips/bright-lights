@@ -10,6 +10,7 @@ import SQLiteData
 private enum SourceCheckingPolicy {
   static let requestInterval: TimeInterval = 1 // M1 S3 minimum between source requests.
   static let pruningAge: TimeInterval = 30 * 24 * 60 * 60 // ADR-0002 retention window.
+  static let zeroDropPreviousCountThreshold = 3 // Separate from the consecutive-failure threshold.
 }
 
 private enum PaginationRule {
@@ -30,6 +31,12 @@ private struct ExtractionBatch {
   var rungs: [ExtractionRung]
 }
 
+private struct PageFetchResult {
+  var pages: [FetchedPage]
+  var complete: Bool
+  var partialFailure: Bool
+}
+
 private actor PassPacer {
   private var lastRequestEndedAt: Date?
   private var robotsByHost: [String: RobotsRules] = [:]
@@ -45,7 +52,8 @@ private actor PassPacer {
   func cache(_ rules: RobotsRules, for host: String) { robotsByHost[host] = rules }
 }
 
-public struct SourceCheckReport: Sendable, Equatable {
+public struct SourceCheckReport: Identifiable, Sendable, Equatable {
+  public var id: UUID { sourceID }
   public var sourceID: UUID
   public var outcome: SourceCheckOutcome
   public var listingCount: Int
@@ -71,9 +79,13 @@ public struct SourceChecker: Sendable {
     var reports: [SourceCheckReport] = []
     let pacer = PassPacer()
     for source in due {
-      reports.append(await check(source, in: database, now: now, pacer: pacer))
+      let report = await check(source, in: database, now: now, pacer: pacer)
+      reports.append(report)
+      logReport(report, source: source)
     }
-    try? await database.write { try prune(in: $0, now: now) }
+    try? await database.write { db in
+      try Listing.pruneExpired(before: now.addingTimeInterval(-SourceCheckingPolicy.pruningAge), in: db)
+    }
     return reports
   }
 
@@ -85,7 +97,6 @@ public struct SourceChecker: Sendable {
       let pageResult = try await fetchPages(source, now: now, pacer: pacer)
       let pages = pageResult.pages
       pagesRead = pages.count
-      guard !pages.isEmpty else { throw SourceCheckError.noListings() }
       let documents = documents(from: pages, source: source)
       let hash = Self.combinedHash(documents.map { ExtractionEngine.pageHash(for: $0.1) })
       let descriptor = descriptor(for: source)
@@ -104,11 +115,11 @@ public struct SourceChecker: Sendable {
       rungs = batch.rungs
       let unique = Dictionary(batch.listings.map { ($0.stableKey, $0) }, uniquingKeysWith: { first, _ in first }).values.sorted { $0.stableKey < $1.stableKey }
       if unique.isEmpty, let previousCount = source.lastListingCount,
-        previousCount >= Source.manualLookFailureThreshold {
+        previousCount >= SourceCheckingPolicy.zeroDropPreviousCountThreshold {
         throw SourceCheckError.noListings(previousCount: previousCount)
       }
       var warnings = batch.warnings
-      if !pageResult.complete { warnings.append("partial check; a later page failed") }
+      if pageResult.partialFailure { warnings.append("partial check; a later page failed") }
       let note = warnings.isEmpty ? nil : String(warnings.joined(separator: "; ").prefix(Source.checkNoteCharacterLimit))
       let usedModel = calls > 0
       let rowsWritten = try await recordSuccess(
@@ -135,7 +146,7 @@ public struct SourceChecker: Sendable {
 
   private func documents(from pages: [FetchedPage], source: Source) -> [(URL, PageDocument)] {
     pages.map { page in
-      let isJSON = page.contentType?.localizedCaseInsensitiveContains("json") == true || source.method == "platform_feed"
+      let isJSON = source.feedURL != nil
       return (page.effectiveURL, isJSON ? .json(page.document) : .html(page.document))
     }
   }
@@ -153,7 +164,13 @@ public struct SourceChecker: Sendable {
     for (index, (url, document)) in documents.enumerated() {
       let modelPage = !engine.hasDeterministicRung(document, sourceURL: url, source: descriptor)
       if modelPage { batch.modelCalls += 1 }
-      let result = try await engine.extract(document, sourceURL: url, source: descriptor)
+      let result: ExtractionResult
+      do {
+        result = try await engine.extract(document, sourceURL: url, source: descriptor)
+      } catch {
+        if modelPage { logModelCall(source: source, page: index + 1, pageCount: documents.count, listingCount: 0) }
+        throw error
+      }
       if modelPage { logModelCall(source: source, page: index + 1, pageCount: documents.count, listingCount: result.listings.count) }
       batch.listings.append(contentsOf: result.listings)
       batch.warnings.append(contentsOf: result.warnings)
@@ -170,12 +187,20 @@ public struct SourceChecker: Sendable {
       .info("source=\(source.id.uuidString, privacy: .public) page=\(page) pages=\(pageCount) listings=\(listingCount)")
   }
 
+  private func logReport(_ report: SourceCheckReport, source: Source) {
+    let rungs = report.rungs.map(\.rawValue).joined(separator: ",")
+    Logger(subsystem: "com.jonphillips.BrightLights", category: "SourceChecks")
+      .info("source=\(source.id.uuidString, privacy: .public) outcome=\(report.outcome.rawValue, privacy: .public) listings=\(report.listingCount, privacy: .public) rungs=\(rungs, privacy: .public) pages=\(report.pagesRead, privacy: .public) modelCalls=\(report.modelCalls, privacy: .public) rowsWritten=\(report.rowsWritten, privacy: .public) note=\(report.note ?? "", privacy: .private)")
+  }
+
   private func recordSuccess(
     _ listings: [ExtractedListing], source: Source, complete: Bool, database: any DatabaseWriter,
     now: Date, usedModel: Bool, hash: String, note: String?
   ) async throws -> Int {
     try await database.write { db in
-      let count = try apply(listings, source: source, complete: complete, db: db, now: now)
+      let count = try Listing.reconcile(
+        listings, sourceID: source.id, complete: complete, now: now, makeID: UUID.init, in: db
+      )
       try Source.find(source.id).update {
         $0.lastCheckedAt = #bind(now); $0.lastCheckOutcome = #bind(SourceCheckOutcome.succeeded)
         $0.lastListingCount = #bind(listings.count); $0.consecutiveFailures = #bind(0)
@@ -185,11 +210,12 @@ public struct SourceChecker: Sendable {
     }
   }
 
-  private func fetchPages(_ source: Source, now: Date, pacer: PassPacer) async throws -> (pages: [FetchedPage], complete: Bool) {
+  private func fetchPages(_ source: Source, now: Date, pacer: PassPacer) async throws -> PageFetchResult {
     let pagination = Self.pagination(source.pagination)
     let urls = try Self.urls(source: source, pagination: pagination, now: now)
     var pages: [FetchedPage] = []
     var complete = true
+    var partialFailure = false
     do {
     for (index, url) in urls.enumerated() {
       guard let host = url.host?.lowercased() else { throw SourceCheckError.fetchFailed("URL has no host") }
@@ -213,40 +239,41 @@ public struct SourceChecker: Sendable {
       do { page = try await pacedFetch(url, render: rendered, delay: delay, pacer: pacer) }
       catch {
         if index == 0 { throw error }
-        complete = false
+        complete = false; partialFailure = true
         break
       }
-      if page.statusCode == 404 && index > 0, case .pages = pagination { break }
       guard page.statusCode != 403 && page.statusCode != 429 else { throw SourceCheckError.challenge("HTTP \(page.statusCode)") }
       guard (200..<300).contains(page.statusCode) else {
         if index == 0 { throw SourceCheckError.fetchFailed("HTTP \(page.statusCode)") }
-        complete = false; break
+        complete = false; partialFailure = true; break
       }
-      let lower = page.document.lowercased()
-      if ["captcha", "verify you are human", "bot challenge", "access denied"].contains(where: lower.contains) {
+      if Self.isChallengePage(page.document) {
         throw SourceCheckError.challenge("bot-challenge page")
       }
       if page.effectiveURL.path.localizedCaseInsensitiveContains("login") {
         throw SourceCheckError.challenge("redirected to a login page")
       }
       pages.append(page)
-      if case .pages = pagination,
+      if index > 0, case .pages = pagination,
         Self.isEmptyPage(page, source: source, descriptor: descriptor(for: source)) {
         pages.removeLast(); break
       }
+      if case .pages = pagination, index == urls.count - 1 { complete = false }
     }
     } catch {
       throw PaginatedFetchError(note: error.localizedDescription, pagesRead: pages.count)
     }
-    return (pages, complete)
+    return PageFetchResult(pages: pages, complete: complete, partialFailure: partialFailure)
   }
 
   private static func urls(source: Source, pagination: PaginationRule?, now: Date) throws -> [URL] {
-    guard let base = URL(string: source.listingURL) else { throw SourceCheckError.fetchFailed("invalid listing URL") }
+    guard let base = URL(string: source.feedURL ?? source.listingURL) else { throw SourceCheckError.fetchFailed("invalid listing URL") }
     var urls = [base]
     switch pagination {
     case let .pages(template, first, max):
-      urls += (first..<first + max).compactMap { URL(string: template.replacingOccurrences(of: "{n}", with: String($0))) }
+      if first <= max {
+        urls += (first...max).compactMap { URL(string: template.replacingOccurrences(of: "{n}", with: String($0))) }
+      }
     case let .months(template, monthsAhead):
       let calendar = Calendar(identifier: .gregorian)
       let formatter = DateFormatter(); formatter.calendar = calendar
@@ -263,10 +290,20 @@ public struct SourceChecker: Sendable {
   }
 
   private static func isEmptyPage(_ page: FetchedPage, source: Source, descriptor: SourceDescriptor) -> Bool {
-    let json = page.contentType?.localizedCaseInsensitiveContains("json") == true
     return ExtractionEngine().deterministicListings(
-      json ? .json(page.document) : .html(page.document), sourceURL: page.effectiveURL, source: descriptor
+      source.feedURL != nil ? .json(page.document) : .html(page.document), sourceURL: page.effectiveURL, source: descriptor
     ).isEmpty
+  }
+
+  static func isChallengePage(_ document: String) -> Bool {
+    let lower = document.lowercased()
+    guard !lower.contains("cf-chl"), !lower.contains("/cdn-cgi/challenge-platform"),
+      !lower.contains("px-captcha") else { return true }
+    guard let match = lower.range(of: #"(?is)<title\b[^>]*>(.*?)</title\s*>"#, options: .regularExpression) else { return false }
+    let title = lower[match].replacingOccurrences(of: #"(?is)</?title\b[^>]*>"#, with: "", options: .regularExpression)
+      .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+      .trimmingCharacters(in: .whitespacesAndNewlines)
+    return ["access denied", "verify you are human", "just a moment...", "just a moment…"].contains(title)
   }
 
   private func pacedFetch(_ url: URL, render: Bool, delay: TimeInterval, pacer: PassPacer) async throws -> FetchedPage {
@@ -281,47 +318,6 @@ public struct SourceChecker: Sendable {
     }
   }
 
-  private func apply(_ listings: [ExtractedListing], source: Source, complete: Bool, db: Database, now: Date) throws -> Int {
-    let existing = try Listing.where { $0.sourceID.eq(source.id) }.fetchAll(db)
-    let grouped = Dictionary(grouping: existing, by: \.stableKey)
-    var keep = Set<String>()
-    var writes = 0
-    for item in listings {
-      keep.insert(item.stableKey)
-      let duplicates = grouped[item.stableKey, default: []].sorted {
-        $0.firstSeenAt == $1.firstSeenAt ? $0.id.uuidString < $1.id.uuidString : $0.firstSeenAt < $1.firstSeenAt
-      }
-      let current = duplicates.first
-      if let current {
-        for loser in duplicates.dropFirst() {
-          try Reaction.where { $0.listingID.eq(loser.id) }.update { $0.listingID = #bind(current.id) }.execute(db)
-          try Listing.find(loser.id).delete().execute(db)
-        }
-      }
-      let performers = String(decoding: try JSONEncoder().encode(item.performers), as: UTF8.self)
-      let starts: Date; let closes: Date?
-      switch item.time { case let .performance(date): starts = date; closes = nil; case let .run(opens, ends): starts = opens; closes = ends }
-      let status = ListingStatus(rawValue: item.status.rawValue) ?? .listed
-      let changed = current.map { $0.title != item.title || $0.performers != performers || $0.room != item.room || $0.ticketURL != item.ticketURL?.absoluteString || $0.onSaleAt != item.onSaleDate || $0.startsAt != starts || $0.closesAt != closes || ($0.status != status && $0.status != .missing) || $0.status == .missing } ?? true
-      guard changed else { continue }
-      let row = Listing(id: current?.id ?? UUID(), sourceID: source.id, stableKey: item.stableKey, title: item.title,
-        performers: performers, room: item.room, ticketURL: item.ticketURL?.absoluteString, onSaleAt: item.onSaleDate,
-        startsAt: starts, closesAt: closes, status: status, rung: ExtractionRung(rawValue: item.rung.rawValue) ?? .model,
-        capturedBy: .mac, firstSeenAt: current?.firstSeenAt ?? now, updatedAt: now)
-      if current == nil { try Listing.insert { Listing.Draft(row) }.execute(db) }
-      else { try Listing.upsert { Listing.Draft(row) }.execute(db) }
-      writes += 1
-    }
-    if complete {
-      for row in existing where !keep.contains(row.stableKey)
-        && (row.closesAt ?? row.startsAt) > now && row.status != .missing {
-        try Listing.find(row.id).update { $0.status = #bind(ListingStatus.missing); $0.updatedAt = #bind(now) }.execute(db)
-        writes += 1
-      }
-    }
-    return writes
-  }
-
   private func recordUnchanged(_ source: Source, database: any DatabaseWriter, now: Date) async throws {
     try await database.write { db in
       try Source.find(source.id).update {
@@ -329,15 +325,6 @@ public struct SourceChecker: Sendable {
         $0.lastListingCount = #bind(source.lastListingCount); $0.consecutiveFailures = #bind(0)
         $0.lastCheckNote = #bind("unchanged; model not called")
       }.execute(db)
-    }
-  }
-
-  private func prune(in db: Database, now: Date) throws {
-    for listing in try Listing.fetchAll(db) {
-      let end = listing.closesAt ?? listing.startsAt
-      guard end < now.addingTimeInterval(-SourceCheckingPolicy.pruningAge),
-        try Reaction.where({ $0.listingID.eq(listing.id) }).fetchAll(db).isEmpty else { continue }
-      try Listing.find(listing.id).delete().execute(db)
     }
   }
 

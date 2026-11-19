@@ -28,31 +28,38 @@ public struct SourceCheckClient: Sendable {
     self.wait = wait
   }
 
-  public static let live = SourceCheckClient(
-    fetch: { url, rendered in
-      if rendered {
-        guard let document = await RenderedDOMFetcher.renderedDocument(of: url) else {
-          throw SourceCheckError.fetchFailed("rendered page could not be loaded")
+  public static let live = makeLive()
+
+  private static func makeLive() -> SourceCheckClient {
+    let configuration = URLSessionConfiguration.ephemeral
+    configuration.httpCookieStorage = nil
+    configuration.httpShouldSetCookies = false
+    configuration.httpCookieAcceptPolicy = .never
+    let session = URLSession(configuration: configuration)
+    let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
+    let userAgent = "BrightLights/\(version) (personal, non-commercial)"
+    return SourceCheckClient(
+      fetch: { url, rendered in
+        if rendered {
+          guard let document = await RenderedDOMFetcher.renderedDocument(of: url) else {
+            throw SourceCheckError.fetchFailed("rendered page could not be loaded")
+          }
+          return FetchedPage(document: document.html, statusCode: 200, effectiveURL: document.effectiveURL, contentType: "text/html")
         }
-        return FetchedPage(document: document.html, statusCode: 200, effectiveURL: document.effectiveURL, contentType: "text/html")
-      }
-      var request = URLRequest(url: url)
-      request.setValue("BrightLights/0.1.0 (personal, non-commercial)", forHTTPHeaderField: "User-Agent")
-      let configuration = URLSessionConfiguration.ephemeral
-      configuration.httpCookieStorage = nil
-      configuration.httpShouldSetCookies = false
-      let session = URLSession(configuration: configuration)
-      let (data, response) = try await session.data(for: request)
-      guard let http = response as? HTTPURLResponse, let finalURL = http.url else {
-        throw SourceCheckError.fetchFailed("not an HTTP response")
-      }
-      return FetchedPage(
-        document: String(decoding: data, as: UTF8.self), statusCode: http.statusCode,
-        effectiveURL: finalURL, contentType: http.value(forHTTPHeaderField: "Content-Type")
-      )
-    },
-    wait: { try await Task.sleep(for: $0) }
-  )
+        var request = URLRequest(url: url)
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
+        let (data, response) = try await session.data(for: request)
+        guard let http = response as? HTTPURLResponse, let finalURL = http.url else {
+          throw SourceCheckError.fetchFailed("not an HTTP response")
+        }
+        return FetchedPage(
+          document: String(decoding: data, as: UTF8.self), statusCode: http.statusCode,
+          effectiveURL: finalURL, contentType: http.value(forHTTPHeaderField: "Content-Type")
+        )
+      },
+      wait: { try await Task.sleep(for: $0) }
+    )
+  }
 }
 
 extension SourceCheckClient: DependencyKey {

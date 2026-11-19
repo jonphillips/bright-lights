@@ -42,3 +42,16 @@ public struct Household: Identifiable, Equatable, Sendable {
   }
 
 }
+
+public extension Household {
+  static var canonical: Where<Household> {
+    Household.where { household in
+      !Household.as(EarlierHousehold.self).where { candidate in
+        candidate.createdAt.lt(household.createdAt)
+          || (candidate.createdAt.eq(household.createdAt) && candidate.id.lt(household.id))
+      }.exists()
+    }
+  }
+}
+
+private enum EarlierHousehold: AliasName {}

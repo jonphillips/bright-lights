@@ -12,9 +12,14 @@ public enum SourceCadence {
     guard source.mode == .automated, source.retiredAt == nil else { return false }
     guard let lastCheckedAt = source.lastCheckedAt else { return true }
     let duringStay = stays.contains { stay in
-      let arrival = Calendar(identifier: .gregorian).date(byAdding: .day, value: stayLeadDays, to: stay.arrivesOn) ?? stay.arrivesOn
-      let departure = stay.departsOn ?? Calendar(identifier: .gregorian).date(byAdding: .day, value: openDepartureDays, to: stay.arrivesOn) ?? stay.arrivesOn
-      return now >= arrival && now <= departure
+      var calendar = Calendar(identifier: .gregorian)
+      calendar.timeZone = TimeZone(identifier: "America/New_York")!
+      let arrivalDay = calendar.startOfDay(for: stay.arrivesOn)
+      let departureDay = calendar.startOfDay(for: stay.departsOn
+        ?? calendar.date(byAdding: .day, value: openDepartureDays, to: arrivalDay) ?? arrivalDay)
+      let start = calendar.date(byAdding: .day, value: stayLeadDays, to: arrivalDay) ?? arrivalDay
+      let end = calendar.date(byAdding: .day, value: 1, to: departureDay) ?? departureDay
+      return now >= start && now < end
     }
     let interval = duringStay || source.cadence == "nightly" ? nightlyInterval : weeklyInterval
     return now.timeIntervalSince(lastCheckedAt) > interval

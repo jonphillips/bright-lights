@@ -65,7 +65,7 @@ let package = Package(
     .testTarget(
       name: "BrightLightsSchemaTests",
       dependencies: [
-        "BrightLightsSchema",
+        "BrightLightsSchema", "BrightLightsExtraction",
         .product(name: "SQLiteData", package: "sqlite-data"),
         .product(name: "DependenciesTestSupport", package: "swift-dependencies")
       ]

@@ -50,6 +50,7 @@ public enum BrightLightsDatabaseMigrations {
         ALTER TABLE "households" ADD COLUMN "checkerDeviceName" TEXT;
         ALTER TABLE "households" ADD COLUMN "checkerClaimedAt" TEXT;
         ALTER TABLE "sources" ADD COLUMN "pagination" TEXT;
+        ALTER TABLE "sources" ADD COLUMN "feedURL" TEXT;
         ALTER TABLE "sources" ADD COLUMN "retiredAt" TEXT;
         ALTER TABLE "sources" ADD COLUMN "lastContentHash" TEXT;
         ALTER TABLE "sources" ADD COLUMN "lastCheckNote" TEXT;
