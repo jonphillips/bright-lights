@@ -8,6 +8,7 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 - **Result:** Added the multiplatform app shell, Development CloudKit wiring behind a local opt-in, the household/source/listing/stay/reaction schema, registry reconciliation, and read-only Sources screens. Seed reconciliation preserves check history and converges offline duplicate rows.
 - **Verification:** check-drift.sh passed: registry parity, SwiftLint, 18 package tests, and iOS Simulator plus macOS builds.
 - **Owed:** M1 S2's device gate, in [device-passes.md](device-passes.md).
+- **Device gate:** passed on Jon's device report of 2026-11-19. The Mac and the iPad, installed from Xcode with sync on, each list the sources with no duplicates, and Bowery Ballroom shows the same ID and Household ID on both. The Mac build signs with `com.apple.developer.aps-environment` (checked with `codesign`). The first signed run created the `iCloud.com.jonphillips.BrightLights` container, which unblocked `cktool export-schema` for M1 S3.
 
 ## 2026-11-18 — Extraction engine (`m1-s1-extraction-engine`)
 
