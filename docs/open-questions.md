@@ -38,3 +38,8 @@
   a still-on-sale listing pushed off page 1 by newer ones gets marked `missing` too. Watch for it in S4's What's
   on. If it shows, treat a one-page source's check as incomplete for marking, or mark only listings dated inside
   the window the page covers.
+- **Model rows dropped for invalid dates (S3 review, PR #8).** The S3 live pass's first model pass dropped 22 rows
+  as invalid dates or times (and 13 for excluded hosts), with no per-source breakdown. Date-only starts were zero,
+  so it's not the date-only rule. Once the mini runs nightly, read its `SourceChecks` and `ModelExtraction` logs and
+  each source's `lastCheckNote` to see which sources produce them. If one source accounts for most of them, look at
+  its pages: a prompt or parsing fix there may recover real listings.
