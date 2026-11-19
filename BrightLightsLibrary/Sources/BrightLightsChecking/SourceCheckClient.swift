@@ -41,10 +41,15 @@ public struct SourceCheckClient: Sendable {
     return SourceCheckClient(
       fetch: { url, rendered in
         if rendered {
-          guard let document = await RenderedDOMFetcher.renderedDocument(of: url) else {
+          guard let document = await RenderedDOMFetcher.renderedDocument(
+            of: url, options: .init(userAgent: userAgent)
+          ) else {
             throw SourceCheckError.fetchFailed("rendered page could not be loaded")
           }
-          return FetchedPage(document: document.html, statusCode: 200, effectiveURL: document.effectiveURL, contentType: "text/html")
+          return FetchedPage(
+            document: document.html, statusCode: document.statusCode ?? 200,
+            effectiveURL: document.effectiveURL, contentType: "text/html"
+          )
         }
         var request = URLRequest(url: url)
         request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
