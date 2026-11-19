@@ -7,7 +7,7 @@ TestFlight and the CloudKit Production schema are M2.*
 ## Slice ledger
 
 - [x] **S1** — Extraction engine (package only)
-- [ ] **S2** — App scaffold, schema, seeded sources
+- [x] **S2** — App scaffold, schema, seeded sources
 - [ ] **S3** — The Mac checks the sources
 - [ ] **S4** — Stays and What's on
 - [ ] **S5** — Rounds and browser capture

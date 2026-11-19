@@ -1,0 +1,974 @@
+{
+  "registry_version": "1.2",
+  "as_of": "2026-11-18",
+  "purpose": "NYC cultural discovery for one-week-per-month visits; personalized intimate music, stand-up, live podcasts, talks and theater",
+  "about": "The curated list of sources Bright Lights follows, and the seed for the Source table (M1 S2). Corrected from the 2026-11-18 source survey; survey.json holds the evidence behind each field. mode: automated (the Mac checks it, ADR-0003), manual (Rounds and the in-app browser, ADR-0005), or skip. method: how the survey found it can be read. adapter: a named ADR-0004 adapter, if any. cadence: how often to check outside a stay (manual sources are weekly so Rounds doesn't nag while away); every source is checked nightly during a stay. registered_hosts: sites where browser capture applies (a host or any subdomain of it, ADR-0005). excluded_hosts: links to drop from model extraction, such as a sister venue (ADR-0004 amendment). adapter_venue: the venue filter for a shared adapter feed.",
+  "priorities": {
+    "core": "monitor routinely",
+    "secondary": "monitor with filters or lower frequency",
+    "seasonal": "monitor around festival season",
+    "conditional": "monitor only after operating-status verification",
+    "opportunistic": "only follow explicit favorite matches",
+    "retired": "kept for history; never checked"
+  },
+  "sources": [
+    {
+      "id": "bowery-ballroom",
+      "name": "Bowery Ballroom",
+      "source_type": "venue",
+      "area": "Lower East Side",
+      "priority": "core",
+      "personal_relevance": "Intimate melodic indie rock, pop-rock, emerging artists",
+      "content_mode": "event",
+      "website": "https://www.boweryballroom.com",
+      "listing_url": "https://mercuryeastpresents.com/boweryballroom/",
+      "registered_hosts": [
+        "boweryballroom.com",
+        "mercuryeastpresents.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "adapter": "mercuryEast",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 188,
+      "extraction_focus": "performer, date, doors/show time, ticket link, genre, sold-out status"
+    },
+    {
+      "id": "brooklyn-steel",
+      "name": "Brooklyn Steel",
+      "source_type": "venue",
+      "area": "East Williamsburg",
+      "priority": "core",
+      "personal_relevance": "Mid-sized touring alternative rock and pop",
+      "content_mode": "event",
+      "website": "https://www.bowerypresents.com",
+      "listing_url": "https://www.bowerypresents.com/brooklyn-steel/",
+      "registered_hosts": [
+        "bowerypresents.com"
+      ],
+      "mode": "automated",
+      "method": "platform_feed",
+      "adapter": "aegAXS",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 336,
+      "extraction_focus": "venue-filtered show listings, artist, dates, ticket links",
+      "adapter_venue": "Brooklyn Steel"
+    },
+    {
+      "id": "brooklyn-bowl",
+      "name": "Brooklyn Bowl Brooklyn",
+      "source_type": "venue",
+      "area": "Williamsburg",
+      "priority": "core",
+      "personal_relevance": "Eclectic rock, pop, live music and occasional special events",
+      "content_mode": "event",
+      "website": "https://www.brooklynbowl.com/brooklyn",
+      "listing_url": "https://brooklyn.brooklynbowl.com/events",
+      "registered_hosts": [
+        "brooklynbowl.com",
+        "brooklyn.brooklynbowl.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "nightly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 7,
+      "extraction_focus": "Brooklyn-only events, artist, showtime, ticket link"
+    },
+    {
+      "id": "beacon",
+      "name": "Beacon Theatre",
+      "source_type": "venue",
+      "area": "Upper West Side",
+      "priority": "secondary",
+      "personal_relevance": "Seated shows by established rock/pop acts and comedians",
+      "content_mode": "event",
+      "website": "https://www.msg.com/beacon-theatre",
+      "listing_url": "https://www.msg.com/beacon-theatre",
+      "registered_hosts": [
+        "msg.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "access_blocked_or_stale_url",
+      "horizon_days_observed": null,
+      "extraction_focus": "music/comedy events, performers, dates, prices",
+      "note": "Registry URL was stale. MSG's robots.txt disallows the calendar path, so manual."
+    },
+    {
+      "id": "music-hall-williamsburg",
+      "name": "Music Hall of Williamsburg",
+      "source_type": "venue",
+      "area": "Williamsburg",
+      "priority": "retired",
+      "personal_relevance": "Historically strong intimate indie music; reported lease closure risk after 2026",
+      "content_mode": "event",
+      "website": "https://www.bowerypresents.com",
+      "listing_url": "https://www.bowerypresents.com/music-hall-of-williamsburg/",
+      "registered_hosts": [
+        "bowerypresents.com"
+      ],
+      "mode": "skip",
+      "method": "platform_feed",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "verify venue operating status before ingesting",
+      "note": "Closing at the end of 2026 (Bowery Presents, Time Out)."
+    },
+    {
+      "id": "babys-all-right",
+      "name": "Baby's All Right",
+      "source_type": "venue",
+      "area": "Williamsburg",
+      "priority": "secondary",
+      "personal_relevance": "Early-stage indie rock/pop discoveries",
+      "content_mode": "event",
+      "website": "https://babysallright.com",
+      "listing_url": "https://babysallright.com",
+      "registered_hosts": [
+        "babysallright.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "music calendar, artist, genre, ticket links"
+    },
+    {
+      "id": "kings-theatre",
+      "name": "Kings Theatre",
+      "source_type": "venue",
+      "area": "Flatbush",
+      "priority": "secondary",
+      "personal_relevance": "High-quality theater-scale rock/pop and comedy",
+      "content_mode": "event",
+      "website": "https://www.kingstheatre.com",
+      "listing_url": "https://us.atgtickets.com/venues/kings-theatre-brooklyn/whats-on/",
+      "registered_hosts": [
+        "kingstheatre.com",
+        "us.atgtickets.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "music/comedy listings, dates, ticket links"
+    },
+    {
+      "id": "forest-hills",
+      "name": "Forest Hills Stadium",
+      "source_type": "venue",
+      "area": "Queens",
+      "priority": "secondary",
+      "personal_relevance": "Seasonal outdoor melodic rock/pop bookings",
+      "content_mode": "event",
+      "website": "https://foresthillsstadium.com",
+      "listing_url": "https://foresthillsstadium.com",
+      "registered_hosts": [
+        "foresthillsstadium.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "seasonal concerts, performers, dates"
+    },
+    {
+      "id": "brooklyn-paramount",
+      "name": "Brooklyn Paramount",
+      "source_type": "venue",
+      "area": "Downtown Brooklyn",
+      "priority": "secondary",
+      "personal_relevance": "Mid-to-large touring rock/pop and comedy",
+      "content_mode": "event",
+      "website": "https://www.brooklynparamount.com",
+      "listing_url": "https://www.brooklynparamount.com",
+      "registered_hosts": [
+        "brooklynparamount.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "genre-filtered calendar, performer, ticket links"
+    },
+    {
+      "id": "town-hall",
+      "name": "The Town Hall",
+      "source_type": "venue",
+      "area": "Midtown",
+      "priority": "core",
+      "personal_relevance": "High-quality crossover music, comedy, author talks and podcasts",
+      "content_mode": "event",
+      "website": "https://thetownhall.org",
+      "listing_url": "https://www.thetownhall.org/events",
+      "registered_hosts": [
+        "thetownhall.org"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "all events; classify performance vs conversation"
+    },
+    {
+      "id": "radio-city",
+      "name": "Radio City Music Hall",
+      "source_type": "venue",
+      "area": "Midtown",
+      "priority": "opportunistic",
+      "personal_relevance": "Only special favorite-artist bookings, not generic arena comedy",
+      "content_mode": "event",
+      "website": "https://www.msg.com/radio-city-music-hall",
+      "listing_url": "https://www.msg.com/radio-city-music-hall",
+      "registered_hosts": [
+        "msg.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "named favorite-artist matches only"
+    },
+    {
+      "id": "mercury-lounge",
+      "name": "Mercury Lounge",
+      "source_type": "venue",
+      "area": "Lower East Side",
+      "priority": "secondary",
+      "personal_relevance": "Small emerging guitar-pop and indie-rock acts",
+      "content_mode": "event",
+      "website": "https://www.mercuryloungenyc.com",
+      "listing_url": "https://mercuryeastpresents.com/mercurylounge/",
+      "registered_hosts": [
+        "mercuryloungenyc.com",
+        "mercuryeastpresents.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "adapter": "mercuryEast",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "artist discovery and show dates"
+    },
+    {
+      "id": "irving-plaza",
+      "name": "Irving Plaza",
+      "source_type": "venue",
+      "area": "Union Square",
+      "priority": "secondary",
+      "personal_relevance": "Touring pop-rock acts at manageable scale",
+      "content_mode": "event",
+      "website": "https://www.irvingplaza.com",
+      "listing_url": "https://www.irvingplaza.com",
+      "registered_hosts": [
+        "irvingplaza.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "adapter": "mercuryEast",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "music calendar, artists and dates"
+    },
+    {
+      "id": "comedy-cellar",
+      "name": "Comedy Cellar",
+      "source_type": "venue",
+      "area": "Greenwich Village",
+      "priority": "core",
+      "personal_relevance": "Small-room world-class stand-up, lineups and surprise drop-ins",
+      "content_mode": "event",
+      "website": "https://www.comedycellar.com",
+      "listing_url": "https://www.comedycellar.com/reservations/",
+      "registered_hosts": [
+        "comedycellar.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "show-by-show lineups, rooms, set times, named comics, changes"
+    },
+    {
+      "id": "bell-house",
+      "name": "The Bell House",
+      "source_type": "venue",
+      "area": "Gowanus",
+      "priority": "core",
+      "personal_relevance": "Touring comedians, Flop House-style live podcasts, unconventional comedy",
+      "content_mode": "event",
+      "website": "https://www.thebellhouseny.com",
+      "listing_url": "https://www.thebellhouseny.com/",
+      "registered_hosts": [
+        "thebellhouseny.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 31,
+      "extraction_focus": "comedy, live podcast, conversation and occasional music listings"
+    },
+    {
+      "id": "ucb",
+      "name": "Upright Citizens Brigade NYC",
+      "source_type": "presenter",
+      "area": "Manhattan",
+      "priority": "core",
+      "personal_relevance": "Inventive improv, sketch, character comedy and showcases",
+      "content_mode": "event",
+      "website": "https://ucbcomedy.com",
+      "listing_url": "https://ucbcomedy.com/shows/",
+      "registered_hosts": [
+        "ucbcomedy.com"
+      ],
+      "mode": "automated",
+      "method": "rendered_scrape",
+      "cadence": "nightly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "NYC shows, format, cast, venue, ticket links"
+    },
+    {
+      "id": "union-hall",
+      "name": "Union Hall",
+      "source_type": "venue",
+      "area": "Park Slope",
+      "priority": "core",
+      "personal_relevance": "Small stand-up shows, experimental comedy and live podcasts",
+      "content_mode": "event",
+      "website": "https://unionhallny.com",
+      "listing_url": "https://unionhallny.com/calendar",
+      "registered_hosts": [
+        "unionhallny.com"
+      ],
+      "mode": "automated",
+      "method": "platform_feed",
+      "cadence": "nightly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 7,
+      "extraction_focus": "comedy/podcast events, cast, host, tickets"
+    },
+    {
+      "id": "the-stand",
+      "name": "The Stand NYC",
+      "source_type": "venue",
+      "area": "Union Square",
+      "priority": "core",
+      "personal_relevance": "Strong working stand-ups and small-room lineups",
+      "content_mode": "event",
+      "website": "https://thestandnyc.com",
+      "listing_url": "https://thestandnyc.com/shows",
+      "registered_hosts": [
+        "thestandnyc.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "nightly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 108,
+      "extraction_focus": "show lineup by date/time, comics, tickets",
+      "excluded_hosts": [
+        "thestandwest.com"
+      ]
+    },
+    {
+      "id": "ny-comedy-club",
+      "name": "New York Comedy Club",
+      "source_type": "venue",
+      "area": "Manhattan",
+      "priority": "core",
+      "personal_relevance": "Curated stand-up lineups, Good Eggs and potential drop-ins",
+      "content_mode": "event",
+      "website": "https://newyorkcomedyclub.com",
+      "listing_url": "https://newyorkcomedyclub.com/",
+      "registered_hosts": [
+        "newyorkcomedyclub.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "nightly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 194,
+      "extraction_focus": "multiple locations, show names, comedians, recurring series"
+    },
+    {
+      "id": "caveat",
+      "name": "Caveat",
+      "source_type": "venue",
+      "area": "Lower East Side",
+      "priority": "core",
+      "personal_relevance": "Nerdy comedy, science, unusual conversations and inventive formats",
+      "content_mode": "event",
+      "website": "https://www.caveat.nyc",
+      "listing_url": "https://caveat.nyc/events/",
+      "registered_hosts": [
+        "caveat.nyc"
+      ],
+      "mode": "automated",
+      "method": "platform_feed",
+      "adapter": "caveatJSON",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 129,
+      "extraction_focus": "shows, topics, hosts, performers"
+    },
+    {
+      "id": "littlefield",
+      "name": "Littlefield",
+      "source_type": "venue",
+      "area": "Gowanus",
+      "priority": "secondary",
+      "personal_relevance": "Alternative comedy, podcast tapings, themed shows",
+      "content_mode": "event",
+      "website": "https://littlefieldnyc.com",
+      "listing_url": "https://littlefieldnyc.com",
+      "registered_hosts": [
+        "littlefieldnyc.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "nightly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "comedy and podcast events"
+    },
+    {
+      "id": "gotham-comedy",
+      "name": "Gotham Comedy Club",
+      "source_type": "venue",
+      "area": "Chelsea",
+      "priority": "secondary",
+      "personal_relevance": "Additional high-quality stand-up and lineups",
+      "content_mode": "event",
+      "website": "https://www.gothamcomedyclub.com",
+      "listing_url": "https://gothamcomedyclub.com/",
+      "registered_hosts": [
+        "gothamcomedyclub.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "nightly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "show lineups and named performers"
+    },
+    {
+      "id": "92ny",
+      "name": "92NY Talks",
+      "source_type": "presenter",
+      "area": "Upper East Side",
+      "priority": "core",
+      "personal_relevance": "Authors, politics, journalism, history, public intellectuals",
+      "content_mode": "event",
+      "website": "https://www.92ny.org/talks",
+      "listing_url": "https://bigseason.92ny.org/talks",
+      "registered_hosts": [
+        "92ny.org",
+        "bigseason.92ny.org"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "talks, speakers, moderators, subjects, dates"
+    },
+    {
+      "id": "live-nypl",
+      "name": "LIVE from NYPL",
+      "source_type": "presenter",
+      "area": "Midtown",
+      "priority": "core",
+      "personal_relevance": "Serious but accessible author and intellectual conversations",
+      "content_mode": "event",
+      "website": "https://www.nypl.org/events",
+      "listing_url": "https://www.nypl.org/events",
+      "registered_hosts": [
+        "nypl.org"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_site_listing_unconfirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "LIVE series filtering, speakers, event descriptions"
+    },
+    {
+      "id": "cooper-union",
+      "name": "Cooper Union Events / Great Hall",
+      "source_type": "presenter",
+      "area": "East Village",
+      "priority": "core",
+      "personal_relevance": "Politics, architecture, technology, civic debates",
+      "content_mode": "event",
+      "website": "https://cooper.edu/events-and-exhibitions",
+      "listing_url": "https://cooper.edu/art/events-and-exhibitions",
+      "registered_hosts": [
+        "cooper.edu"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "nightly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 22,
+      "extraction_focus": "public talks, panelists, event topics"
+    },
+    {
+      "id": "strand",
+      "name": "Strand Book Store Events",
+      "source_type": "presenter",
+      "area": "Union Square",
+      "priority": "secondary",
+      "personal_relevance": "Intimate author talks and literary discovery",
+      "content_mode": "event",
+      "website": "https://www.strandbooks.com/events",
+      "listing_url": "https://www.strandbooks.com/events",
+      "registered_hosts": [
+        "strandbooks.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "access_blocked_or_stale_url",
+      "horizon_days_observed": null,
+      "extraction_focus": "author, interviewer, book, event date"
+    },
+    {
+      "id": "symphony-space",
+      "name": "Symphony Space",
+      "source_type": "venue",
+      "area": "Upper West Side",
+      "priority": "secondary",
+      "personal_relevance": "Selected Shorts, storytelling, literary events and discussions",
+      "content_mode": "event",
+      "website": "https://www.symphonyspace.org",
+      "listing_url": "https://www.symphonyspace.org",
+      "registered_hosts": [
+        "symphonyspace.org"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "literary/conversation series and special shows"
+    },
+    {
+      "id": "greene-space",
+      "name": "The Greene Space / WNYC",
+      "source_type": "presenter",
+      "area": "SoHo / Hudson Square",
+      "priority": "core",
+      "personal_relevance": "Live journalism, interviews, storytelling, public radio personalities",
+      "content_mode": "event",
+      "website": "https://www.thegreenespace.org",
+      "listing_url": "https://wnyc.org/tgs/",
+      "registered_hosts": [
+        "thegreenespace.org",
+        "wnyc.org"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "nightly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 28,
+      "extraction_focus": "live audience events, guests, hosts, dates"
+    },
+    {
+      "id": "brooklyn-book-festival",
+      "name": "Brooklyn Book Festival",
+      "source_type": "festival",
+      "area": "Brooklyn",
+      "priority": "seasonal",
+      "personal_relevance": "Concentrated literary conversations and notable authors",
+      "content_mode": "event",
+      "website": "https://brooklynbookfestival.org",
+      "listing_url": "https://brooklynbookfestival.org",
+      "registered_hosts": [
+        "brooklynbookfestival.org"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "festival sessions, speakers, dates, venues"
+    },
+    {
+      "id": "public-theater",
+      "name": "The Public Theater",
+      "source_type": "presenter",
+      "area": "NoHo",
+      "priority": "core",
+      "personal_relevance": "Contemporary, politically engaged theater and breakout productions",
+      "content_mode": "event",
+      "website": "https://publictheater.org",
+      "listing_url": "https://publictheater.org/calendar",
+      "registered_hosts": [
+        "publictheater.org"
+      ],
+      "mode": "manual",
+      "method": "skip",
+      "cadence": "weekly",
+      "operational_status": "active_site_access_blocked",
+      "horizon_days_observed": null,
+      "extraction_focus": "production runs, casts, previews, reviews",
+      "note": "403 to automated requests; check in the in-app browser (ADR-0005)."
+    },
+    {
+      "id": "atlantic-theater",
+      "name": "Atlantic Theater Company",
+      "source_type": "presenter",
+      "area": "Chelsea",
+      "priority": "core",
+      "personal_relevance": "Contemporary actor-driven Off-Broadway plays and musicals",
+      "content_mode": "event",
+      "website": "https://atlantictheater.org",
+      "listing_url": "https://atlantictheater.org/",
+      "registered_hosts": [
+        "atlantictheater.org"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 227,
+      "extraction_focus": "productions, run dates, cast, reviews"
+    },
+    {
+      "id": "playwrights-horizons",
+      "name": "Playwrights Horizons",
+      "source_type": "presenter",
+      "area": "Midtown West",
+      "priority": "secondary",
+      "personal_relevance": "New plays and adventurous contemporary theater",
+      "content_mode": "event",
+      "website": "https://www.playwrightshorizons.org",
+      "listing_url": "https://www.playwrightshorizons.org",
+      "registered_hosts": [
+        "playwrightshorizons.org"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "productions, creators, run dates"
+    },
+    {
+      "id": "broadway-com",
+      "name": "Broadway.com",
+      "source_type": "aggregator",
+      "area": "Theater District / citywide",
+      "priority": "core",
+      "personal_relevance": "Broadway production discovery, openings and casting",
+      "content_mode": "event",
+      "website": "https://www.broadway.com",
+      "listing_url": "https://www.broadway.com/shows/tickets/",
+      "registered_hosts": [
+        "broadway.com"
+      ],
+      "mode": "skip",
+      "method": "skip",
+      "cadence": "nightly",
+      "operational_status": "active_site_listing_unconfirmed",
+      "horizon_days_observed": 2,
+      "extraction_focus": "productions, theaters, previews, opening/closing, cast, ticket links"
+    },
+    {
+      "id": "playbill",
+      "name": "Playbill",
+      "source_type": "aggregator",
+      "area": "Citywide",
+      "priority": "core",
+      "personal_relevance": "Production announcements, limited runs, casting and openings",
+      "content_mode": "hybrid",
+      "website": "https://playbill.com",
+      "listing_url": "https://playbill.com/productions",
+      "registered_hosts": [
+        "playbill.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "Broadway/Off-Broadway production news and schedules"
+    },
+    {
+      "id": "broadwayworld",
+      "name": "BroadwayWorld NYC",
+      "source_type": "aggregator",
+      "area": "Citywide",
+      "priority": "secondary",
+      "personal_relevance": "Additional theater coverage and Off-Broadway breadth",
+      "content_mode": "hybrid",
+      "website": "https://www.broadwayworld.com",
+      "listing_url": "https://www.broadwayworld.com",
+      "registered_hosts": [
+        "broadwayworld.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "theater production listings and editorial coverage"
+    },
+    {
+      "id": "ny-comedy-festival",
+      "name": "New York Comedy Festival",
+      "source_type": "festival",
+      "area": "Citywide",
+      "priority": "seasonal",
+      "personal_relevance": "Dense annual collection of stand-up, alternative comedy and podcast events",
+      "content_mode": "event",
+      "website": "https://nycomedyfestival.com",
+      "listing_url": "https://nycomedyfestival.com",
+      "registered_hosts": [
+        "nycomedyfestival.com"
+      ],
+      "mode": "automated",
+      "method": "structured_html",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "festival program, performer, venue, date"
+    },
+    {
+      "id": "oh-my-rockness",
+      "name": "Oh My Rockness NYC",
+      "source_type": "aggregator",
+      "area": "Citywide",
+      "priority": "core",
+      "personal_relevance": "Independent rock/pop listings, including smaller acts",
+      "content_mode": "event",
+      "website": "https://www.ohmyrockness.com",
+      "listing_url": "https://www.ohmyrockness.com/shows/search",
+      "registered_hosts": [
+        "ohmyrockness.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": 180,
+      "extraction_focus": "NYC music calendar, genres, venue, dates, artist"
+    },
+    {
+      "id": "donyc",
+      "name": "DoNYC",
+      "source_type": "aggregator",
+      "area": "Citywide",
+      "priority": "secondary",
+      "personal_relevance": "Broad event coverage and discovery of otherwise missed shows",
+      "content_mode": "event",
+      "website": "https://donyc.com",
+      "listing_url": "https://donyc.com",
+      "registered_hosts": [
+        "donyc.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "genre-filtered events, venue, dates; deduplicate"
+    },
+    {
+      "id": "timeout-ny",
+      "name": "Time Out New York",
+      "source_type": "editorial",
+      "area": "Citywide",
+      "priority": "core",
+      "personal_relevance": "Critics picks, curated theater, comedy and unusual events",
+      "content_mode": "editorial",
+      "website": "https://www.timeout.com/newyork",
+      "listing_url": "https://www.timeout.com/newyork/things-to-do",
+      "registered_hosts": [
+        "timeout.com"
+      ],
+      "mode": "automated",
+      "method": "editorial_llm",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "editorial recommendations, event references, critic rationale"
+    },
+    {
+      "id": "vulture",
+      "name": "Vulture / New York Magazine",
+      "source_type": "editorial",
+      "area": "Citywide",
+      "priority": "core",
+      "personal_relevance": "Strong match for comedy, theater, music and pop-cultural criticism",
+      "content_mode": "editorial",
+      "website": "https://www.vulture.com",
+      "listing_url": "https://www.vulture.com/",
+      "registered_hosts": [
+        "vulture.com"
+      ],
+      "mode": "automated",
+      "method": "editorial_llm",
+      "cadence": "weekly",
+      "operational_status": "active_site_listing_unconfirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "critic picks, performer mentions, recommendations, reviews"
+    },
+    {
+      "id": "nytimes-arts",
+      "name": "New York Times Arts / Theater",
+      "source_type": "editorial",
+      "area": "Citywide",
+      "priority": "core",
+      "personal_relevance": "Authoritative theater criticism and selected cultural analysis",
+      "content_mode": "editorial",
+      "website": "https://www.nytimes.com/section/arts",
+      "listing_url": "https://www.nytimes.com/section/arts",
+      "registered_hosts": [
+        "nytimes.com"
+      ],
+      "mode": "skip",
+      "method": "skip",
+      "cadence": "weekly",
+      "operational_status": "active_site_access_blocked",
+      "horizon_days_observed": null,
+      "extraction_focus": "reviews, critic verdict, production identity, dates"
+    },
+    {
+      "id": "the-skint",
+      "name": "The Skint",
+      "source_type": "editorial",
+      "area": "Citywide",
+      "priority": "secondary",
+      "personal_relevance": "Unexpected small-scale local cultural events",
+      "content_mode": "editorial",
+      "website": "https://www.theskint.com",
+      "listing_url": "https://www.theskint.com",
+      "registered_hosts": [
+        "theskint.com"
+      ],
+      "mode": "automated",
+      "method": "editorial_llm",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "curated unusual events, date, venue"
+    },
+    {
+      "id": "new-yorker",
+      "name": "The New Yorker Culture / Goings On",
+      "source_type": "editorial",
+      "area": "Citywide",
+      "priority": "core",
+      "personal_relevance": "Thoughtful curated comedy, theater, music and cultural recommendations",
+      "content_mode": "editorial",
+      "website": "https://www.newyorker.com/culture",
+      "listing_url": "https://www.newyorker.com/goings-on",
+      "registered_hosts": [
+        "newyorker.com"
+      ],
+      "mode": "automated",
+      "method": "rss_ical",
+      "cadence": "weekly",
+      "operational_status": "active_confirmed",
+      "horizon_days_observed": null,
+      "extraction_focus": "critic picks, previews, venues and artist names"
+    },
+    {
+      "id": "brooklyn-vegan",
+      "name": "BrooklynVegan",
+      "source_type": "editorial",
+      "area": "Citywide",
+      "priority": "secondary",
+      "personal_relevance": "Tour announcements and independent rock/pop discovery",
+      "content_mode": "hybrid",
+      "website": "https://www.brooklynvegan.com",
+      "listing_url": "https://www.brooklynvegan.com",
+      "registered_hosts": [
+        "brooklynvegan.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "artist tours, NYC show announcements"
+    },
+    {
+      "id": "songkick",
+      "name": "Songkick",
+      "source_type": "aggregator",
+      "area": "Citywide",
+      "priority": "secondary",
+      "personal_relevance": "Artist-following and tour-date cross-checks",
+      "content_mode": "event",
+      "website": "https://www.songkick.com",
+      "listing_url": "https://www.songkick.com",
+      "registered_hosts": [
+        "songkick.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "favorite-artist NYC appearances, venues and dates"
+    },
+    {
+      "id": "bandsintown",
+      "name": "Bandsintown",
+      "source_type": "aggregator",
+      "area": "Citywide",
+      "priority": "secondary",
+      "personal_relevance": "Artist alerts and tour-date cross-checks",
+      "content_mode": "event",
+      "website": "https://www.bandsintown.com",
+      "listing_url": "https://www.bandsintown.com",
+      "registered_hosts": [
+        "bandsintown.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "favorite-artist NYC appearances, venue, date"
+    },
+    {
+      "id": "eventbrite",
+      "name": "Eventbrite",
+      "source_type": "aggregator",
+      "area": "Citywide",
+      "priority": "opportunistic",
+      "personal_relevance": "Occasional niche author, podcast, science and cultural events",
+      "content_mode": "event",
+      "website": "https://www.eventbrite.com",
+      "listing_url": "https://www.eventbrite.com",
+      "registered_hosts": [
+        "eventbrite.com"
+      ],
+      "mode": "manual",
+      "method": "manual",
+      "cadence": "weekly",
+      "operational_status": "active_site_response",
+      "horizon_days_observed": null,
+      "extraction_focus": "highly targeted keyword and organizer matches"
+    }
+  ]
+}

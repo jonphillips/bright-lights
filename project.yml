@@ -1,0 +1,73 @@
+name: BrightLights
+options:
+  bundleIdPrefix: com.jonphillips
+  deploymentTarget:
+    iOS: "27.0"
+  createIntermediateGroups: true
+  xcodeVersion: "27.0"
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_TEAM: 7MQEE539G9
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+packages:
+  BrightLightsLibrary:
+    path: BrightLightsLibrary
+  sqlite-data:
+    path: ../jon-platform/Vendor/sqlite-data
+  swift-dependencies:
+    url: https://github.com/pointfreeco/swift-dependencies
+    from: 1.0.0
+targets:
+  BrightLights:
+    type: application
+    platform: iOS
+    deploymentTarget: "27.0"
+    sources:
+      - BrightLights
+    entitlements:
+      path: BrightLights/BrightLights.entitlements
+      properties:
+        aps-environment: development
+        com.apple.developer.icloud-container-identifiers:
+          - iCloud.com.jonphillips.BrightLights
+        com.apple.developer.icloud-services:
+          - CloudKit
+    info:
+      path: BrightLights/Info.plist
+      properties:
+        UILaunchScreen: {}
+        UIBackgroundModes:
+          - remote-notification
+        CFBundleDisplayName: Bright Lights
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+    dependencies:
+      - package: BrightLightsLibrary
+        product: BrightLightsSchema
+      - package: sqlite-data
+        product: SQLiteData
+      - package: swift-dependencies
+        product: Dependencies
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.jonphillips.BrightLights
+        TARGETED_DEVICE_FAMILY: "1,2"
+        CODE_SIGN_ENTITLEMENTS: BrightLights/BrightLights.entitlements
+        CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: BrightLights/BrightLights-macOS.entitlements
+        SDKROOT: auto
+    supportedDestinations: [iOS, macOS]
+    scheme:
+      testTargets: []
