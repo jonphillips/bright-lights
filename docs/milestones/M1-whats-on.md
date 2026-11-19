@@ -8,12 +8,12 @@ TestFlight and the CloudKit Production schema are M2.*
 
 - [x] **S1** — Extraction engine (package only)
 - [x] **S2** — App scaffold, schema, seeded sources
-- [ ] **S3** — The Mac checks the sources
+- [x] **S3** — The Mac checks the sources
 - [ ] **S4** — Stays and What's on
 - [ ] **S5** — Rounds and browser capture
 
-Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. S1 to S3
-are expanded below; S4 and S5 are outlines.
+Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. S1 to S4
+are expanded below; S5 is an outline.
 
 ## S1 — Extraction engine (package only)
 
@@ -403,11 +403,172 @@ Brooklyn Steel's and Caveat's HTML pages as JSON. Registry 1.3 now carries `feed
 - Notifications.
 - A UCB "Load more".
 
-## S4 — Stays and What's on (outline)
+## S4 — Stays and What's on
 
-Entering and editing stays (booked, tentative or open departure). **While we're here** (tonight through departure,
-grouped by day) and **Coming up** (the next 60 days around the next stay), with closing-soon and on-sale flags where
-the data has them. Reactions. An iPad split view and a compact iPhone layout.
+**Goal:** Jon enters a stay on the iPad and sees what's on against it. **While we're here** shows tonight through
+departure, and **Coming up** shows the next 60 days laid against his stays, with the deadlines that matter while
+he's away. He reacts to listings, and the iPhone shows the same stays and reactions.
+
+**Builds on S3 (PR #8):**
+- Listings are read through `Listing.canonical`, the one-row-per-key helper.
+- The checker already reads `Stay` for its due rules, so a stay entered here makes every source nightly during it.
+- `Reaction.upsertForListing` (S2) already keeps one reaction per listing.
+
+**No schema change.** S4 adds no table or column, so there's no migration and no CloudKit import. If the build
+seems to need one, stop and say so in the PR.
+
+**Days and times (decided here):**
+- A **day** is an `America/New_York` calendar day, whatever the device's time zone. Jon plans from home, outside
+  New York.
+- `Stay.arrivesOn` and `departsOn` are stored as the **start of that New York day**. That's what S3's due rules
+  already assume.
+- Listing times show in New York time. When the device's time zone isn't New York's, add "ET".
+
+**The read model: `WhatsOnProjection`, a pure value in `BrightLightsSchema`.** This mirrors Galavant's
+`TodayProjection`: a value derived from rows, never stored.
+- Its input is the canonical listings, their sources, the stays, the reactions, `now`, and a New York calendar.
+- Its output is the sections below.
+- Views only render it. Every rule in this section lives in the projection and is tested there.
+
+**Stays in the projection:**
+- **A stay's window** runs from its arrival day through its departure day.
+  - An open departure counts as 7 days after arrival, as S3's due rule does.
+  - A stay is **current** when today is inside its window.
+  - The **next stay** is the earliest one arriving after today.
+- **Overlapping stays** (two devices offline can make them) are tolerated: the projection uses the earliest-arriving
+  current stay. The editor prevents new overlaps (below).
+
+**Which listings show:**
+- **Performances and runs:**
+  - A **performance** counts as on until 2 hours after its start, so tonight's 8 p.m. show still appears at 9:30.
+  - A **run** (`closesAt` set) is on from its opening day through its closing day.
+- **Status:**
+  - `listed` and `soldOut` show; sold out gets a badge.
+  - `cancelled` and `missing` show only if the listing has a reaction, with a "Cancelled" or "No longer listed"
+    badge. That way a booked show that vanishes isn't silently dropped. S3's open question about `missing` on
+    one-page sources is why this matters.
+- **Reactions:**
+  - A listing marked **pass** is hidden. Each section shows "N passed", and tapping it reveals them.
+  - If offline edits leave a listing with several reactions, the projection reads the one with the latest
+    `updatedAt`, ties broken by `id`.
+- **The filter,** one control shared by both screens: **All**, **Interested & booked**, or **Booked**.
+
+**While we're here:**
+- **When there's a current stay:**
+  - Listings from now through the end of its departure day, grouped by day. Headings read "Tonight", "Tomorrow",
+    then the weekday and date. Within a day, sort by start time, then by source name.
+  - **Runs** that overlap the window appear once, in a **Running** group at the top, never repeated each day.
+- **An extra day:** when the departure is tentative or open, one more group follows the last day, headed "If you stay
+  through <weekday>". It covers the day after departure, to support "stay through Sunday and you catch X". A booked
+  departure has no extra day.
+- **When there's no current stay:** an empty state saying when the next stay starts, or "No stay planned", with an
+  **Add stay** button.
+
+**Coming up:**
+- **The window** is today through 60 days ahead.
+- **Deadlines,** a group at the top:
+  - **On sale soon:** listings whose `onSaleAt` falls in the next 14 days, soonest first.
+  - **Closing:** runs that close inside the window. Each says how many stays remain before it closes. "Closes Jan 12
+    — before your next stay" when none, and "Closes Jan 12 — your last stay before it closes" when one.
+  - Deadlines ignore the stay filter below, because booking happens while away.
+- **When there are future stays in the window:** one group per stay ("Feb 9–15", with "tentative" or "open" noted),
+  holding the listings inside its window, by day as in While we're here. A current stay's group starts tomorrow;
+  tonight belongs to While we're here.
+- **With no stays in the window:** every listing in the window, grouped by week, with a note: "Add your next stay to
+  narrow this".
+- **Show everything:** a toggle that always shows the whole window by week, stays or not.
+
+**Each listing row and its detail:**
+- **The row:** time, title, source name (and room if any), the badges, and the reaction if one is set.
+- **The detail:**
+  - Title, performers, venue and room, the full date and time (or the run's dates), status, and on-sale time.
+  - A **Tickets** link to `ticketURL`. It opens in the system browser until S5's in-app browser exists.
+  - The reaction controls.
+
+**Reactions:**
+- **Setting one:** pick Interested, Booked, Pass or Went, or **Clear**.
+  - On the row, use swipe actions on iPhone and a context menu on iPad and Mac. The detail has the full control.
+  - **Went** is offered only once the listing has started.
+  - Writes go through `Reaction.upsertForListing`.
+  - **Clear** deletes the listing's reactions (add `Reaction.clear(listingID:in:)`, which deletes every duplicate
+    too).
+- **The note** is optional free text, edited in the detail.
+- **`authorID` stays nil in M1.** Attribution arrives with Wendy (M2).
+
+**Stays (a new screen):**
+- **The list:** upcoming and current stays first, soonest first, then past stays in a collapsed section.
+- **The editor** (a sheet):
+  - An arrival date, a departure kind (**Booked**, **Tentative** or **Open**), and a departure date unless Open.
+  - Its rules are pure functions in the package, and tested:
+    - The departure can't be before the arrival.
+    - A new or edited stay can't overlap another stay's window; name the stay it overlaps.
+    - Dates are normalized to the start of the New York day.
+- **Deleting** asks first, and it doesn't touch listings or reactions.
+
+**Navigation (mirror Galavant's `AppContainer`):**
+- **One `AppScreen` enum** drives the shell: **While we're here**, **Coming up**, **Stays**, **Sources**. S5 adds
+  Rounds.
+- **The shell:**
+  - With `prefersTabNavigation` (iPhone), it's a `TabView` with a `NavigationStack` per tab.
+  - Otherwise (iPad and Mac), a `NavigationSplitView`: the sidebar lists the screens, and the detail is one stable
+    `NavigationStack`.
+  - Listing detail is pushed onto the stack. `@SceneStorage` restores the selected screen.
+- **Defaults:** the app opens on While we're here when there's a current stay, otherwise on Coming up.
+- **Sources** keeps its screen, as S3 built it, and the Settings gear.
+- The Mac build compiles and works in the split view; it doesn't need anything Mac-specific.
+
+**Reading:** `@FetchAll` over `Listing.canonical`, limited to listings that end on or after the start of today and
+start before 60 days out. Read the stays, reactions and sources whole: they're small. Build the projection from
+those in the view, or in a small `@Observable` model if the view gets heavy.
+
+**Tests (package):**
+- **Stays:**
+  - The current stay for booked, tentative and open departures.
+  - The next stay.
+  - Overlapping stays: the earliest-arriving one wins.
+- **Days:**
+  - New York grouping with the calendar's time zone set elsewhere (Los Angeles).
+  - A late show just after midnight belongs to the next day.
+  - A DST-change week.
+- **Visibility:**
+  - A performance still shows 2 hours after its start and is gone at 2 hours and 1 minute.
+  - A run appears once in **Running**.
+  - `cancelled` and `missing` are hidden without a reaction and badged with one.
+  - Pass listings are hidden, and the count is right.
+- **While we're here:**
+  - The extra day for tentative and open departures, and none for booked.
+  - The no-stay empty state.
+- **Coming up:**
+  - Per-stay groups.
+  - A current stay's group starts tomorrow.
+  - The no-stay fallback by week.
+  - **Show everything.**
+- **Deadlines:**
+  - On sale in the next 14 days, and not on day 15.
+  - The closing count with zero, one and two stays before it closes.
+- **The filter:** all three settings.
+- **Reactions:**
+  - With duplicate reactions, the latest one is read.
+  - `Reaction.clear` removes every duplicate.
+- **The stay editor:** the departure rule, the overlap rule naming the other stay, and New York normalization from
+  another time zone.
+
+**Done when:** `check-drift` passes; closeout (ADR-0005 D16).
+
+- **The gate it owes,** for Jon on real devices:
+  - **On the iPad:** add a tentative stay covering today. While we're here then shows tonight's real listings by day,
+    with an "If you stay through" group.
+  - Mark one listing Interested and another Booked, and add a note to one.
+  - **On the iPhone, after sync:** the stay and both reactions appear, **Booked** shows only the booked one, and the
+    note matches.
+  - **Back on the iPad:** Coming up shows a Deadlines group if any on-sale or closing dates exist. Change the stay to
+    booked, and the extra-day group disappears.
+
+**Not in S4:**
+
+- Rounds, the in-app browser and capture (S5).
+- Taste ranking, editorial picks, getting-home times, and suggesting when to come (M2).
+- Notifications, calendar reading, and inviting Wendy.
 
 ## S5 — Rounds and browser capture (outline)
 
