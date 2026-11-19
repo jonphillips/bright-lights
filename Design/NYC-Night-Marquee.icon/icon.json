@@ -1,0 +1,52 @@
+{
+  "fill": {
+    "automatic-gradient": "extended-srgb:0.00000,0.53333,1.00000,1.00000"
+  },
+  "groups": [
+    {
+      "layers": [],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.3
+      }
+    },
+    {
+      "layers": [
+        {
+          "image-name": "04_Theater_Facade_and_Entrance.svg",
+          "name": "04 Theater Facade and Entrance"
+        },
+        {
+          "image-name": "03_Canopy_Underside_and_Lighting.svg",
+          "name": "03 Canopy Underside and Lighting"
+        },
+        {
+          "image-name": "02_Marquee_Sign.svg",
+          "name": "02 Marquee Sign"
+        },
+        {
+          "image-name": "01_Night_Background.svg",
+          "name": "01 Night Background"
+        }
+      ],
+      "shadow": {
+        "kind": "neutral",
+        "opacity": 0.5
+      },
+      "translucency": {
+        "enabled": true,
+        "value": 0.3
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}
