@@ -160,6 +160,7 @@ writes a source when a field changes.
   in one update.
 - **`Source` gains:**
   - `pagination`: JSON text, nullable, registry-owned (below).
+  - `feedURL`: nullable, registry-owned (below).
   - `retiredAt`: nullable (below).
   - `lastContentHash`: nullable; set only by model-rung checks (below).
   - `lastCheckNote`: nullable; the check's warnings or error, in plain words, up to 500 characters.
@@ -173,8 +174,11 @@ writes a source when a field changes.
 - **An optional `pagination` per source.** If it's absent, the checker reads one page. Two kinds come from the
   survey's notes:
   - `{"kind": "pages", "template": "…/page/{n}/", "first": 2, "max": 6}` reads `listing_url`, then pages from
-    `first` up. It stops at a page with no listings, a non-200 response, or `max`. Use it for `bowery-ballroom` and
-    `mercury-lounge` (`https://mercuryeastpresents.com/<venue>/page/{n}/`).
+    `first` up. `max` is the last page number, so this reads pages 2 to 6. It stops at a page with no listings, a
+    non-200 response, or `max`. The empty-page stop applies only after the first page; page 1 always goes to the
+    engine. Reaching `max` without an empty page means the listings may go on, so that check marks nothing missing
+    (it needs no note). Use it for `bowery-ballroom` and `mercury-lounge`
+    (`https://mercuryeastpresents.com/<venue>/page/{n}/`).
   - `{"kind": "months", "template": "…/{yyyy-MM}", "months_ahead": N}` reads `listing_url`, then the current NYC
     month through N months ahead. It doesn't stop at an empty month, because The Stand has gaps. Use it for
     `the-stand` (`https://thestandnyc.com/shows/{yyyy-MM}`, 7) and `ny-comedy-club`
@@ -182,6 +186,12 @@ writes a source when a field changes.
   - Every other source reads one page. That includes `irving-plaza`: confirm in the live pass whether its site
     paginates, and report it rather than guessing. UCB stays at first-page depth with no "Load more"
     (open-questions).
+- **An optional `feed_url` per source:** the JSON endpoint the checker reads instead of `listing_url`.
+  `listing_url` stays the page a person opens. The survey's `api_evidence_url` gives the two in use:
+  - `brooklyn-steel`: `https://aegwebprod.blob.core.windows.net/json/resources/8/events/d099bg4x01/events.json`
+  - `caveat`: `https://caveat.nyc/api/events/listings`
+
+  Store it on `Source` as a nullable, registry-owned `feedURL` column in S3's migration, alongside `pagination`.
 - **Retired sources.** When a source leaves the seedable set (retired, `skip`, or gone from the registry),
   `syncFromRegistry` sets `retiredAt`. If the source returns, it clears it. A retired source is never checked and
   isn't listed on the Sources screen. Its rows and listings stay, so reactions keep their history, and ADR-0002's
@@ -207,37 +217,63 @@ writes a source when a field changes.
   - **Sync:** the checker requires sync to be on. If sync is off, the toggle explains that and does nothing.
 - **The Mac app stays running with no window open while it holds the role** (an `NSApplicationDelegateAdaptor`
   returning false from `applicationShouldTerminateAfterLastWindowClosed`). Reopening the app shows a window again.
-- **A Mac that doesn't hold the lease never checks,** including one whose toggle is still on (tested).
+- **A Mac that doesn't hold the lease never checks,** including one whose toggle is still on (tested). So the lease
+  check and the takeover live in the package, not the app target. The lease reads the canonical household (the
+  lowest `(createdAt, id)`, as `ensureDefault` converges), never an arbitrary first row.
 
 **The scheduler (Mac only):**
 
 - **An `NSBackgroundActivityScheduler`** repeats hourly with a generous tolerance. Each tick runs one pass if this
   Mac holds the lease and isn't already running a pass. Hold a `ProcessInfo` activity for the length of a pass, so App
   Nap can't stall it.
+- **One pass at a time,** whether a tick, **Check all now** or the takeover started it. Claim the running flag before
+  the first `await`, so two callers can't both get past the check.
 - **Due rules** are a pure function of `(source, now, stays)`, tested:
   - `nightly`: due when the last check is more than 20 hours old.
   - `weekly`: due when the last check is more than 6 days and 20 hours old.
   - A source that has never been checked is due.
   - During a stay, every source counts as nightly. A stay covers a day from 2 days before `arrivesOn` through
     `departsOn`. For an open departure, use 7 days after arrival. Stays can't be entered until S4, but the rule reads
-    the table now.
+    the table now. Days are `America/New_York` calendar days, and "through" includes the whole last day: the window
+    ends at the start of the day after it.
 - **A pass** checks due automated sources one at a time, the longest-overdue first.
 
 **Fetching (a `@DependencyClient`, so tests never touch the network):**
 
-- **Identify honestly:** a `User-Agent` of `BrightLights/<version> (personal, non-commercial)`. No cookies carry
-  over between passes, and the checker never logs in.
+- **Identify honestly:** a `User-Agent` of `BrightLights/<version> (personal, non-commercial)`, with the version
+  read from the bundle. No cookies carry over between passes, and the checker never logs in. Use one ephemeral
+  `URLSession` for the client, not a new session per request.
 - **robots.txt:** fetch it once per host per pass. Honor `Disallow` for our agent and for `*`, and honor
   `Crawl-delay`. If robots.txt is unreachable, as with AEG's blob host (HTTP 400 in the survey), treat it as having
-  no rules, the way the survey did. A disallowed path fails the check with a note.
+  no rules, the way the survey did. A disallowed path fails the check with a note. Match the way RFC 9309 does:
+  - Consecutive `User-agent` lines form one group.
+  - `*` in a rule matches any run of characters, and a trailing `$` anchors the end.
+  - A rule matches against the path plus the query.
+
+  `Allow` can stay unsupported, which errs toward not fetching.
 - **Pace:** wait at least 1 second between requests, or the crawl delay if it's longer. Requests are serial; there
   are no parallel fetches.
-- **Challenges count as failures:** HTTP 403 or 429, a CAPTCHA or bot-challenge page (detect the common markers),
-  or a login redirect. The checker never retries around one within a pass.
-- **`rendered_scrape` sources** use `WebExtractorKit`'s `RenderedDOMFetcher.renderedDocument(of:)`. That adds
-  `WebExtractorKit` to the app, as ADR-0001 point 5 planned; add its SEAM-LEDGER or EXTRACTION-NOTES row.
-- **JSON sources** (`platform_feed` with `aegAXS` or `caveatJSON`) are read as `PageDocument.json`. Everything else
-  is read as `.html`.
+- **Challenges count as failures:** HTTP 403 or 429, a bot-challenge page, or a login redirect. The checker never
+  retries around one within a pass. Detect a challenge page by markers that only real challenge pages carry:
+  - Cloudflare's `cf-chl` or `/cdn-cgi/challenge-platform`, or a title of "Just a moment...".
+  - PerimeterX's `px-captcha`.
+  - A page title of "Access denied" or "Verify you are human".
+
+  Don't match bare words like "captcha" anywhere in a page. Normal pages carry reCAPTCHA on newsletter forms, and
+  Squarespace sites such as Union Hall often do.
+- **`rendered_scrape` sources** use `WebExtractorKit`'s `RenderedDOMFetcher`. That adds `WebExtractorKit` to the app,
+  as ADR-0001 point 5 planned. Today the fetcher loads with WebKit's persistent default data store and Safari's
+  User-Agent, which breaks the two rules above. So it gets options, in a **jon-platform package PR first**
+  (agent-collaboration.md § "Dispatches whose code lands in jon-platform"):
+  - A non-persistent website data store.
+  - A custom User-Agent.
+  - The main frame's HTTP status, if WebKit exposes it. If it doesn't, say so in the PR; the challenge markers then
+    carry the load.
+
+  The same PR adds the fetcher's SEAM-LEDGER row naming Bright Lights. This PR adopts it once that merges.
+- **JSON sources** are the ones with a `feed_url`. They're fetched from it and read as `PageDocument.json`.
+  Everything else is read from `listing_url` as `.html`. That includes `union-hall`, which is `platform_feed` but
+  has no feed: its page is HTML. Robots and pacing apply to the feed host like any other.
 
 **Extracting and the model ration (ADR-0004 point 4):**
 
@@ -288,9 +324,14 @@ writes a source when a field changes.
 - **On failure:** set `lastCheckedAt`, `.failed`, and the note, and increment `consecutiveFailures`. Leave the count
   and the listings untouched.
 - **Zero is a failure:** a check that returns no listings when `lastListingCount` was 3 or more counts as failed,
-  with the note "returned no listings (was N)". Its listings aren't marked missing.
+  with the note "returned no listings (was N)". Its listings aren't marked missing. The 3 here is its own constant,
+  not the failure threshold's, though the values match. An empty page 1 goes through this rule like any other empty
+  result; it isn't a separate failure.
 - **`Source.needsManualLook`:** add this computed property, true when `consecutiveFailures >= 3` or the latest
-  failure was the zero drop. S5's Rounds reads it.
+  failure was the zero drop. That second case means `lastCheckOutcome == .failed` and a note starting "returned no
+  listings (was". S5's Rounds reads it.
+- **Log each source's report** (outcome, listing count, rungs, pages read, model calls, rows written and note) to
+  OSLog, so the live pass's table comes from the log.
 
 **UI:**
 
@@ -301,15 +342,20 @@ writes a source when a field changes.
 
 **Tests (package; all network and model calls stubbed):**
 
-- The due rules: nightly, weekly, never checked, and a stay window that includes an open departure.
+- The due rules: nightly, weekly, never checked, a stay window that includes an open departure, and an hour late on
+  the departure day itself.
 - The lease: a non-holder does nothing, a takeover writes all three fields, and a toggle turned off leaves the lease.
-- **robots.txt parsing:** our agent versus `*`, `Crawl-delay`, and an unreachable file.
+- **robots.txt parsing:** our agent versus `*`, `Crawl-delay`, an unreachable file, consecutive `User-agent` lines,
+  a `*` and `$` rule, and a rule on the query.
+- **Challenges:** a Cloudflare challenge page fails the check, and a normal page with a newsletter reCAPTCHA doesn't.
 - **Pagination:**
-  - `pages` stops at an empty page and at `max`.
+  - `pages` stops at an empty page and at `max` (a page number), and reaching `max` marks nothing missing.
+  - An empty page 1 meets the zero rule.
   - `months` reads past an empty month.
   - A failed later page makes a partial check.
 - **A pass over the fixtures:** stubbed fetches of `bowery-ballroom.html`, `brooklyn-steel.json` and `caveat.json`
-  insert their listings and record their outcomes.
+  insert their listings and record their outcomes. The stub answers only exact URLs, so the two feed sources pass
+  only if they're read from `feed_url`. A `platform_feed` source with no feed is read as HTML.
 - **Running the same pass again writes nothing.** Use S2's `SyncMetadata` probe to prove it.
 - **The upsert:**
   - A changed title updates the row.
@@ -320,7 +366,8 @@ writes a source when a field changes.
   - Pruning keeps a past listing that has a reaction.
 - **The model ration:** an unchanged hash never calls the stub model, and a changed one does.
 - **The failure rule:** three failures in a row, and the drop to zero.
-- **`syncFromRegistry`:** retiring a source and bringing it back, and pagination round-trips through the column.
+- **`syncFromRegistry`:** retiring a source and bringing it back, and `pagination` and `feed_url` round-trip through
+  their columns.
 - **The engine:**
   - Keys from the two forms of the Stand URL are equal.
   - A missing title gets its own count.
@@ -335,6 +382,19 @@ writes a source when a field changes.
 - **The gate it owes,** for the mini's setup (ADR-0003 Consequences): on the Mac mini, install from Xcode, turn sync
   on, enter the model key, turn on "Check sources on this Mac" and approve the login item. After a night, the iPad
   shows last-check times and listings for the automated sources.
+
+*Amended in the S3 review (PR #8). The first brief gave the checker no way to reach the two JSON feeds, so it read
+Brooklyn Steel's and Caveat's HTML pages as JSON. Registry 1.3 now carries `feed_url`. Also settled here:*
+
+- *`max` is a page number.*
+- *An empty page 1 meets the zero rule.*
+- *robots.txt matching follows RFC 9309.*
+- *Challenge markers are only ones that real challenge pages carry.*
+- *The stay window includes the whole departure day.*
+- *There's one pass at a time.*
+- *The lease logic lives in the package.*
+- *Each report is logged.*
+- *The rendered fetcher gets a non-persistent store and our User-Agent, in a jon-platform PR first.*
 
 **Not in S3:**
 

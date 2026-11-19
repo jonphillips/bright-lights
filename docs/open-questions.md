@@ -22,3 +22,18 @@
   then be the shared root, whatever its order: a participant's local household must never win, and must never pull
   the shared rows into a private zone. Decide it in the M2 sharing slice, with a seeded-duplicate test. Galavant has
   the same question about its party (galavant `docs/open-questions.md`).
+- **Registry writes across builds (S3 review, PR #8).** Each device runs `syncFromRegistry` against the registry
+  bundled in its own build, and the writes sync. A device on an older build therefore writes old field values, and
+  since S3 it also retires sources its registry doesn't have. A newer device then writes them back, so the two
+  flip-flop until both are updated. Proposal: store the applied `registry_version` on `Household`, and have a
+  device write registry fields only when its bundled version is the same or newer. Plan it before the registry
+  changes again, and certainly before Wendy's devices join (M2).
+- **Per-page hashes for the model ration (S3 review, PR #8).** The Stand reads 9 pages and New York Comedy Club 8,
+  all model-rung, under one combined hash. Any change on any page re-extracts every page, so a normal night is
+  about 17 model calls. A hash per page, with each unchanged page's listings carried forward, would cut that to
+  the pages that changed. Decide it from the S3 live pass's model-call count and a week of the mini's logs.
+- **"Missing" on sources read one page deep (S3 review, PR #8).** On a complete check, a future listing that isn't
+  returned is marked `missing`. On a source we read only one page of (UCB, and any whose first page is a window),
+  a still-on-sale listing pushed off page 1 by newer ones gets marked `missing` too. Watch for it in S4's What's
+  on. If it shows, treat a one-page source's check as incomplete for marking, or mark only listings dated inside
+  the window the page covers.
