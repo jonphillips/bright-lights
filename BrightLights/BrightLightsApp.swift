@@ -38,18 +38,14 @@ struct BrightLightsApp: App {
   }
 
   var body: some Scene {
-    WindowGroup {
-      SourcesView()
-    }
+    WindowGroup { AppContainer() }
   }
 }
 
 private func startSyncIfEnabled() async {
   guard UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled") else { return }
   do {
-    guard try await CKContainer(identifier: "iCloud.com.jonphillips.BrightLights").accountStatus() == .available else {
-      return
-    }
+    guard try await CKContainer(identifier: "iCloud.com.jonphillips.BrightLights").accountStatus() == .available else { return }
     @Dependency(\.defaultSyncEngine) var engine
     @Dependency(\.defaultDatabase) var database
     try await engine.start()

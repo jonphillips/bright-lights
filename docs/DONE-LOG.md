@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-19 — Stays and What’s on (`m1/s4-stays-and-whats-on`)
+
+- **Result:** Added New York stay validation, the pure WhatsOnProjection, adaptive navigation for While we’re here, Coming up and Stays, listing details, and shared reactions. S4 adds no schema columns or migrations.
+- **Verification:** scripts/check-drift.sh passed strict SwiftLint, 60 package tests, and iOS and macOS builds.
+- **Owed:** M1 S4's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-19 — Mac source checker (`m1/s3-mac-checker`)
 
 - **Result:** Added polite scheduled source checks on the Mac, change-only listing upserts, check outcomes, model-call rationing, and CloudKit convergence for seeded Household and Source records. Confirmed Irving Plaza is a single-page source and removed the incorrect Mercury East adapter assignment.
