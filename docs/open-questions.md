@@ -15,7 +15,8 @@
   Grid Builder "Load more" control. A direct request to its render endpoint returned 403, and the survey didn't try
   again. Before a UCB adapter is planned, check whether a normal rendered page loads more without a challenge. If
   it needs anything beyond ordinary page JavaScript, keep UCB at first-page depth or make it manual. Don't work
-  around the 403.
+  around the 403. ADR-0005 Amendment 1 (capture helpers) is the way to do this: a UCB reveal helper is its first
+  case, and its stop reasons answer the question. Plan it as a dispatch once S3 has merged.
 - **The household survivor once Wendy joins (M2).** M1 converges duplicate households by the lowest `(createdAt, id)`
   (S2 review, PR #6). That's safe while every device is Jon's and writes one private zone. With sharing, a
   participant's device can create its own household and 44 sources before it accepts the share. The survivor must
