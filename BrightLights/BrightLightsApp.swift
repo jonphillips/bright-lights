@@ -51,7 +51,14 @@ private func startSyncIfEnabled() async {
       return
     }
     @Dependency(\.defaultSyncEngine) var engine
+    @Dependency(\.defaultDatabase) var database
     try await engine.start()
+    try await engine.syncChanges()
+    try await database.write { db in
+      _ = try Household.ensureDefault(in: db)
+      try Source.syncFromRegistry(in: db)
+    }
+    try await engine.syncChanges()
   } catch {
     Logger(subsystem: "com.jonphillips.BrightLights", category: "Sync")
       .error("CloudKit sync could not start; Bright Lights remains local-only: \(error)")

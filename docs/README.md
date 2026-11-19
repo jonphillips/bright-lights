@@ -16,3 +16,4 @@
 - [Event source survey](sources/SURVEY.md)
 - [Source survey data](sources/survey.json)
 - [Source registry](sources/registry.json)
+- [CloudKit schema proposal and Development import record](cloudkit/SCHEMA-PROPOSAL.md)

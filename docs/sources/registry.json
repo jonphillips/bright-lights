@@ -290,7 +290,6 @@
       ],
       "mode": "automated",
       "method": "structured_html",
-      "adapter": "mercuryEast",
       "cadence": "weekly",
       "operational_status": "active_site_response",
       "horizon_days_observed": null,

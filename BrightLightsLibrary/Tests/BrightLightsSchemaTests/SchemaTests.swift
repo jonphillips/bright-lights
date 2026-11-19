@@ -106,6 +106,40 @@ struct SchemaTests {
     }
   }
 
+  @Test func convergenceQueuesHouseholdAndSourceLoserDeletionsForCloudKit() async throws {
+    let loserHouseholdID = UUID()
+    let loserSourceID = UUID()
+    try await database.write { db in
+      try Source.syncFromRegistry(in: db)
+      let household = try Household.ensureDefault(in: db)
+      let source = try #require(Source.fetchAll(db).first)
+      let loserHousehold = Household(id: loserHouseholdID, createdAt: household.createdAt.addingTimeInterval(1))
+      let loserSource = Source(
+        id: loserSourceID, householdID: loserHousehold.id, registryID: source.registryID,
+        name: "duplicate source", type: source.type, priority: source.priority, area: source.area,
+        mode: source.mode, method: source.method, adapter: source.adapter, adapterVenue: source.adapterVenue,
+        listingURL: source.listingURL, registeredHosts: source.registeredHosts,
+        excludedHosts: source.excludedHosts, cadence: source.cadence,
+        createdAt: source.createdAt.addingTimeInterval(1)
+      )
+      try Household.insert { Household.Draft(loserHousehold) }.execute(db)
+      try Source.insert { Source.Draft(loserSource) }.execute(db)
+    }
+
+    try await database.write { db in
+      _ = try Household.ensureDefault(in: db)
+      try Source.syncFromRegistry(in: db)
+    }
+
+    let deletedRecordIDs = try await database.read { db in
+      try SyncMetadata.where { $0._isDeleted }
+        .fetchAll(db)
+        .map { "\($0.id.recordPrimaryKey):\($0.recordType)" }
+    }
+    #expect(deletedRecordIDs.contains("\(loserHouseholdID.uuidString.lowercased()):households"))
+    #expect(deletedRecordIDs.contains("\(loserSourceID.uuidString.lowercased()):sources"))
+  }
+
   @Test func defaultHouseholdChoosesOldestAndRepointsSources() async throws {
     try await database.write { db in
       try Source.syncFromRegistry(in: db)

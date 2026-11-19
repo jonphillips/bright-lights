@@ -298,7 +298,7 @@ public struct SourceChecker: Sendable {
 
   static func isChallengePage(_ document: String) -> Bool {
     let lower = document.lowercased()
-    guard !lower.contains("cf-chl"), !lower.contains("/cdn-cgi/challenge-platform"),
+    guard !lower.contains("cf-chl"), !lower.contains("/cdn-cgi/challenge-platform/h/"),
       !lower.contains("px-captcha") else { return true }
     guard let match = lower.range(of: #"(?is)<title\b[^>]*>(.*?)</title\s*>"#, options: .regularExpression) else { return false }
     let title = lower[match].replacingOccurrences(of: #"(?is)</?title\b[^>]*>"#, with: "", options: .regularExpression)

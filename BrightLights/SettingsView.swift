@@ -17,6 +17,7 @@ struct SettingsView: View {
   @Dependency(\.defaultSyncEngine) private var syncEngine
   @Dependency(\.apiKeyStore) private var apiKeyStore
   @State private var modelKey = ""
+  @State private var savedModelKeyStatus: String?
   @State private var modelProvider: FrontierProvider = .anthropic
   @State private var showTakeover = false
   @State private var statusNote: String?
@@ -90,13 +91,15 @@ struct SettingsView: View {
           ForEach(FrontierProvider.allCases) { provider in Text(provider.displayName).tag(provider) }
         }
         SecureField("\(modelProvider.displayName) API key", text: $modelKey)
-        Text(apiKeyStore.maskedKey(modelProvider) ?? "No key saved")
+        Text(savedModelKeyStatus ?? "No key saved")
           .font(.caption).foregroundStyle(.secondary)
-        Button("Save model key") { apiKeyStore.setKey(modelKey, for: modelProvider); modelKey = "" }
+        Button("Save model key") { saveModelKey() }
       }
       if let statusNote { Text(statusNote).foregroundStyle(.secondary) }
     }
     .navigationTitle("Settings")
+    .onAppear { refreshSavedModelKeyStatus() }
+    .onChange(of: modelProvider) { refreshSavedModelKeyStatus() }
 #if os(macOS)
     .confirmationDialog(
       "\(household?.checkerDeviceName ?? "Another Mac") is checking now. Make this Mac the checker?",
@@ -107,6 +110,21 @@ struct SettingsView: View {
       Button("Cancel", role: .cancel) {}
     }
 #endif
+  }
+
+  private func refreshSavedModelKeyStatus() {
+    savedModelKeyStatus = apiKeyStore.maskedKey(modelProvider)
+  }
+
+  private func saveModelKey() {
+    guard !modelKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+      statusNote = "Enter an API key before saving."
+      return
+    }
+    apiKeyStore.setKey(modelKey, for: modelProvider)
+    modelKey = ""
+    refreshSavedModelKeyStatus()
+    statusNote = savedModelKeyStatus == nil ? "The key could not be read back from Keychain." : "Model key saved."
   }
 
 #if os(macOS)
