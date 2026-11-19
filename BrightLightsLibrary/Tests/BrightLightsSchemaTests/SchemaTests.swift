@@ -5,7 +5,7 @@ import BrightLightsSchema
 import SQLiteData
 import Testing
 
-@Suite(.dependencies { try $0.bootstrapBrightLightsDatabase() })
+@Suite(.serialized, .dependencies { try $0.bootstrapBrightLightsDatabase() })
 struct SchemaTests {
   @Dependency(\.defaultDatabase) var database
 
@@ -123,7 +123,17 @@ struct SchemaTests {
     }
   }
 
-  @Test func migrationRegistersOneFrozenSchemaStep() {
-    #expect(BrightLightsDatabaseMigrations.makeMigrator().migrations.count == 1)
+  @Test func registryAddsTheDeclaredPaginationRules() async throws {
+    try await database.write { db in
+      try Source.syncFromRegistry(in: db)
+      let sources = try Source.fetchAll(db)
+      #expect(sources.first { $0.registryID == "bowery-ballroom" }?.pagination?.contains("mercuryeastpresents.com") == true)
+      #expect(sources.first { $0.registryID == "the-stand" }?.pagination?.contains("months_ahead") == true)
+      #expect(sources.first { $0.registryID == "ny-comedy-club" }?.pagination?.contains("months_ahead") == true)
+    }
+  }
+
+  @Test func migrationRegistersTheFrozenS2SchemaAndCheckingSchema() {
+    #expect(BrightLightsDatabaseMigrations.makeMigrator().migrations.count == 2)
   }
 }

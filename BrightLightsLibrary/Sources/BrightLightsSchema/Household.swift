@@ -6,11 +6,18 @@ public struct Household: Identifiable, Equatable, Sendable {
   public let id: UUID
   public var name = "Our Household"
   public var createdAt: Date
+  public var checkerDeviceID: UUID?
+  public var checkerDeviceName: String?
+  public var checkerClaimedAt: Date?
 
-  public init(id: UUID, name: String = "Our Household", createdAt: Date = .now) {
+  public init(id: UUID, name: String = "Our Household", createdAt: Date = .now,
+    checkerDeviceID: UUID? = nil, checkerDeviceName: String? = nil, checkerClaimedAt: Date? = nil) {
     self.id = id
     self.name = name
     self.createdAt = createdAt
+    self.checkerDeviceID = checkerDeviceID
+    self.checkerDeviceName = checkerDeviceName
+    self.checkerClaimedAt = checkerClaimedAt
   }
 
   public static func ensureDefault(in db: Database) throws -> Household {

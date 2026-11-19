@@ -44,6 +44,17 @@ public enum BrightLightsDatabaseMigrations {
         CREATE INDEX "index_reactions_on_listingID" ON "reactions"("listingID");
         """)
     }
+    migrator.registerMigration("Add source checking state v2") { db in
+      try db.execute(sql: """
+        ALTER TABLE "households" ADD COLUMN "checkerDeviceID" TEXT;
+        ALTER TABLE "households" ADD COLUMN "checkerDeviceName" TEXT;
+        ALTER TABLE "households" ADD COLUMN "checkerClaimedAt" TEXT;
+        ALTER TABLE "sources" ADD COLUMN "pagination" TEXT;
+        ALTER TABLE "sources" ADD COLUMN "retiredAt" TEXT;
+        ALTER TABLE "sources" ADD COLUMN "lastContentHash" TEXT;
+        ALTER TABLE "sources" ADD COLUMN "lastCheckNote" TEXT;
+        """)
+    }
     return migrator
   }
 }

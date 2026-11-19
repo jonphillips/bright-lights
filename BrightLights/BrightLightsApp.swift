@@ -7,6 +7,10 @@ import BrightLightsSchema
 
 @main
 struct BrightLightsApp: App {
+#if os(macOS)
+  @NSApplicationDelegateAdaptor(BrightLightsMacDelegate.self) private var macDelegate
+#endif
+
   init() {
     do {
       try prepareDependencies {
@@ -23,6 +27,9 @@ struct BrightLightsApp: App {
       UserDefaults.standard.set(true, forKey: "BrightLightsCloudKitSyncEnabled")
     }
     Task { await startSyncIfEnabled() }
+#if os(macOS)
+    CheckerRuntime.startIfEnabled()
+#endif
   }
 
   var body: some Scene {

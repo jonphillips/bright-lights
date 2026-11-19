@@ -20,6 +20,7 @@ private struct RegistrySource: Decodable {
   var adapterVenue: String?
   var cadence: String
   var operationalStatus: String?
+  var pagination: RegistryPagination?
 
   enum CodingKeys: String, CodingKey {
     case id, name, area, priority, mode, method, adapter, cadence
@@ -29,10 +30,33 @@ private struct RegistrySource: Decodable {
     case excludedHosts = "excluded_hosts"
     case adapterVenue = "adapter_venue"
     case operationalStatus = "operational_status"
+    case pagination
   }
 
   var isSeedable: Bool { mode != "skip" && priority != "retired" && operationalStatus != "retired" }
   var sourceMode: SourceMode? { SourceMode(rawValue: mode) }
+}
+
+private struct RegistryPagination: Codable {
+  var kind: String
+  var template: String
+  var first: Int?
+  var max: Int?
+  var monthsAhead: Int?
+
+  enum CodingKeys: String, CodingKey {
+    case kind, template, first, max
+    case monthsAhead = "months_ahead"
+  }
+
+  var encoded: String? {
+    var object: [String: Any] = ["kind": kind, "template": template]
+    if let first { object["first"] = first }
+    if let max { object["max"] = max }
+    if let monthsAhead { object["months_ahead"] = monthsAhead }
+    guard let data = try? JSONSerialization.data(withJSONObject: object, options: [.sortedKeys]) else { return nil }
+    return String(decoding: data, as: UTF8.self)
+  }
 }
 
 public enum SourceRegistryError: Error {
@@ -54,6 +78,11 @@ public extension Source {
     }
     let grouped = Dictionary(grouping: existing, by: \.registryID)
     let incoming = registry.sources.filter(\.isSeedable)
+    let incomingIDs = Set(incoming.map(\.id))
+
+    for source in existing where !incomingIDs.contains(source.registryID) && source.retiredAt == nil {
+      try Source.find(source.id).update { $0.retiredAt = #bind(Date.now) }.execute(db)
+    }
 
     for item in incoming {
       guard let sourceMode = item.sourceMode else {
@@ -88,6 +117,7 @@ public extension Source {
       || source.adapter != item.adapter || source.adapterVenue != item.adapterVenue
       || source.listingURL != item.listingURL || source.registeredHosts != registeredHosts
       || source.excludedHosts != excludedHosts || source.cadence != item.cadence
+      || source.pagination != item.pagination?.encoded || source.retiredAt != nil
     else { return }
     try Source.find(source.id).update {
       $0.householdID = #bind(householdID)
@@ -103,6 +133,8 @@ public extension Source {
       $0.registeredHosts = #bind(registeredHosts)
       $0.excludedHosts = #bind(excludedHosts)
       $0.cadence = #bind(item.cadence)
+      $0.pagination = #bind(item.pagination?.encoded)
+      if source.retiredAt != nil { $0.retiredAt = #bind(nil as Date?) }
     }.execute(db)
   }
 
@@ -115,7 +147,8 @@ public extension Source {
       mode: mode, method: item.method, adapter: item.adapter,
       adapterVenue: item.adapterVenue, listingURL: item.listingURL,
       registeredHosts: try encodeJSON(item.registeredHosts ?? []),
-      excludedHosts: try encodeJSON(item.excludedHosts ?? []), cadence: item.cadence
+      excludedHosts: try encodeJSON(item.excludedHosts ?? []), cadence: item.cadence,
+      pagination: item.pagination?.encoded
     )
     try Source.insert { Source.Draft(source) }.execute(db)
   }

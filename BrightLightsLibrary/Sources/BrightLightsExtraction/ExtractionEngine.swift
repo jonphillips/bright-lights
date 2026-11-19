@@ -112,7 +112,7 @@ public struct ExtractionEngine: Sendable {
     return (listings, droppedExcludedHosts, droppedInvalidDates)
   }
 
-  private static func jsonLDEvents(in document: PageDocument) throws -> [[String: Any]] {
+  static func jsonLDEvents(in document: PageDocument) throws -> [[String: Any]] {
     var roots: [Any] = []
     switch document {
     case .json:
@@ -143,7 +143,7 @@ public struct ExtractionEngine: Sendable {
     return events
   }
 
-  private static func listing(
+  static func listing(
     from object: [String: Any],
     source: SourceDescriptor,
     rung: ExtractedListing.Rung
@@ -172,7 +172,7 @@ public struct ExtractionEngine: Sendable {
     )
   }
 
-  private static func adapterListings(
+  static func adapterListings(
     _ adapter: SourceDescriptor.Adapter,
     document: PageDocument,
     sourceURL: URL,

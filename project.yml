@@ -21,6 +21,11 @@ packages:
   swift-dependencies:
     url: https://github.com/pointfreeco/swift-dependencies
     from: 1.0.0
+  LLMClientKit:
+    path: ../jon-platform/packages/LLMClientKit
+  swift-sharing:
+    url: https://github.com/pointfreeco/swift-sharing
+    from: 2.0.0
 targets:
   BrightLights:
     type: application
@@ -57,10 +62,16 @@ targets:
     dependencies:
       - package: BrightLightsLibrary
         product: BrightLightsSchema
+      - package: BrightLightsLibrary
+        product: BrightLightsChecking
       - package: sqlite-data
         product: SQLiteData
       - package: swift-dependencies
         product: Dependencies
+      - package: LLMClientKit
+        product: LLMClientKit
+      - package: swift-sharing
+        product: Sharing
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jonphillips.BrightLights
