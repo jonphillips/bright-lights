@@ -150,7 +150,7 @@ struct SourceCheckingTests {
           mode: .automated, method: "platform_feed", adapter: "aegAXS", adapterVenue: "Brooklyn Steel",
           listingURL: "https://www.bowerypresents.com/brooklyn-steel/",
           feedURL: "https://aegwebprod.blob.core.windows.net/json/resources/8/events/d099bg4x01/events.json",
-          registeredHosts: "[\"bowerypresents.com\",\"aegwebprod.blob.core.windows.net\"]", cadence: "weekly"),
+          registeredHosts: "[\"bowerypresents.com\"]", cadence: "weekly"),
         Source(id: caveatID, householdID: household.id, registryID: "caveat",
           name: "Caveat", type: "venue", priority: "core", area: "Lower East Side",
           mode: .automated, method: "platform_feed", adapter: "caveatJSON",
@@ -323,6 +323,25 @@ struct SourceCheckingTests {
     #expect(reports[0].outcome == .succeeded)
     #expect(reports[0].note?.contains("partial check") == true)
     #expect(try await database.read { try Listing.find(unseen.id).fetchOne($0)?.status } == .listed)
+  }
+
+  @Test func laterPage404EndsPaginationAndMarksMissingListings() async throws {
+    let source = try await insertSource(registryID: "bowery-ballroom", listingURL: "https://mercuryeastpresents.com/boweryballroom/",
+      adapter: "mercuryEast", pagination: #"{"kind":"pages","template":"https://mercuryeastpresents.com/boweryballroom/page/{n}/","first":2,"max":6}"#)
+    let unseen = Listing(id: UUID(), sourceID: source.id, stableKey: "unseen", title: "Unseen",
+      startsAt: Date(timeIntervalSince1970: 2_000_000_000), rung: .adapter, capturedBy: .mac)
+    try await database.write { db in try Listing.insert { Listing.Draft(unseen) }.execute(db) }
+    let bowery = try fixtureText("bowery-ballroom.html")
+    let client = SourceCheckClient(fetch: { url, _ in
+      if url.path == "/robots.txt" { return FetchedPage(document: "User-agent: *", statusCode: 200, effectiveURL: url) }
+      if url.path.contains("/page/3") { return FetchedPage(document: "", statusCode: 404, effectiveURL: url) }
+      return FetchedPage(document: bowery, statusCode: 200, effectiveURL: url, contentType: "text/html")
+    }, wait: { _ in })
+    let reports = await runPass(client: client, apiKey: nil, now: Date(timeIntervalSince1970: 1_900_000_000))
+    #expect(reports[0].outcome == .succeeded)
+    #expect(reports[0].pagesRead == 2)
+    #expect(reports[0].note == nil)
+    #expect(try await database.read { try Listing.find(unseen.id).fetchOne($0)?.status } == .missing)
   }
 
   @Test func unreachableRobotsFileDoesNotPreventTheSourceFetch() async throws {

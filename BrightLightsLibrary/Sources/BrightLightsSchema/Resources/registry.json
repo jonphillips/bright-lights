@@ -52,8 +52,7 @@
       "listing_url": "https://www.bowerypresents.com/brooklyn-steel/",
       "feed_url": "https://aegwebprod.blob.core.windows.net/json/resources/8/events/d099bg4x01/events.json",
       "registered_hosts": [
-        "bowerypresents.com",
-        "aegwebprod.blob.core.windows.net"
+        "bowerypresents.com"
       ],
       "mode": "automated",
       "method": "platform_feed",

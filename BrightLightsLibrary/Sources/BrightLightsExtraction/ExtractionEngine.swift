@@ -16,13 +16,13 @@ private enum ModelListingResult {
 
 private enum ExtractedListingFactory {
   static func make(
-    source: SourceDescriptor, identity: String?, title: String, performers: [String], room: String?,
+    source: SourceDescriptor, sourceURL: URL?, identity: String?, title: String, performers: [String], room: String?,
     time: ExtractedListing.Time, ticketURL: String?, onSaleDate: Date?, status: ExtractedListing.Status,
     rung: ExtractedListing.Rung
   ) -> ExtractedListing {
     let key: String
     if let identity, !identity.isEmpty {
-      key = "\(source.id):\(canonicalIdentity(identity))"
+      key = "\(source.id):\(canonicalIdentity(identity, relativeTo: sourceURL))"
     } else {
       let timeKey: String
       switch time {
@@ -37,8 +37,14 @@ private enum ExtractedListingFactory {
       onSaleDate: onSaleDate, status: status, rung: rung)
   }
 
-  private static func canonicalIdentity(_ value: String) -> String {
-    guard var components = URLComponents(string: value), let host = components.host else { return value }
+  private static func canonicalIdentity(_ value: String, relativeTo sourceURL: URL?) -> String {
+    let components = URLComponents(string: value)
+    let isRelativePath = components?.scheme == nil && components?.host == nil
+      && (value.hasPrefix("/") || value.contains("/"))
+    let resolved = isRelativePath
+      ? URL(string: value, relativeTo: sourceURL)?.absoluteURL.absoluteString ?? value
+      : value
+    guard var components = URLComponents(string: resolved), let host = components.host else { return resolved }
     components.host = host.lowercased()
     components.percentEncodedPath = components.percentEncodedPath
       .replacingOccurrences(of: #"/{2,}"#, with: "/", options: .regularExpression)
@@ -46,7 +52,7 @@ private enum ExtractedListingFactory {
       components.percentEncodedPath.removeLast()
     }
     components.fragment = nil
-    return components.string ?? value
+    return components.string ?? resolved
   }
 
   private static func normalize(_ value: String) -> String {
@@ -81,7 +87,7 @@ public struct ExtractionEngine: Sendable {
     }
     if !jsonLDEvents.isEmpty {
       let listings = jsonLDEvents.compactMap {
-        Self.listing(from: $0, source: source, rung: .jsonLD)
+        Self.listing(from: $0, sourceURL: sourceURL, source: source, rung: .jsonLD)
       }
       if !listings.isEmpty { return .init(listings: Self.deduplicated(listings), warnings: warnings) }
       warnings.append("JSON-LD Event data was present but did not contain usable listings.")
@@ -153,7 +159,7 @@ public struct ExtractionEngine: Sendable {
         droppedExcludedHosts += 1
         return nil
       }
-      switch Self.modelListing(from: row, source: source) {
+      switch Self.modelListing(from: row, sourceURL: sourceURL, source: source) {
       case let .listing(listing):
         return listing
       case let .dropped(reason):
@@ -201,6 +207,7 @@ public struct ExtractionEngine: Sendable {
 
   static func listing(
     from object: [String: Any],
+    sourceURL: URL? = nil,
     source: SourceDescriptor,
     rung: ExtractedListing.Rung
   ) -> ExtractedListing? {
@@ -222,7 +229,7 @@ public struct ExtractionEngine: Sendable {
       (string(offer?["availability"])?.localizedCaseInsensitiveContains("soldout") == true ? .soldOut : .listed)
     let identity = string(object["url"]) ?? string(object["@id"])
     return ExtractedListingFactory.make(
-      source: source, identity: identity, title: title, performers: performers, room: room,
+      source: source, sourceURL: sourceURL, identity: identity, title: title, performers: performers, room: room,
       time: eventTime, ticketURL: string(offer?["url"]) ?? identity,
       onSaleDate: string(offer?["validFrom"]).flatMap(parseDate), status: status, rung: rung
     )
@@ -237,7 +244,7 @@ public struct ExtractionEngine: Sendable {
     switch adapter {
     case .mercuryEast:
       guard case let .html(html) = document else { return [] }
-      return mercuryListings(html, source: source)
+      return mercuryListings(html, sourceURL: sourceURL, source: source)
     case .aegAXS:
       guard let adapterVenue = source.adapterVenue,
         let root = try? jsonObject(document.rawValue), let events = root["events"] as? [[String: Any]] else { return [] }
@@ -251,7 +258,8 @@ public struct ExtractionEngine: Sendable {
         let ticketing = event["ticketing"] as? [String: Any]
         let identity = string(event["eventId"])
         let performers = [string(titleObject["headlinersText"]), string(titleObject["supportingText"])].compactMap { $0 }
-        return ExtractedListingFactory.make(source: source, identity: identity, title: title, performers: performers, room: string(venue["title"]),
+        return ExtractedListingFactory.make(source: source, sourceURL: sourceURL,
+          identity: identity, title: title, performers: performers, room: string(venue["title"]),
           time: .performance(start), ticketURL: string(ticketing?["eventUrl"]) ?? string(ticketing?["url"]),
           onSaleDate: string(event["onsaleDateTime"]).flatMap(parseDate), status: .listed, rung: .adapter)
       }
@@ -263,14 +271,15 @@ public struct ExtractionEngine: Sendable {
           let start = string(fields["google_start_time"] ?? fields["Event start date and time"]).flatMap(parseDate)
         else { return nil }
         let identity = string(fields["MainRecordID"] ?? fields["record ID"])
-        return ExtractedListingFactory.make(source: source, identity: identity, title: title, performers: [],
+        return ExtractedListingFactory.make(source: source, sourceURL: sourceURL,
+          identity: identity, title: title, performers: [],
           room: "Caveat", time: .performance(start), ticketURL: string(fields["Ticket URL"]) ?? string(fields["Stellar URL"]),
           onSaleDate: nil, status: .listed, rung: .adapter)
       }
     }
   }
 
-  private static func mercuryListings(_ html: String, source: SourceDescriptor) -> [ExtractedListing] {
+  private static func mercuryListings(_ html: String, sourceURL: URL, source: SourceDescriptor) -> [ExtractedListing] {
     let sections = html.components(separatedBy: #"<div class="tw-img-container">"#).dropFirst()
     return sections.compactMap { section in
       guard let titleMatch = firstMatch(#"(?is)<div class="tw-name">.*?<a[^>]*>(.*?)</a>"#, in: section),
@@ -282,17 +291,18 @@ public struct ExtractionEngine: Sendable {
       let dateText = cleanHTML(dateMatch)
       let timeText = cleanHTML(timeMatch).replacingOccurrences(of: "Doors:", with: "", options: .caseInsensitive).trimmingCharacters(in: .whitespaces)
       guard let date = parseMercuryDate(dateText, time: timeText) else { return nil }
-      let identity = URL(string: hrefMatch, relativeTo: URL(string: "https://mercuryeastpresents.com"))?.absoluteURL.absoluteString ?? hrefMatch
+      let identity = hrefMatch
       let performerLine = firstMatch(#"(?is)<div class="tw-attractions">(.*?)</div>"#, in: section).map(cleanHTML) ?? ""
       let status: ExtractedListing.Status = title.localizedCaseInsensitiveContains("sold out") ? .soldOut : .listed
       let normalizedTitle = title.replacingOccurrences(of: #"(?i)^\*?\s*sold out\s*\*?\s*"#, with: "", options: .regularExpression)
-      return ExtractedListingFactory.make(source: source, identity: identity, title: normalizedTitle,
+      return ExtractedListingFactory.make(source: source, sourceURL: sourceURL,
+        identity: identity, title: normalizedTitle,
         performers: performerNames(in: performerLine), room: nil, time: .performance(date),
         ticketURL: identity, onSaleDate: nil, status: status, rung: .adapter)
     }
   }
 
-  private static func modelListing(from row: [String: Any], source: SourceDescriptor) -> ModelListingResult {
+  private static func modelListing(from row: [String: Any], sourceURL: URL, source: SourceDescriptor) -> ModelListingResult {
     guard let title = string(row["title"]) else { return .dropped(.missingTitle) }
     let time: ExtractedListing.Time
     if let startsAt = string(row["startsAt"]) {
@@ -307,7 +317,8 @@ public struct ExtractionEngine: Sendable {
     } else { return .dropped(.invalidDate) }
     let status = ExtractedListing.Status(rawValue: string(row["status"]) ?? "listed") ?? .listed
     let eventURL = string(row["eventURL"])
-    return .listing(ExtractedListingFactory.make(source: source, identity: eventURL ?? string(row["ticketURL"]), title: title,
+    return .listing(ExtractedListingFactory.make(source: source, sourceURL: sourceURL,
+      identity: eventURL ?? string(row["ticketURL"]), title: title,
       performers: row["performers"] as? [String] ?? [], room: string(row["room"]), time: time,
       ticketURL: string(row["ticketURL"]), onSaleDate: string(row["onSaleDate"]).flatMap(parseModelDate),
       status: status, rung: .model))

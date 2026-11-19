@@ -243,6 +243,7 @@ public struct SourceChecker: Sendable {
         break
       }
       guard page.statusCode != 403 && page.statusCode != 429 else { throw SourceCheckError.challenge("HTTP \(page.statusCode)") }
+      if page.statusCode == 404, index > 0, case .pages = pagination { break }
       guard (200..<300).contains(page.statusCode) else {
         if index == 0 { throw SourceCheckError.fetchFailed("HTTP \(page.statusCode)") }
         complete = false; partialFailure = true; break

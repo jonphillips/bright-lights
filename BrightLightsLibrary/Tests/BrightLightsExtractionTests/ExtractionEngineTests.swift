@@ -187,6 +187,27 @@ import Testing
     #expect(result.listings[0].stableKey == "the-stand:https://thestandnyc.com/shows/show/14184/performer")
   }
 
+  @Test("model event URLs resolve relative to the page before canonicalization")
+  func modelRelativeURLIdentity() async throws {
+    let pageURL = URL(string: "https://thestandnyc.com/events")!
+    let relative = #"{"listings":[{"title":"The Stand Show","performers":[],"room":"The Stand","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"/shows/show/14184/performer/","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let absolute = #"{"listings":[{"title":"The Stand Show","performers":[],"room":"The Stand","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://thestandnyc.com//shows/show/14184/performer","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let relativeResult = try await withDependencies {
+      $0.modelClient = StubModelClient.constant(relative)
+    } operation: {
+      try await ExtractionEngine().extract(.html("<main>The Stand Show</main>"), sourceURL: pageURL,
+        source: .init(id: "the-stand"))
+    }
+    let absoluteResult = try await withDependencies {
+      $0.modelClient = StubModelClient.constant(absolute)
+    } operation: {
+      try await ExtractionEngine().extract(.html("<main>The Stand Show</main>"), sourceURL: pageURL,
+        source: .init(id: "the-stand"))
+    }
+    #expect(relativeResult.listings.first?.stableKey == "the-stand:https://thestandnyc.com/shows/show/14184/performer")
+    #expect(relativeResult.listings.first?.stableKey == absoluteResult.listings.first?.stableKey)
+  }
+
   @Test("numeric HTML entities are decoded in adapter titles")
   func numericEntityDecoding() async throws {
     let html = try fixtureText("bowery-ballroom.html")
