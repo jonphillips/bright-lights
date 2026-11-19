@@ -23,8 +23,8 @@ struct SettingsView: View {
   @State private var statusNote: String?
   @State private var lastPassReports: [SourceCheckReport] = []
   @State private var lastPassDuration: TimeInterval?
-  @Shared(.appStorage("brightLights.checkerDeviceID")) private var deviceIDString = ""
-  @Shared(.appStorage("brightLights.checkerEnabled")) private var checkerEnabled = false
+  @Shared(.checkerDeviceID) private var deviceIDString
+  @Shared(.checkerEnabled) private var checkerEnabled
   @Shared(.appStorage("BrightLightsCloudKitSyncEnabled")) private var syncEnabled = false
 
   private var household: Household? { households.first }
@@ -94,6 +94,9 @@ struct SettingsView: View {
         Text(savedModelKeyStatus ?? "No key saved")
           .font(.caption).foregroundStyle(.secondary)
         Button("Save model key") { saveModelKey() }
+        if savedModelKeyStatus != nil {
+          Button("Remove key", role: .destructive) { removeModelKey() }
+        }
       }
       if let statusNote { Text(statusNote).foregroundStyle(.secondary) }
     }
@@ -125,6 +128,13 @@ struct SettingsView: View {
     modelKey = ""
     refreshSavedModelKeyStatus()
     statusNote = savedModelKeyStatus == nil ? "The key could not be read back from Keychain." : "Model key saved."
+  }
+
+  private func removeModelKey() {
+    apiKeyStore.setKey(nil, for: modelProvider)
+    modelKey = ""
+    refreshSavedModelKeyStatus()
+    statusNote = "Model key removed."
   }
 
 #if os(macOS)

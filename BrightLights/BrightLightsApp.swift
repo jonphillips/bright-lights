@@ -13,7 +13,7 @@ struct BrightLightsApp: App {
 #endif
 
   init() {
-    @Shared(.appStorage("brightLights.checkerDeviceID")) var checkerDeviceID = ""
+    @Shared(.checkerDeviceID) var checkerDeviceID
     if UUID(uuidString: checkerDeviceID) == nil {
       $checkerDeviceID.withLock { $0 = UUID().uuidString }
     }
