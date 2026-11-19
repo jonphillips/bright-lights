@@ -6,7 +6,7 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 ## 2026-11-18 — Bright Lights app scaffold, shared schema, and seeded sources (`codex/m1-s2-app-scaffold-schema-seeded-sources`)
 
 - **Result:** Added the multiplatform app shell, Development CloudKit wiring behind a local opt-in, the household/source/listing/stay/reaction schema, registry reconciliation, and read-only Sources screens. Seed reconciliation preserves check history and converges offline duplicate rows.
-- **Verification:** check-drift.sh passed: registry parity, SwiftLint, 17 package tests, and iOS Simulator plus macOS builds.
+- **Verification:** check-drift.sh passed: registry parity, SwiftLint, 18 package tests, and iOS Simulator plus macOS builds.
 - **Owed:** M1 S2's device gate, in [device-passes.md](device-passes.md).
 
 ## 2026-11-18 — Extraction engine (`m1-s1-extraction-engine`)

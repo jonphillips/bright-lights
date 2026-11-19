@@ -3,7 +3,7 @@ import SQLiteData
 import SwiftUI
 
 struct SourcesView: View {
-  @FetchAll(Source.order(by: \.name)) private var sources
+  @FetchAll(Source.canonical.order(by: \.name)) private var sources
   @State private var selectedSourceID: Source.ID?
 
   private var selectedSource: Source? { sources.first { $0.id == selectedSourceID } }
@@ -23,11 +23,6 @@ struct SourcesView: View {
         }
       }
       .navigationTitle("Sources")
-      .navigationDestination(for: Source.ID.self) { id in
-        if let source = sources.first(where: { $0.id == id }) {
-          SourceDetailView(source: source)
-        }
-      }
     } detail: {
       if let selectedSource {
         SourceDetailView(source: selectedSource)

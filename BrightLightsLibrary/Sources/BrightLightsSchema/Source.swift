@@ -4,7 +4,6 @@ import SQLiteData
 public enum SourceMode: String, QueryBindable, CaseIterable, Sendable {
   case automated
   case manual
-  case skip
 }
 
 public enum SourceCheckOutcome: String, QueryBindable, CaseIterable, Sendable {
@@ -54,3 +53,19 @@ public struct Source: Identifiable, Equatable, Sendable {
     self.createdAt = createdAt
   }
 }
+
+public extension Source {
+  /// One stable representative per registry identity. This read-time convergence
+  /// also hides duplicate seeds arriving from another device before the next launch.
+  static var canonical: Where<Source> {
+    Source.where { source in
+      !Source.as(EarlierSource.self).where { candidate in
+        candidate.registryID.eq(source.registryID)
+          && (candidate.createdAt.lt(source.createdAt)
+            || (candidate.createdAt.eq(source.createdAt) && candidate.id.lt(source.id)))
+      }.exists()
+    }
+  }
+}
+
+private enum EarlierSource: AliasName {}

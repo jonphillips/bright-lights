@@ -18,7 +18,7 @@ public struct Household: Identifiable, Equatable, Sendable {
       $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
     }
     if households.count == 1 { return households[0] }
-    if let survivor = try households.first(where: { try $0.hasContent(in: db) }) ?? households.first {
+    if let survivor = households.first {
       let losers = households.filter { $0.id != survivor.id }
       for loser in losers {
         try Source.where { $0.householdID.eq(loser.id) }
@@ -34,8 +34,4 @@ public struct Household: Identifiable, Equatable, Sendable {
     return created
   }
 
-  private func hasContent(in db: Database) throws -> Bool {
-    try Source.where { $0.householdID.eq(id) }.fetchOne(db) != nil
-      || Stay.where { $0.householdID.eq(id) }.fetchOne(db) != nil
-  }
 }

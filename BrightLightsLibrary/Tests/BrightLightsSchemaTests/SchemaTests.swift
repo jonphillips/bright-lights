@@ -52,6 +52,29 @@ struct SchemaTests {
     }
   }
 
+  @Test func unchangedRegistrySyncDoesNotTouchSourceSyncMetadata() async throws {
+    try await database.write { db in
+      try Source.syncFromRegistry(in: db)
+    }
+    let before = try await database.read { db in
+      try SyncMetadata.where { $0.recordType.eq("sources") }
+        .fetchAll(db)
+        .map { "\($0.id.recordPrimaryKey):\($0.userModificationTime)" }
+        .sorted()
+    }
+    try await database.write { db in
+      try Source.syncFromRegistry(in: db)
+    }
+    let after = try await database.read { db in
+      try SyncMetadata.where { $0.recordType.eq("sources") }
+        .fetchAll(db)
+        .map { "\($0.id.recordPrimaryKey):\($0.userModificationTime)" }
+        .sorted()
+    }
+    #expect(!before.isEmpty)
+    #expect(after == before)
+  }
+
   @Test func offlineRegistryDuplicatesConvergeAndKeepListings() async throws {
     try await database.write { db in
       try Source.syncFromRegistry(in: db)
@@ -65,6 +88,9 @@ struct SchemaTests {
         cadence: original.cadence, createdAt: Date(timeIntervalSince1970: 1)
       )
       try Source.insert { Source.Draft(duplicate) }.execute(db)
+      let canonicalBeforeConvergence = try Source.canonical.fetchAll(db)
+      #expect(canonicalBeforeConvergence.count == 44)
+      #expect(canonicalBeforeConvergence.first { $0.registryID == original.registryID }?.id == duplicate.id)
       let listing = Listing(
         id: UUID(), sourceID: original.id, stableKey: "source-test:event", title: "Test",
         startsAt: Date(timeIntervalSince1970: 1_800_000_000), rung: .adapter, capturedBy: .mac
@@ -79,15 +105,21 @@ struct SchemaTests {
     }
   }
 
-  @Test func defaultHouseholdConvergesEmptyDuplicates() async throws {
+  @Test func defaultHouseholdChoosesOldestAndRepointsSources() async throws {
     try await database.write { db in
       try Source.syncFromRegistry(in: db)
+      let oldest = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 1))
+      let newer = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 2))
+      try Household.insert {
+        Household.Draft(oldest)
+        Household.Draft(newer)
+      }.execute(db)
       let source = try #require(Source.fetchAll(db).first)
-      let extra = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 1))
-      try Household.insert { Household.Draft(extra) }.execute(db)
+      try Source.find(source.id).update { $0.householdID = #bind(newer.id) }.execute(db)
       let defaultHousehold = try Household.ensureDefault(in: db)
-      #expect(defaultHousehold.id == source.householdID)
+      #expect(defaultHousehold.id == oldest.id)
       #expect(try Household.fetchAll(db).count == 1)
+      #expect(try Source.where { $0.householdID.neq(oldest.id) }.fetchCount(db) == 0)
     }
   }
 

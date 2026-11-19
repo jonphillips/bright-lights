@@ -65,8 +65,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jonphillips.BrightLights
         TARGETED_DEVICE_FAMILY: "1,2"
-        SUPPORTS_MACCATALYST: YES
         CODE_SIGN_ENTITLEMENTS: BrightLights/BrightLights.entitlements
+        CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: BrightLights/BrightLights-macOS.entitlements
         SDKROOT: auto
     supportedDestinations: [iOS, macOS]
     scheme:

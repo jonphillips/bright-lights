@@ -28,8 +28,11 @@ public extension Reaction {
   /// Reactions are household state: edits replace the one row for a listing.
   /// Converges any offline duplicates before writing the replacement.
   static func upsertForListing(_ reaction: Reaction, in db: Database) throws {
-    let existing = try Reaction.where { $0.listingID.eq(reaction.listingID) }
-      .order(by: \.updatedAt).fetchAll(db)
+    let matches = try Reaction.where { $0.listingID.eq(reaction.listingID) }.fetchAll(db)
+    let existing = matches.sorted { lhs, rhs in
+      if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt < rhs.updatedAt }
+      return lhs.id.uuidString < rhs.id.uuidString
+    }
     if let survivor = existing.first {
       for duplicate in existing.dropFirst() {
         try Reaction.find(duplicate.id).delete().execute(db)
