@@ -3,8 +3,10 @@ import AppKit
 import BrightLightsChecking
 import BrightLightsSchema
 import Dependencies
+import OSLog
 import SQLiteData
 import Sharing
+import ServiceManagement
 
 @MainActor
 final class BrightLightsMacDelegate: NSObject, NSApplicationDelegate {
@@ -33,6 +35,27 @@ enum CheckerRuntime {
       }
     }
     scheduler = activity
+  }
+
+  static func restoreLoginItemIfNeeded() async {
+    @Shared(.checkerEnabled) var checkerEnabled
+    @Shared(.checkerDeviceID) var deviceID
+    @Shared(.checkerRegistrationError) var checkerRegistrationError
+    guard checkerEnabled, UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled"),
+      let id = UUID(uuidString: deviceID), SMAppService.mainApp.status != .enabled
+    else { return }
+    @Dependency(\.defaultDatabase) var db
+    let holdsLease = (try? await db.read { try CheckerLease.holds(deviceID: id, in: $0) }) == true
+    guard holdsLease else { return }
+    do {
+      try SMAppService.mainApp.register()
+      $checkerRegistrationError.withLock { $0 = "" }
+    } catch {
+      let message = error.localizedDescription
+      $checkerRegistrationError.withLock { $0 = message }
+      Logger(subsystem: "com.jonphillips.BrightLights", category: "SourceChecks")
+        .error("Could not restore login item registration: \(message)")
+    }
   }
 
   static func stop() {

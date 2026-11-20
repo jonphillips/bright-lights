@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-20 — Install Bright Lights on the Mac (`codex/mac-installer`)
+
+- **Result:** Added a per-build Git stamp, launch-time login-item restoration, and a verified rollback installer for the checking Mac.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint, 85 package tests, and iOS/macOS builds. A signed macOS build also passed build-stamp, codesign, and Development CloudKit entitlement checks.
+- **Owed:** mac-installer's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-20 — Fixing a source from the app (`effort/source-fixes`)
 
 - **Result:** Added app-owned start pages and source flags, with registry reconciliation that preserves both fixes and clears a start page when the registry catches up. Prepared and validated the CloudKit Development proposal for the three synced fields.

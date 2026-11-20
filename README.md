@@ -13,4 +13,10 @@ The app is a multiplatform SwiftUI shell with its SQLiteData schema and the seed
 - To opt into the real model check, set `BRIGHT_LIGHTS_LIVE_MODEL_TEST=1` when running `swift test --package-path BrightLightsLibrary`.
 - To exercise CloudKit Development sync, add `-BrightLightsCloudKitSyncEnabled` to the app's launch arguments. The opt-in is saved locally for later launches.
 
+## Install on the Mac
+
+Run `scripts/install-bright-lights` from a clean `main` checkout on the Mac that will check sources. The script builds
+and verifies the app, then installs it in `/Applications`. After installation, open Bright Lights and turn on
+**Check sources on this Mac** once in Settings.
+
 Product and settled decisions are in [`docs/PRODUCT.md`](docs/PRODUCT.md); the current dispatch is in [`docs/NEXT_UP.md`](docs/NEXT_UP.md).

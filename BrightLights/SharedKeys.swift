@@ -11,3 +11,9 @@ extension SharedKey where Self == AppStorageKey<Bool>.Default {
     Self[.appStorage("brightLightsCheckerEnabled"), default: false]
   }
 }
+
+extension SharedKey where Self == AppStorageKey<String>.Default {
+  static var checkerRegistrationError: Self {
+    Self[.appStorage("brightLightsCheckerRegistrationError"), default: ""]
+  }
+}

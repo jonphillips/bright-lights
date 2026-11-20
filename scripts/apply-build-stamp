@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "$#" -ne 2 ]]; then
+  echo "usage: scripts/apply-build-stamp <app-info.plist> <stamp.plist>" >&2
+  exit 2
+fi
+
+info_plist="$1"
+stamp_plist="$2"
+[[ -f "$info_plist" ]] || { echo "error: app Info.plist not found: $info_plist" >&2; exit 1; }
+[[ -f "$stamp_plist" ]] || { echo "error: build stamp metadata missing: $stamp_plist" >&2; exit 1; }
+
+for key in BLBuild BLDirty BLBuiltAt; do
+  value="$(/usr/libexec/PlistBuddy -c "Print :$key" "$stamp_plist")"
+  if /usr/libexec/PlistBuddy -c "Print :$key" "$info_plist" >/dev/null 2>&1; then
+    /usr/libexec/PlistBuddy -c "Set :$key $value" "$info_plist"
+  else
+    /usr/libexec/PlistBuddy -c "Add :$key string $value" "$info_plist"
+  fi
+done

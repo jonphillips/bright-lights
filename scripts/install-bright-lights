@@ -1,0 +1,190 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repo_root="$(cd "$(dirname "$0")/.." && pwd)"
+platform_root="$repo_root/../jon-platform"
+configuration="Debug"
+dry_run=false
+while (($#)); do
+  case "$1" in
+    --configuration)
+      (($# >= 2)) || { echo "error: --configuration requires Debug or Release" >&2; exit 2; }
+      configuration="$2"
+      shift 2
+      ;;
+    -n)
+      dry_run=true
+      shift
+      ;;
+    -h|--help)
+      echo "Usage: scripts/install-bright-lights [--configuration Debug|Release] [-n]"
+      exit 0
+      ;;
+    *) echo "error: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+[[ "$configuration" == Debug || "$configuration" == Release ]] || {
+  echo "error: configuration must be Debug or Release" >&2
+  exit 2
+}
+[[ -x "$platform_root/scripts/quiet-run" ]] || {
+  echo "error: jon-platform sibling checkout or scripts/quiet-run is missing" >&2
+  exit 1
+}
+
+derived_data="$repo_root/.build/InstallDerivedData"
+cloned_packages="$repo_root/.build/InstallSourcePackages"
+module_cache="$repo_root/.build/InstallModuleCache"
+build_app="$derived_data/Build/Products/$configuration/BrightLights.app"
+installed_app="/Applications/BrightLights.app"
+profile_path="$build_app/Contents/embedded.provisionprofile"
+
+if $dry_run; then
+  cat <<EOF
+cd $repo_root
+xcodegen generate
+xcodebuild -project BrightLights.xcodeproj -scheme BrightLights -configuration $configuration -destination 'platform=macOS' -derivedDataPath $derived_data -clonedSourcePackagesDirPath $cloned_packages -onlyUsePackageVersionsFromResolvedFile build (through jon-platform/scripts/quiet-run, CLANG_MODULE_CACHE_PATH=$module_cache)
+Verify BLBuild matches git rev-parse --short HEAD; warn if BLDirty is true
+Verify codesign and Development APS/CloudKit entitlements
+Verify embedded provisioning profile includes this Mac's Provisioning UDID
+If Bright Lights is running, ask before quitting every process with its bundle ID
+Stage the verified app beside $installed_app, swap it in while retaining the previous copy
+Restore the previous app if installation or reopening fails
+Reopen the installed app if the script quit it; otherwise print the one-time checker setup reminder
+Print build and signature, entitlements, provisioning, installed path, and reopened summary
+EOF
+  exit 0
+fi
+
+cd "$repo_root"
+xcodegen generate
+CLANG_MODULE_CACHE_PATH="$module_cache" "$platform_root/scripts/quiet-run" xcodebuild \
+  -project BrightLights.xcodeproj \
+  -scheme BrightLights \
+  -configuration "$configuration" \
+  -destination 'platform=macOS' \
+  -derivedDataPath "$derived_data" \
+  -clonedSourcePackagesDirPath "$cloned_packages" \
+  -onlyUsePackageVersionsFromResolvedFile \
+  build
+xcodegen generate
+
+expected_build="$(git -C "$repo_root" rev-parse --short HEAD)"
+built_build="$(/usr/libexec/PlistBuddy -c 'Print :BLBuild' "$build_app/Contents/Info.plist" 2>/dev/null || true)"
+[[ "$built_build" != unknown && "$built_build" == "$expected_build" ]] || {
+  echo "error: built app stamp is '${built_build:-missing}', expected '$expected_build'; refusing to stage" >&2
+  exit 1
+}
+built_dirty="$(/usr/libexec/PlistBuddy -c 'Print :BLDirty' "$build_app/Contents/Info.plist")"
+[[ "$built_dirty" == true || "$built_dirty" == false ]] || {
+  echo "error: built app BLDirty stamp is '$built_dirty', expected true or false" >&2
+  exit 1
+}
+if [[ "$built_dirty" == true ]]; then echo "warning: build was made from a dirty working tree" >&2; fi
+
+codesign --verify --deep --strict "$build_app"
+codesign -d --entitlements :- "$build_app" > "$repo_root/.build/bright-lights-entitlements.plist" 2>/dev/null
+entitlements="$repo_root/.build/bright-lights-entitlements.plist"
+aps_environment="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.aps-environment' "$entitlements" 2>/dev/null || true)"
+[[ "$aps_environment" == development ]] || {
+  echo "error: signed APS environment is '${aps_environment:-missing}', expected development; Production is held for M2" >&2
+  exit 1
+}
+cloud_containers="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.icloud-container-identifiers' "$entitlements" 2>/dev/null || true)"
+grep -Fq 'iCloud.com.jonphillips.BrightLights' <<<"$cloud_containers" || {
+  echo "error: signed entitlements do not include iCloud.com.jonphillips.BrightLights" >&2
+  exit 1
+}
+[[ -f "$profile_path" ]] || { echo "error: built app has no embedded provisioning profile" >&2; exit 1; }
+profile_plist="$(mktemp)"
+trap 'rm -f "$profile_plist" "$entitlements"' EXIT
+security cms -D -i "$profile_path" > "$profile_plist"
+provisioning_udid="$(system_profiler SPHardwareDataType -json | plutil -extract SPHardwareDataType.0.provisioning_UDID raw -o - - 2>/dev/null || true)"
+if [[ -z "$provisioning_udid" ]]; then
+  provisioning_udid="$(system_profiler SPHardwareDataType | awk -F ': ' '/Provisioning UDID/ {print $2; exit}')"
+fi
+[[ -n "$provisioning_udid" ]] || { echo "error: could not read this Mac's Provisioning UDID" >&2; exit 1; }
+/usr/libexec/PlistBuddy -c 'Print :ProvisionedDevices' "$profile_plist" 2>/dev/null | grep -Fq "$provisioning_udid" || {
+  echo "error: embedded provisioning profile does not include this Mac ($provisioning_udid)" >&2
+  exit 1
+}
+
+automation_message="Bright Lights can't check whether it's running. Allow your terminal to control System Events (System Settings → Privacy & Security → Automation), or quit Bright Lights, then run this again."
+running_count() {
+  local output
+  if ! output="$(/usr/bin/osascript -e 'tell application "System Events" to count (every process whose bundle identifier is "com.jonphillips.BrightLights")' 2>/dev/null)" || [[ ! "$output" =~ ^[0-9]+$ ]]; then
+    echo "$automation_message" >&2
+    return 1
+  fi
+  printf '%s\n' "$output"
+}
+
+stage_app="/Applications/.BrightLights.app.install-new.$$"
+previous_app="/Applications/.BrightLights.app.install-previous.$$"
+swapped=false
+had_previous=false
+quit_for_install=false
+cleanup() {
+  local exit_status=$?
+  if $swapped && ((exit_status != 0)); then
+    rm -rf "$installed_app"
+    if $had_previous && [[ -d "$previous_app" ]]; then
+      mv "$previous_app" "$installed_app"
+      echo "install: restored previous app" >&2
+    fi
+  fi
+  if $quit_for_install; then
+    if [[ -d "$installed_app" ]] && open "$installed_app"; then
+      echo "Reopened: passed — $installed_app" >&2
+    else
+      echo "Reopened: failed — could not open $installed_app" >&2
+      exit_status=1
+    fi
+  fi
+  rm -rf "$stage_app"
+  if $swapped && ((exit_status == 0)); then rm -rf "$previous_app"; fi
+  rm -f "$profile_plist" "$entitlements"
+  exit "$exit_status"
+}
+trap cleanup EXIT
+
+count="$(running_count)" || exit 1
+if ((count > 0)); then
+  /usr/bin/osascript -e 'display dialog "Bright Lights is running. Quit it to install the verified build?" buttons {"Cancel", "Quit Bright Lights"} default button "Quit Bright Lights" with title "Install Bright Lights"' >/dev/null
+  quit_for_install=true
+  /usr/bin/osascript -e 'tell application id "com.jonphillips.BrightLights" to quit'
+  for _ in {1..30}; do
+    count="$(running_count)" || exit 1
+    if ((count == 0)); then break; fi
+    sleep 1
+  done
+  count="$(running_count)" || exit 1
+  [[ "$count" -eq 0 ]] || { echo "error: Bright Lights is still running after 30 seconds; quit it before installing" >&2; exit 1; }
+fi
+
+ditto "$build_app" "$stage_app"
+if [[ -d "$installed_app" ]]; then
+  mv "$installed_app" "$previous_app"
+  had_previous=true
+fi
+swapped=true
+mv "$stage_app" "$installed_app"
+
+reopened="not needed"
+if $quit_for_install; then
+  open "$installed_app"
+  reopened="passed — $installed_app"
+  quit_for_install=false
+else
+  echo "Check sources on this Mac needs the app open once."
+fi
+printf '\n%-24s %s\n' "Check" "Result"
+printf '%-24s %s\n' "Build and signature" "passed — $built_build ($built_dirty)"
+printf '%-24s %s\n' "Entitlements" "passed — APS development; Bright Lights CloudKit container"
+printf '%-24s %s\n' "Provisioning" "passed — this Mac is included"
+printf '%-24s %s\n' "Installed path" "$installed_app"
+printf '%-24s %s\n' "Reopened" "$reopened"
+rm -rf "$previous_app"
+swapped=false
+had_previous=false
+echo "install: passed ($configuration) — $installed_app"

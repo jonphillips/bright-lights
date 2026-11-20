@@ -33,7 +33,10 @@ struct BrightLightsApp: App {
     }
     Task { await startSyncIfEnabled() }
 #if os(macOS)
-    CheckerRuntime.startIfEnabled()
+    Task {
+      await CheckerRuntime.restoreLoginItemIfNeeded()
+      CheckerRuntime.startIfEnabled()
+    }
 #endif
   }
 

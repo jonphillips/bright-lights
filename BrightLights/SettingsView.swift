@@ -25,6 +25,7 @@ struct SettingsView: View {
   @State private var lastPassDuration: TimeInterval?
   @Shared(.checkerDeviceID) private var deviceIDString
   @Shared(.checkerEnabled) private var checkerEnabled
+  @Shared(.checkerRegistrationError) private var checkerRegistrationError
   @Shared(.appStorage("BrightLightsCloudKitSyncEnabled")) private var syncEnabled = false
 
   private var household: Household? { households.first }
@@ -52,6 +53,10 @@ struct SettingsView: View {
         if SMAppService.mainApp.status == .requiresApproval {
           Text("macOS needs approval to start Bright Lights at login.").foregroundStyle(.secondary)
           Button("Open Login Items") { SMAppService.openSystemSettingsLoginItems() }
+        }
+        if !checkerRegistrationError.isEmpty {
+          Text("Could not register Bright Lights as a login item: \(checkerRegistrationError)")
+            .font(.caption).foregroundStyle(.secondary)
         }
         if syncEnabled, household?.checkerDeviceID == deviceID {
           Button("Check all now") {
@@ -86,6 +91,9 @@ struct SettingsView: View {
         LabeledContent("Last household check", value: sources.compactMap(\.lastCheckedAt).max()?.formatted() ?? "Never")
       }
       #endif
+      Section("About") {
+        LabeledContent("Build", value: BuildStamp.fromMainBundle().displayValue)
+      }
       Section("Model") {
         Picker("Provider", selection: $modelProvider) {
           ForEach(FrontierProvider.allCases) { provider in Text(provider.displayName).tag(provider) }
@@ -147,6 +155,7 @@ struct SettingsView: View {
     let name = Host.current().localizedName ?? ProcessInfo.processInfo.hostName
     do {
       try SMAppService.mainApp.register()
+      $checkerRegistrationError.withLock { $0 = "" }
       try db.write { transactionDB in try CheckerLease.claim(deviceID: deviceID, name: name, at: .now, in: transactionDB) }
       $checkerEnabled.withLock { $0 = true }
       statusNote = nil
@@ -158,6 +167,7 @@ struct SettingsView: View {
   private func disableChecker() {
     do {
       try SMAppService.mainApp.unregister()
+      $checkerRegistrationError.withLock { $0 = "" }
       $checkerEnabled.withLock { $0 = false }
       CheckerRuntime.stop()
     } catch { statusNote = error.localizedDescription }

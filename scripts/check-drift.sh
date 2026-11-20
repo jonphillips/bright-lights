@@ -18,6 +18,7 @@ if ! cmp -s docs/sources/registry.json BrightLightsLibrary/Sources/BrightLightsS
 fi
 
 xcodegen generate
+scripts/install-bright-lights -n
 "${qr[@]}" swiftlint lint --strict
 env -u BRIGHT_LIGHTS_LIVE_MODEL_TEST "${qr[@]}" swift test --package-path BrightLightsLibrary
 "${qr[@]}" xcodebuild -project BrightLights.xcodeproj -scheme BrightLights \

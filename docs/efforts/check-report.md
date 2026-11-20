@@ -5,7 +5,7 @@ the app's iCloud Drive folder and keeps about 60 days of them. Jon can then ask 
 doing?" and get an answer read from the report, without opening Console on the mini. No schema change.
 
 **Implements:** a follow-up to [ADR-0003](../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface).
-Jon asked for it on 2026-11-20. Queued after [mac-installer.md](mac-installer.md), whose build stamp each record
+Jon asked for it on 2026-11-20. Queued after [mac-installer.md](archive/mac-installer.md), whose build stamp each record
 carries, and after [screening.md](screening.md).
 
 ## Why

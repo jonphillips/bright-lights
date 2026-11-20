@@ -4,7 +4,7 @@
 `/Applications` with a rollback, and reopens it. Every build carries its git commit, and Settings shows it. On
 launch, the checking Mac re-registers the installed copy as its login item. No schema change.
 
-**Implements:** [ADR-0003](../decisions/0003-the-mac-checks-the-sources.md), which says the mini's setup includes an
+**Implements:** [ADR-0003](../../decisions/0003-the-mac-checks-the-sources.md), which says the mini's setup includes an
 install step. **Model:** vinyl-fever `scripts/install-vinyl-fever` and its build stamp
 (`VinylFeverCore/.../ConnectorBuildStamp.swift`, the `Write connector build stamp` phase in its `project.yml`).
 
