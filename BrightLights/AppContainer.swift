@@ -1,4 +1,5 @@
 import Dependencies
+import BrightLightsChecking
 import SQLiteData
 import SwiftUI
 import BrightLightsSchema
@@ -8,6 +9,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
   case comingUp
   case stays
   case sources
+  case rounds
 
   var id: String { rawValue }
   var title: String {
@@ -16,6 +18,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
     case .comingUp: "Coming up"
     case .stays: "Stays"
     case .sources: "Sources"
+    case .rounds: "Rounds"
     }
   }
   var symbol: String {
@@ -24,6 +27,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
     case .comingUp: "calendar"
     case .stays: "house"
     case .sources: "building.2"
+    case .rounds: "checklist"
     }
   }
 }
@@ -32,8 +36,12 @@ struct AppContainer: View {
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @SceneStorage("brightLights.selection") private var storedSelection = ""
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
+  @FetchAll(Source.active.order(by: \.name)) private var sources
   @State private var selection: AppScreen? = .comingUp
   @State private var filter = WhatsOnFilter.all
+  @State private var browserModel = BrowserModel()
+
+  private var roundsBadgeCount: Int { RoundsProjection(sources: sources, stays: stays, now: .now).badgeCount }
 
   var body: some View {
     Group {
@@ -43,12 +51,19 @@ struct AppContainer: View {
             NavigationStack { destination(for: screen) }
               .tag(screen as AppScreen?)
               .tabItem { Label(screen.title, systemImage: screen.symbol) }
+              .badge(screen == .rounds ? roundsBadgeCount : 0)
           }
         }
       } else {
         NavigationSplitView {
           List(AppScreen.allCases, selection: $selection) { screen in
-            Label(screen.title, systemImage: screen.symbol).tag(screen as AppScreen?)
+            HStack {
+              Label(screen.title, systemImage: screen.symbol)
+              Spacer()
+              if screen == .rounds, roundsBadgeCount > 0 {
+                Text(roundsBadgeCount.formatted()).font(.caption).foregroundStyle(.secondary)
+              }
+            }.tag(screen as AppScreen?)
           }
           .navigationTitle("Bright Lights")
         } detail: {
@@ -56,6 +71,7 @@ struct AppContainer: View {
         }
       }
     }
+    .environment(browserModel)
     .onAppear {
       if let restored = AppScreen(rawValue: storedSelection) { selection = restored }
       else { selection = defaultScreen }
@@ -70,6 +86,7 @@ struct AppContainer: View {
     case .comingUp: WhatsOnScreen(mode: .comingUp, filter: $filter)
     case .stays: StaysView()
     case .sources: SourcesView()
+    case .rounds: RoundsView()
     }
   }
 
@@ -316,7 +333,9 @@ private struct ListingDetailView: View {
         LabeledContent("When", value: item.listing.closesAt.map { "\(nyDateTime(item.listing.startsAt)) – \(nyDateTime($0))" } ?? nyDateTime(item.listing.startsAt))
         LabeledContent("Status", value: item.badge ?? item.listing.status.rawValue.capitalized)
         if let onSale = item.listing.onSaleAt { LabeledContent("On sale", value: nyDateTime(onSale)) }
-        if let url = item.listing.ticketURL.flatMap(URL.init(string:)) { Link("Tickets", destination: url) }
+        if let url = item.listing.ticketURL.flatMap(URL.init(string:)) {
+          NavigationLink { BrowserScreen(url: url) } label: { Label("Tickets", systemImage: "ticket") }
+        }
       }
       Section("Your reaction") {
         ForEach([ReactionKind.interested, .booked, .pass, .went], id: \.self) { kind in

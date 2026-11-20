@@ -11,7 +11,7 @@
 
 - [Product brief](PRODUCT.md)
 - [Decisions](decisions/README.md)
-- [M1 — What's on](milestones/M1-whats-on.md)
+- [M1 — What's on](milestones/archive/M1-whats-on.md)
 - [Product brainstorm](BRAINSTORM.md)
 - [Event source survey](sources/SURVEY.md)
 - [Source survey data](sources/survey.json)

@@ -44,7 +44,7 @@ booked. A Mac build exists mainly so the always-on Mac mini can check sources. D
 
 Sources seeded from the survey; automated checks on the Mac; the extraction engine; stays; the "What's on" views
 (While we're here, Coming up); reactions; Rounds and capture in the in-app browser. See
-[milestones/M1-whats-on.md](milestones/M1-whats-on.md).
+[milestones/archive/M1-whats-on.md](milestones/archive/M1-whats-on.md).
 
 ## Later (M2 and beyond)
 

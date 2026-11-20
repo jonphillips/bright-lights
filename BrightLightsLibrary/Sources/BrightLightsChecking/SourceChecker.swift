@@ -99,7 +99,7 @@ public struct SourceChecker: Sendable {
       pagesRead = pages.count
       let documents = documents(from: pages, source: source)
       let hash = Self.combinedHash(documents.map { ExtractionEngine.pageHash(for: $0.1) })
-      let descriptor = descriptor(for: source)
+      let descriptor = source.extractionDescriptor
       let requiresModel = requiresModel(for: documents, source: descriptor)
       let modelAllowed = apiKeyStore.key(.anthropic) != nil || apiKeyStore.key(.openai) != nil
       if requiresModel && !modelAllowed { throw SourceCheckError.noModelKey }
@@ -199,7 +199,7 @@ public struct SourceChecker: Sendable {
   ) async throws -> Int {
     try await database.write { db in
       let count = try Listing.reconcile(
-        listings, sourceID: source.id, complete: complete, now: now, makeID: UUID.init, in: db
+        listings, sourceID: source.id, capturedBy: .mac, complete: complete, now: now, makeID: UUID.init, in: db
       )
       try Source.find(source.id).update {
         $0.lastCheckedAt = #bind(now); $0.lastCheckOutcome = #bind(SourceCheckOutcome.succeeded)
@@ -256,7 +256,7 @@ public struct SourceChecker: Sendable {
       }
       pages.append(page)
       if index > 0, case .pages = pagination,
-        Self.isEmptyPage(page, source: source, descriptor: descriptor(for: source)) {
+        Self.isEmptyPage(page, source: source, descriptor: source.extractionDescriptor) {
         pages.removeLast(); break
       }
       if case .pages = pagination, index == urls.count - 1 { complete = false }
@@ -327,14 +327,6 @@ public struct SourceChecker: Sendable {
         $0.lastCheckNote = #bind("unchanged; model not called")
       }.execute(db)
     }
-  }
-
-  private func descriptor(for source: Source) -> SourceDescriptor {
-    let adapter = source.adapter.flatMap(SourceDescriptor.Adapter.init(rawValue:))
-    let hosts = (try? JSONDecoder().decode([String].self, from: Data(source.registeredHosts.utf8))) ?? []
-    let excluded = (try? JSONDecoder().decode([String].self, from: Data(source.excludedHosts.utf8))) ?? []
-    return SourceDescriptor(id: source.registryID, adapter: adapter, registeredHosts: hosts,
-      excludedHosts: excluded, adapterVenue: source.adapterVenue)
   }
 
   private static func pagination(_ raw: String?) -> PaginationRule? {

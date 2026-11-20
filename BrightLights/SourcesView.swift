@@ -106,6 +106,11 @@ private struct SourceDetailView: View {
         }
       }
       Section("Capture") {
+        NavigationLink {
+          BrowserScreen(source: source)
+        } label: {
+          Label("Open in browser", systemImage: "safari")
+        }
         LabeledContent("Adapter", value: source.adapter ?? "—")
         LabeledContent("Adapter venue", value: source.adapterVenue ?? "—")
         LabeledContent("Registered hosts", value: source.registeredHosts)
