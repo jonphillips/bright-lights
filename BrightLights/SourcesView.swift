@@ -1,4 +1,5 @@
 import BrightLightsSchema
+import Dependencies
 import SQLiteData
 import SwiftUI
 
@@ -74,6 +75,7 @@ private struct SourceDetailView: View {
   let source: Source
   @FetchAll private var currentSources: [Source]
   @FetchAll private var listings: [Listing]
+  @FetchAll private var reactions: [Reaction]
   @State private var showingFlagPrompt = false
   @State private var flagNote = ""
 
@@ -115,6 +117,13 @@ private struct SourceDetailView: View {
             Text("\(listing.startsAt.formatted()) · \(listing.status.rawValue)")
               .font(.caption).foregroundStyle(.secondary)
           }
+        }
+      }
+      Section {
+        NavigationLink {
+          ClearedListingsView(source: source)
+        } label: {
+          LabeledContent("Cleared", value: clearedListings.count.formatted())
         }
       }
       Section("Capture") {
@@ -160,6 +169,68 @@ private struct SourceDetailView: View {
     )) {
       Button("OK", role: .cancel) { sourceFixes.errorMessage = nil }
     } message: { Text(sourceFixes.errorMessage ?? "") }
+  }
+
+  private var clearedListings: [Listing] {
+    let latest = Dictionary(grouping: reactions, by: \.listingID).compactMapValues { WhatsOnProjection.latestReaction(in: $0) }
+    let clearedIDs = Set(latest.values.filter { $0.kind == .cleared }.map(\.listingID))
+    return listings.filter { clearedIDs.contains($0.id) && ($0.closesAt ?? $0.startsAt) >= .now }
+  }
+}
+
+private struct ClearedListingsView: View {
+  let source: Source
+  @FetchAll private var listings: [Listing]
+  @FetchAll private var reactions: [Reaction]
+  @State private var errorMessage: String?
+
+  init(source: Source) {
+    self.source = source
+    _listings = FetchAll(Listing.canonical.where { $0.sourceID.eq(source.id) }.order(by: \.startsAt))
+  }
+
+  private var clearedListings: [Listing] {
+    let latest = Dictionary(grouping: reactions, by: \.listingID).compactMapValues { WhatsOnProjection.latestReaction(in: $0) }
+    let clearedIDs = Set(latest.values.filter { $0.kind == .cleared }.map(\.listingID))
+    return listings.filter { clearedIDs.contains($0.id) && ($0.closesAt ?? $0.startsAt) >= .now }
+  }
+
+  var body: some View {
+    Group {
+      if clearedListings.isEmpty {
+        ContentUnavailableView("No cleared listings", systemImage: "checkmark.circle")
+      } else {
+        List(clearedListings) { listing in
+          VStack(alignment: .leading, spacing: 3) {
+            Text(listing.title).font(.headline)
+            Text(listing.startsAt.formatted(date: .abbreviated, time: .shortened))
+              .font(.caption).foregroundStyle(.secondary)
+          }
+          .swipeActions(edge: .trailing) {
+            Button { keep(listing) } label: { Label("Keep", systemImage: "checkmark") }.tint(.green)
+          }
+        }
+      }
+    }
+    .navigationTitle("Cleared · \(source.name)")
+    .alert("Couldn't keep listing", isPresented: Binding(
+      get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } }
+    )) {
+      Button("OK", role: .cancel) { errorMessage = nil }
+    } message: { Text(errorMessage ?? "") }
+  }
+
+  private func keep(_ listing: Listing) {
+    @Dependency(\.defaultDatabase) var database
+    let current = reactions.filter { $0.listingID == listing.id }.max { $0.updatedAt < $1.updatedAt }
+    let reaction = Reaction(
+      id: current?.id ?? UUID(), listingID: listing.id, kind: .kept,
+      note: current?.note, authorID: current?.authorID, updatedAt: .now
+    )
+    Task {
+      do { try await database.write { db in try Reaction.upsertForListing(reaction, in: db) } }
+      catch { errorMessage = error.localizedDescription }
+    }
   }
 }
 

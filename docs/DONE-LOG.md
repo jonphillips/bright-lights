@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-20 — Screening and the taste record (`effort/screening`)
+
+- **Result:** Added source grouped screening, persistent taste records, and picked versus unscreened projections. Listings now prune 30 days after ending regardless of reaction.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint, 90 package tests, iOS Simulator build, and macOS build.
+- **Owed:** screening's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-20 — Install Bright Lights on the Mac (`codex/mac-installer`)
 
 - **Result:** Added a per-build Git stamp, launch-time login-item restoration, and a verified rollback installer for the checking Mac.

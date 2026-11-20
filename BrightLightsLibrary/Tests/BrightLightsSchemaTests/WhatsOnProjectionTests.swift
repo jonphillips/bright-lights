@@ -191,21 +191,27 @@ struct WhatsOnProjectionTests {
     #expect(result.deadlines.closing.isEmpty)
   }
 
-  @Test func filterOffersAllInterestedAndBooked() {
+  @Test func filterOffersPickedInterestedBookedAndEverything() {
     let now = date(2027, 3, 10, 12)
     let stay = Stay(id: UUID(), householdID: UUID(), arrivesOn: date(2027, 3, 10), departure: .booked(date(2027, 3, 13)))
     let interested = listing("Interested", start: date(2027, 3, 11))
     let booked = listing("Booked", start: date(2027, 3, 12))
+    let kept = listing("Kept", start: date(2027, 3, 13))
     let untouched = listing("Untouched", start: date(2027, 3, 13))
+    let cleared = listing("Cleared", start: date(2027, 3, 15))
     let reactions = [
       Reaction(id: UUID(), listingID: interested.id, kind: .interested),
-      Reaction(id: UUID(), listingID: booked.id, kind: .booked)
+      Reaction(id: UUID(), listingID: booked.id, kind: .booked),
+      Reaction(id: UUID(), listingID: kept.id, kind: .kept),
+      Reaction(id: UUID(), listingID: cleared.id, kind: .cleared)
     ]
-    let result = WhatsOnProjection(listings: [interested, booked, untouched], sources: [], stays: [stay], reactions: reactions, now: now, calendar: ny)
+    let result = WhatsOnProjection(listings: [interested, booked, kept, untouched, cleared], sources: [], stays: [stay], reactions: reactions, now: now, calendar: ny)
     let all = result.comingUp.flatMap(\.days).flatMap(\.items)
-    #expect(result.filtered(all, by: .all).count == 3)
+    #expect(result.filtered(all, by: .picked).count == 3)
     #expect(result.filtered(all, by: .interestedAndBooked).count == 2)
     #expect(result.filtered(all, by: .booked).map(\.id) == [booked.id])
+    #expect(result.filtered(all, by: .everything).count == 4)
+    #expect(!all.contains { $0.id == cleared.id })
   }
 
   @Test func stayValidationRejectsEarlierDepartureAndNamesOverlap() throws {

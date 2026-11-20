@@ -5,9 +5,9 @@ listings with none selected: tap to keep, and **Done** clears the rest for good.
 decision is also written to a `TasteRecord` that outlives its listing. Listings are now deleted 30 days after they
 end, whatever their reaction. New reaction kinds, one new synced table.
 
-**Implements:** [ADR-0006](../decisions/0006-screening-and-the-taste-record.md) and
-[ADR-0002 Amendment 1](../decisions/0002-shared-data-model.md#amendment-1--whats-deleted-and-when-2026-11-20).
-**Builds on:** the Capture tab (PR #19) and source fixes ([source-fixes.md](archive/source-fixes.md)), whose v3 migration
+**Implements:** [ADR-0006](../../decisions/0006-screening-and-the-taste-record.md) and
+[ADR-0002 Amendment 1](../../decisions/0002-shared-data-model.md#amendment-1--whats-deleted-and-when-2026-11-20).
+**Builds on:** the Capture tab (PR #19) and source fixes ([source-fixes.md](source-fixes.md)), whose v3 migration
 comes first.
 
 ## The work

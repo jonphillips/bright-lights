@@ -13,14 +13,25 @@ struct CaptureScreen: View {
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @FetchAll(Source.active.order(by: \.name)) private var sources
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
+  @FetchAll(Listing.canonical.order(by: \.startsAt)) private var listings
+  @FetchAll private var reactions: [Reaction]
   @State private var inspectorPresented = false
   @State private var showingReport = false
   @State private var showingFlagPrompt = false
   @State private var flagNote = ""
   @State private var flaggingSource: Source?
   @State private var passiveCaptureTask: Task<Void, Never>?
+  @State private var screenRoute: CaptureScreenRoute?
 
   private var projection: RoundsProjection { RoundsProjection(sources: sources, stays: stays, now: .now) }
+  private var newProjection: NewProjection { NewProjection(listings: listings, sources: sources, reactions: reactions, now: .now) }
+  private var currentNewCount: Int { model.currentRoundsSource.map { newProjection.count(for: $0.id) } ?? 0 }
+  private var screenSheet: Binding<CaptureScreenRoute?> {
+    Binding(
+      get: { horizontalSizeClass == .compact ? screenRoute : nil },
+      set: { if horizontalSizeClass == .compact { screenRoute = $0 } }
+    )
+  }
 
   var body: some View {
     @Bindable var model = model
@@ -31,11 +42,17 @@ struct CaptureScreen: View {
           let fixSources = sourcesForActions(page.url)
           let next = projection.next(after: model.currentRoundsSource?.id)
           Button {
-            if let next { router.capture(next) }
+            if let next {
+              if let current = model.currentRoundsSource, currentNewCount > 0 {
+                openScreen(current, then: next)
+              } else {
+                router.capture(next)
+              }
+            }
           } label: {
-            Text(next == nil ? "Round done" : "Next")
+            Text(currentNewCount > 0 ? "Review \(currentNewCount)" : next == nil ? "Round done" : "Next")
           }
-          .disabled(next == nil)
+          .disabled(next == nil && currentNewCount == 0)
 
           Button("Mark as checked") {
             if let current = model.currentRoundsSource { model.markChecked(current) }
@@ -79,6 +96,10 @@ struct CaptureScreen: View {
               if let current = model.currentRoundsSource { model.markChecked(current) }
             }
             .disabled(model.currentRoundsSource == nil)
+          } else if let source = model.currentRoundsSource, currentNewCount > 0 {
+            Button { openScreen(source, then: nil) } label: {
+              Text("\(currentNewCount) new · Review")
+            }
           } else if let report = model.report {
             Button { showingReport = true } label: {
               Text("\(report.listings.count) listings from \(report.sourceName) · \(report.newListings) new")
@@ -100,7 +121,13 @@ struct CaptureScreen: View {
       }
     }
     .inspector(isPresented: $inspectorPresented) {
-      RoundsList(onSelect: selectSource)
+      NavigationStack {
+        if let route = screenRoute {
+          ScreenList(source: route.source, listings: route.listings, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
+        } else {
+          RoundsList(onSelect: selectSource)
+        }
+      }
         .inspectorColumnWidth(min: 300, ideal: 360, max: 440)
     }
     .onChange(of: horizontalSizeClass, initial: true) { _, sizeClass in
@@ -146,6 +173,11 @@ struct CaptureScreen: View {
         .navigationTitle("Captured listings")
       }
     }
+    .sheet(item: screenSheet) { route in
+      NavigationStack {
+        ScreenList(source: route.source, listings: route.listings, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
+      }
+    }
     .alert("Couldn't mark source as checked", isPresented: Binding(
       get: { model.errorMessage != nil }, set: { if !$0 { model.errorMessage = nil } }
     )) {
@@ -174,6 +206,17 @@ struct CaptureScreen: View {
     if horizontalSizeClass == .compact { inspectorPresented = false }
   }
 
+  private func openScreen(_ source: Source, then next: Source?) {
+    let rows = newProjection.groups.first { $0.source.id == source.id }?.listings ?? []
+    screenRoute = CaptureScreenRoute(source: source, listings: rows, nextSource: next)
+    if horizontalSizeClass != .compact { inspectorPresented = true }
+  }
+
+  private func finishScreen(_ route: CaptureScreenRoute) {
+    screenRoute = nil
+    if let next = route.nextSource { router.capture(next) }
+  }
+
   private func sourcesForActions(_ url: URL?) -> [Source] {
     guard let url else { return [] }
     if let current = model.currentRoundsSource,
@@ -196,4 +239,11 @@ struct CaptureScreen: View {
     case let .run(opens, closes): "\(opens.formatted(date: .abbreviated, time: .omitted)) – \(closes.formatted(date: .abbreviated, time: .omitted))"
     }
   }
+}
+
+private struct CaptureScreenRoute: Identifiable {
+  let source: Source
+  let listings: [Listing]
+  let nextSource: Source?
+  var id: Source.ID { source.id }
 }

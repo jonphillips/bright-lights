@@ -6,7 +6,7 @@ doing?" and get an answer read from the report, without opening Console on the m
 
 **Implements:** a follow-up to [ADR-0003](../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface).
 Jon asked for it on 2026-11-20. Queued after [mac-installer.md](archive/mac-installer.md), whose build stamp each record
-carries, and after [screening.md](screening.md).
+carries, and after [screening.md](archive/screening.md).
 
 ## Why
 
