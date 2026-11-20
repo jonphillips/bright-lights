@@ -20,20 +20,17 @@ final class BrowserModel {
   var captureError: String?
   var errorMessage: String?
   var isReading = false
-  var initialURL: URL?
 
   func open(_ source: Source) {
     currentRoundsSource = source
     navigationStarted()
     guard let url = URL(string: source.listingURL) else { return }
-    initialURL = url
     page.load(URLRequest(url: url))
   }
 
   func open(_ url: URL) {
     currentRoundsSource = nil
     navigationStarted()
-    initialURL = url
     page.load(URLRequest(url: url))
   }
 

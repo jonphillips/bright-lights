@@ -17,7 +17,6 @@ struct RoundsList: View {
       sourceSection("Not reading automatically", sources: projection.notReadingAutomatically)
       sourceSection("Up to date", sources: projection.upToDate)
     }
-    .navigationTitle("Sources")
   }
 
   @ViewBuilder private func sourceSection(_ title: String, sources: [Source]) -> some View {
@@ -26,6 +25,8 @@ struct RoundsList: View {
         ForEach(sources) { source in
           Button { onSelect(source) } label: {
             SourceRoundRow(source: source, isCurrent: browser.currentRoundsSource?.id == source.id)
+              .frame(maxWidth: .infinity, alignment: .leading)
+              .contentShape(.rect)
           }
           .buttonStyle(.plain)
           .swipeActions(edge: .trailing) {
@@ -49,7 +50,7 @@ private struct SourceRoundRow: View {
         Text(source.name).font(.headline)
         Spacer()
         if isCurrent {
-          Label("Current", systemImage: "checkmark.circle.fill")
+          Label("Current", systemImage: "arrow.forward.circle.fill")
             .font(.caption)
             .foregroundStyle(.tint)
             .labelStyle(.iconOnly)
