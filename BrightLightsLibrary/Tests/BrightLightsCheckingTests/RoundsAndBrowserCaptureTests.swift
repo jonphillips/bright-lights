@@ -83,6 +83,18 @@ struct RoundsAndBrowserCaptureTests {
     #expect(SourcePageMatcher.source(for: URL(string: "https://elsewhere.test/events")!, among: [first, second]) == nil)
   }
 
+  @Test func pageCandidatesIncludeEveryActiveSourceOnASharedHost() {
+    let bowery = source("Bowery Ballroom", mode: .manual, listingURL: "https://mercuryeastpresents.com/bowery-ballroom/",
+      hosts: "[\"mercuryeastpresents.com\"]")
+    let mercury = source("Mercury Lounge", mode: .manual, listingURL: "https://mercuryeastpresents.com/mercury-lounge/",
+      hosts: "[\"mercuryeastpresents.com\"]")
+    var retired = source("Retired", mode: .manual, listingURL: "https://mercuryeastpresents.com/retired/",
+      hosts: "[\"mercuryeastpresents.com\"]")
+    retired.retiredAt = .now
+    let page = URL(string: "https://mercuryeastpresents.com/calendar/real-monthly-page")!
+    #expect(SourcePageMatcher.candidates(for: page, among: [bowery, mercury, retired]).map(\.id) == [bowery.id, mercury.id])
+  }
+
   @Test func listingPageIgnoresTrailingSlashQueryAndFragment() {
     let venue = source("Venue", mode: .manual, listingURL: "https://example.com/events/", hosts: "[\"example.com\"]")
     #expect(SourcePageMatcher.isListingPage(URL(string: "https://www.example.com/events?month=2#top")!, for: venue))

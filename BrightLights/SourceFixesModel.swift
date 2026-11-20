@@ -14,18 +14,18 @@ final class SourceFixesModel {
   var confirmationMessage: String?
 
   func setStartPage(_ url: String, for source: Source) {
-    confirmationMessage = "Start page set for \(source.name)"
     Task {
       do {
         try await database.write { db in
           try Source.find(source.id).update { $0.startPageURL = #bind(url) }.execute(db)
         }
+        confirmationMessage = "Start page set for \(source.name)"
       } catch { errorMessage = error.localizedDescription }
     }
   }
 
   func resetStartPage(for source: Source) {
-    confirmationMessage = "Start page reset for \(source.name)"
+    confirmationMessage = nil
     Task {
       do {
         try await database.write { db in
@@ -33,6 +33,10 @@ final class SourceFixesModel {
         }
       } catch { errorMessage = error.localizedDescription }
     }
+  }
+
+  func clearConfirmation() {
+    confirmationMessage = nil
   }
 
   func flag(_ source: Source, note: String) {

@@ -7,7 +7,7 @@ public enum SourcePageMatcher {
     among sources: [Source],
     currentSource: Source? = nil
   ) -> Source? {
-    let matches = sources.filter { $0.retiredAt == nil && host(pageURL.host, matches: $0) }
+    let matches = candidates(for: pageURL, among: sources)
     if let currentSource, matches.contains(where: { $0.id == currentSource.id }) { return currentSource }
     return matches.sorted { lhs, rhs in
       let left = URL(string: lhs.pageURL).map { sameHostAndPrefix(pageURL, $0) } ?? false
@@ -15,6 +15,12 @@ public enum SourcePageMatcher {
       if left != right { return left }
       return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
     }.first
+  }
+
+  public static func candidates(for pageURL: URL, among sources: [Source]) -> [Source] {
+    sources
+      .filter { $0.retiredAt == nil && host(pageURL.host, matches: $0) }
+      .sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
   }
 
   public static func isListingPage(_ pageURL: URL, for source: Source) -> Bool {

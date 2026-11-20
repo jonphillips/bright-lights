@@ -17,6 +17,7 @@ struct CaptureScreen: View {
   @State private var showingReport = false
   @State private var showingFlagPrompt = false
   @State private var flagNote = ""
+  @State private var flaggingSource: Source?
   @State private var passiveCaptureTask: Task<Void, Never>?
 
   private var projection: RoundsProjection { RoundsProjection(sources: sources, stays: stays, now: .now) }
@@ -27,7 +28,7 @@ struct CaptureScreen: View {
       page: model.page,
       accessory: { page in
         HStack(spacing: 12) {
-          let fixSource = source(for: page.url)
+          let fixSources = sourcesForActions(page.url)
           let next = projection.next(after: model.currentRoundsSource?.id)
           Button {
             if let next { router.capture(next) }
@@ -44,17 +45,23 @@ struct CaptureScreen: View {
             Label(model.isReading ? "Reading…" : "Capture", systemImage: "plus.circle.fill")
           }
           .disabled(model.isReading || page.url == nil)
-          if let fixSource {
+          if !fixSources.isEmpty {
             Menu {
-              if let url = startPageURL(page.url, for: fixSource) {
-                Button("Use as start page") {
-                  sourceFixes.setStartPage(url.absoluteString, for: fixSource)
+              ForEach(fixSources) { source in
+                if let url = startPageURL(page.url, for: source) {
+                  Button("Use as start page for \(source.name)") {
+                    sourceFixes.setStartPage(url.absoluteString, for: source)
+                  }
                 }
-              }
-              if fixSource.flaggedAt == nil {
-                Button("Flag…") { flagNote = ""; showingFlagPrompt = true }
-              } else {
-                Button("Unflag") { sourceFixes.unflag(fixSource) }
+                if source.flaggedAt == nil {
+                  Button("Flag \(source.name)…") {
+                    flaggingSource = source
+                    flagNote = ""
+                    showingFlagPrompt = true
+                  }
+                } else {
+                  Button("Unflag \(source.name)") { sourceFixes.unflag(source) }
+                }
               }
             } label: {
               Image(systemName: "ellipsis.circle")
@@ -101,6 +108,7 @@ struct CaptureScreen: View {
     }
     .onChange(of: model.page.url) { _, _ in
       model.navigationStarted()
+      sourceFixes.clearConfirmation()
       passiveCaptureTask?.cancel()
     }
     .onChange(of: model.page.isLoading) { wasLoading, isLoading in
@@ -143,10 +151,11 @@ struct CaptureScreen: View {
     )) {
       Button("OK", role: .cancel) { model.errorMessage = nil }
     } message: { Text(model.errorMessage ?? "") }
-    .alert("Flag \(source(for: model.page.url)?.name ?? "source")", isPresented: $showingFlagPrompt) {
+    .alert("Flag \(flaggingSource?.name ?? "source")", isPresented: $showingFlagPrompt) {
       TextField("Note (optional)", text: $flagNote)
       Button("Flag") {
-        if let source = source(for: model.page.url) { sourceFixes.flag(source, note: flagNote) }
+        if let flaggingSource { sourceFixes.flag(flaggingSource, note: flagNote) }
+        flaggingSource = nil
       }
       Button("Cancel", role: .cancel) {}
     } message: { Text("Add a short note about what isn't working.") }
@@ -165,11 +174,11 @@ struct CaptureScreen: View {
     if horizontalSizeClass == .compact { inspectorPresented = false }
   }
 
-  private func source(for url: URL?) -> Source? {
-    guard let url else { return nil }
+  private func sourcesForActions(_ url: URL?) -> [Source] {
+    guard let url else { return [] }
     if let current = model.currentRoundsSource,
-      SourcePageMatcher.canUseAsStartPage(url, for: current) { return current }
-    return SourcePageMatcher.source(for: url, among: sources)
+      SourcePageMatcher.canUseAsStartPage(url, for: current) { return [current] }
+    return SourcePageMatcher.candidates(for: url, among: sources)
   }
 
   private func startPageURL(_ pageURL: URL?, for source: Source) -> URL? {
