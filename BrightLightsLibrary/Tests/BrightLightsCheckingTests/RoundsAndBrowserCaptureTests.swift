@@ -1,4 +1,5 @@
 @testable import BrightLightsChecking
+import BrightLightsExtraction
 import BrightLightsSchema
 import Dependencies
 import DependenciesTestSupport
@@ -60,7 +61,10 @@ struct RoundsAndBrowserCaptureTests {
       type: "venue", priority: "core", area: "NYC", mode: .manual, method: "structured_html",
       adapter: "mercuryEast", adapterVenue: "Bowery Ballroom", listingURL: "https://mercuryeastpresents.com/bowery-ballroom/",
       registeredHosts: "[\"mercuryeastpresents.com\"]", cadence: "weekly")
+    let absent = Listing(id: UUID(), sourceID: venue.id, stableKey: "not-on-page", title: "Still listed",
+      startsAt: Date(timeIntervalSince1970: 2_100_000_000), rung: .adapter, capturedBy: .mac)
     try await database.write { db in try Source.insert { Source.Draft(venue) }.execute(db) }
+    try await database.write { db in try Listing.insert { Listing.Draft(absent) }.execute(db) }
     let time = Date(timeIntervalSince1970: 1_900_000_000)
     let engine = BrowserCapture()
     let report = try await withDependencies {
@@ -73,11 +77,15 @@ struct RoundsAndBrowserCaptureTests {
     }
     #expect(!report.listings.isEmpty)
     #expect(report.newListings == report.listings.count)
-    #expect(try await database.read { try Listing.fetchAll($0).allSatisfy { $0.capturedBy == .browser } })
+    #expect(try await database.read { db in
+      try Listing.where { $0.sourceID.eq(venue.id) }.fetchAll(db).filter { $0.id != absent.id }
+        .allSatisfy { $0.capturedBy == .browser }
+    })
     let updated = try await database.read { try Source.find(venue.id).fetchOne($0) }
     #expect(updated?.lastCheckedAt == time)
     #expect(updated?.lastCheckNote?.hasPrefix("Captured in the browser") == true)
     #expect(updated?.lastContentHash == nil)
+    #expect(try await database.read { try Listing.find(absent.id).fetchOne($0)?.status == .listed })
 
     let repeatReport = try await engine.capture(source: venue,
       pageURL: URL(string: "https://mercuryeastpresents.com/bowery-ballroom/?view=all")!, html: html,
@@ -148,6 +156,57 @@ struct RoundsAndBrowserCaptureTests {
     #expect(reports.1.rowsWritten == 0)
     #expect(reports.2.modelCalls == 1)
     #expect(await calls.count() == 2)
+  }
+
+  @Test func passiveCaptureRulesAllowVenuesAndPresentersButNotAggregators() async throws {
+    let fixtureURL = try #require(Bundle.module.url(forResource: "bowery-ballroom", withExtension: "html", subdirectory: "Fixtures"))
+    let html = try String(contentsOf: fixtureURL, encoding: .utf8)
+    let venue = source("Venue", mode: .manual)
+    let presenter = Source(id: UUID(), householdID: UUID(), registryID: "presenter", name: "Presenter",
+      type: "presenter", priority: "core", area: "NYC", mode: .manual, method: "structured_html",
+      listingURL: "https://example.com/events", registeredHosts: "[\"example.com\"]", cadence: "weekly")
+    let householdID = try await database.write { try Household.ensureDefault(in: $0).id }
+    let aggregator = Source(id: UUID(), householdID: householdID, registryID: "aggregator", name: "Aggregator",
+      type: "aggregator", priority: "core", area: "NYC", mode: .manual, method: "structured_html",
+      adapter: "mercuryEast", adapterVenue: "Bowery Ballroom",
+      listingURL: "https://mercuryeastpresents.com/bowery-ballroom/",
+      registeredHosts: "[\"mercuryeastpresents.com\"]", cadence: "weekly")
+    #expect(SourcePageMatcher.allowsPassiveCapture(venue))
+    #expect(SourcePageMatcher.allowsPassiveCapture(presenter))
+    #expect(!SourcePageMatcher.allowsPassiveCapture(aggregator))
+    try await database.write { db in try Source.insert { Source.Draft(aggregator) }.execute(db) }
+    let requested = try await BrowserCapture().capture(source: aggregator,
+      pageURL: URL(string: aggregator.listingURL)!, html: html, in: database)
+    #expect(!requested.listings.isEmpty)
+  }
+
+  @Test func feedSourceCapturesItsHTMLListingPageAsHTML() async throws {
+    let fixtureURL = try #require(Bundle.module.url(forResource: "bowery-ballroom", withExtension: "html", subdirectory: "Fixtures"))
+    let html = try String(contentsOf: fixtureURL, encoding: .utf8)
+    let householdID = try await database.write { try Household.ensureDefault(in: $0).id }
+    let webSource = Source(id: UUID(), householdID: householdID, registryID: "html-with-feed", name: "Venue with feed",
+      type: "venue", priority: "core", area: "NYC", mode: .manual, method: "platform_feed",
+      adapter: "mercuryEast", adapterVenue: "Bowery Ballroom",
+      listingURL: "https://mercuryeastpresents.com/bowery-ballroom/",
+      feedURL: "https://mercuryeastpresents.com/api/events.json",
+      registeredHosts: "[\"mercuryeastpresents.com\"]", cadence: "weekly")
+    try await database.write { db in try Source.insert { Source.Draft(webSource) }.execute(db) }
+    let report = try await BrowserCapture().capture(source: webSource,
+      pageURL: URL(string: webSource.listingURL)!, html: html, in: database)
+    #expect(!report.listings.isEmpty)
+  }
+
+  @Test func sourceExtractionDescriptorPreservesTheCheckersAdapterKeys() throws {
+    let fixtureURL = try #require(Bundle.module.url(forResource: "bowery-ballroom", withExtension: "html", subdirectory: "Fixtures"))
+    let html = try String(contentsOf: fixtureURL, encoding: .utf8)
+    let source = Source(id: UUID(), householdID: UUID(), registryID: "bowery-ballroom", name: "Bowery Ballroom",
+      type: "venue", priority: "core", area: "NYC", mode: .automated, method: "structured_html",
+      adapter: "mercuryEast", listingURL: "https://mercuryeastpresents.com/boweryballroom/",
+      registeredHosts: "[\"mercuryeastpresents.com\"]", cadence: "weekly")
+    let listings = ExtractionEngine().deterministicListings(.html(html),
+      sourceURL: URL(string: source.listingURL)!, source: source.extractionDescriptor)
+    #expect(listings.count == 20)
+    #expect(listings.first?.stableKey == "bowery-ballroom:https://mercuryeastpresents.com/tm-event/liana-flores")
   }
 
   private func source(_ name: String, mode: SourceMode, cadence: String = "weekly",

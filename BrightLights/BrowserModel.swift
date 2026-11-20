@@ -17,12 +17,14 @@ final class BrowserModel {
   var pendingPage: (URL, String)?
   var pendingSources: [Source] = []
   var report: BrowserCaptureReport?
+  var captureError: String?
   var errorMessage: String?
   var isReading = false
   var initialURL: URL?
 
   func open(_ source: Source) {
     currentRoundsSource = source
+    navigationStarted()
     guard let url = URL(string: source.listingURL) else { return }
     initialURL = url
     page.load(URLRequest(url: url))
@@ -30,6 +32,7 @@ final class BrowserModel {
 
   func open(_ url: URL) {
     currentRoundsSource = nil
+    navigationStarted()
     initialURL = url
     page.load(URLRequest(url: url))
   }
@@ -78,10 +81,22 @@ final class BrowserModel {
     Task { await runCapture(source: source, url: url, html: html) }
   }
 
+  func navigationStarted() {
+    report = nil
+    captureError = nil
+  }
+
   private func runCapture(source: Source, url: URL, html: String) async {
     isReading = true
     defer { isReading = false }
-    do { report = try await captureEngine.capture(source: source, pageURL: url, html: html, in: database) }
-    catch { errorMessage = error.localizedDescription }
+    do {
+      let nextReport = try await captureEngine.capture(source: source, pageURL: url, html: html, in: database)
+      guard page.url == url else { return }
+      report = nextReport
+      captureError = nil
+    } catch {
+      guard page.url == url else { return }
+      captureError = error.localizedDescription
+    }
   }
 }

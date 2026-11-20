@@ -11,7 +11,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
   case sources
   case rounds
 
-  var id: String { rawValue }
+  var id: Self { self }
   var title: String {
     switch self {
     case .whileHere: "While we're here"
@@ -63,7 +63,7 @@ struct AppContainer: View {
               if screen == .rounds, roundsBadgeCount > 0 {
                 Text(roundsBadgeCount.formatted()).font(.caption).foregroundStyle(.secondary)
               }
-            }.tag(screen as AppScreen?)
+            }
           }
           .navigationTitle("Bright Lights")
         } detail: {

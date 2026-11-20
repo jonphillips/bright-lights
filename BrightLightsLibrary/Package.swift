@@ -54,7 +54,7 @@ let package = Package(
     .testTarget(
       name: "BrightLightsCheckingTests",
       dependencies: [
-        "BrightLightsChecking", "BrightLightsSchema",
+        "BrightLightsChecking", "BrightLightsSchema", "BrightLightsExtraction",
         .product(name: "SQLiteData", package: "sqlite-data"),
         .product(name: "Dependencies", package: "swift-dependencies"),
         .product(name: "DependenciesTestSupport", package: "swift-dependencies"),

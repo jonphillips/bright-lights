@@ -9,6 +9,7 @@ import SQLiteData
 
 public struct BrowserCaptureReport: Sendable, Equatable {
   public var sourceID: UUID
+  public var sourceName: String
   public var listings: [ExtractedListing]
   public var rowsWritten: Int
   public var newListings: Int
@@ -16,9 +17,9 @@ public struct BrowserCaptureReport: Sendable, Equatable {
   public var rung: ExtractionRung?
   public var modelCalls: Int
 
-  public init(sourceID: UUID, listings: [ExtractedListing], rowsWritten: Int, newListings: Int,
+  public init(sourceID: UUID, sourceName: String, listings: [ExtractedListing], rowsWritten: Int, newListings: Int,
     warnings: [String], rung: ExtractionRung?, modelCalls: Int) {
-    self.sourceID = sourceID; self.listings = listings; self.rowsWritten = rowsWritten
+    self.sourceID = sourceID; self.sourceName = sourceName; self.listings = listings; self.rowsWritten = rowsWritten
     self.newListings = newListings; self.warnings = warnings; self.rung = rung; self.modelCalls = modelCalls
   }
 }
@@ -43,7 +44,7 @@ public actor BrowserCapture {
   public func capture(
     source: Source, pageURL: URL, html: String, in database: any DatabaseWriter, now: Date = .now
   ) async throws -> BrowserCaptureReport {
-    let document: PageDocument = source.feedURL == nil ? .html(html) : .json(html)
+    let document: PageDocument = Self.isFeedURL(pageURL, source: source) ? .json(html) : .html(html)
     let hash = ExtractionEngine.pageHash(for: document)
     let cacheKey = "\(source.id.uuidString)|\(pageURL.absoluteString)|\(hash)"
     if var cached = cache[cacheKey] {
@@ -92,12 +93,21 @@ public actor BrowserCapture {
     let usedModel = needsModel
     let rung = unique.compactMap { ExtractionRung(rawValue: $0.rung.rawValue) }
       .max { $0.rawValue < $1.rawValue }
-    let report = BrowserCaptureReport(sourceID: source.id, listings: unique,
+    let report = BrowserCaptureReport(sourceID: source.id, sourceName: source.name, listings: unique,
       rowsWritten: writes, newListings: newCount, warnings: result.warnings,
       rung: rung, modelCalls: usedModel ? 1 : 0)
     cache[cacheKey] = report
     Logger(subsystem: "com.jonphillips.BrightLights", category: "BrowserCapture")
       .info("source=\(source.id.uuidString, privacy: .public) page=\(pageURL.absoluteString, privacy: .private) listings=\(unique.count, privacy: .public) new=\(newCount, privacy: .public) rung=\(rung?.rawValue ?? "none", privacy: .public) modelCalls=\(report.modelCalls, privacy: .public)")
     return report
+  }
+
+  private static func isFeedURL(_ pageURL: URL, source: Source) -> Bool {
+    guard let feedURL = source.feedURL.flatMap(URL.init(string:)),
+      var pageComponents = URLComponents(url: pageURL, resolvingAgainstBaseURL: false),
+      var feedComponents = URLComponents(url: feedURL, resolvingAgainstBaseURL: false) else { return false }
+    pageComponents.fragment = nil
+    feedComponents.fragment = nil
+    return pageComponents == feedComponents
   }
 }

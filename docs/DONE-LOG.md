@@ -6,7 +6,7 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 ## 2026-11-19 — Rounds and browser capture (`m1/s5-rounds-browser-capture`)
 
 - **Result:** Added Rounds with due-source groups and a persistent in-app browser. Browser captures use the shared extraction and listing reconciliation path, record browser provenance, and cache page extraction for the app session.
-- **Verification:** check-drift passed: SwiftLint, 72 package tests, and iOS and macOS builds.
+- **Verification:** check-drift passed: SwiftLint, 75 package tests, and iOS and macOS builds.
 - **Owed:** M1 S5's device gate, in [device-passes.md](device-passes.md).
 
 ## 2026-11-19 — Stays and What’s on (`m1/s4-stays-and-whats-on`)
