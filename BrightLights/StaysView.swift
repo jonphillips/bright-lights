@@ -122,8 +122,12 @@ private struct StayEditorView: View {
           Text("Tentative").tag(StayDepartureKind.tentative)
           Text("Open").tag(StayDepartureKind.open)
         }
-        if departureKind != .open { DatePicker("Leave", selection: $departure, in: arrival..., displayedComponents: .date) }
+        if departureKind != .open {
+          DatePicker("Leave", selection: $departure, in: departureRangeStart..., displayedComponents: .date)
+        }
       }
+      .environment(\.calendar, Calendar.newYork)
+      .environment(\.timeZone, Calendar.newYork.timeZone)
       .navigationTitle(stay == nil ? "New stay" : "Edit stay")
       .toolbar {
         ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
@@ -131,6 +135,10 @@ private struct StayEditorView: View {
       }
       .alert("Stay couldn't be saved", isPresented: $showingError) { Button("OK", role: .cancel) {} } message: { Text(errorMessage) }
     }
+  }
+
+  private var departureRangeStart: Date {
+    StayRules.normalized(arrival, calendar: Calendar.newYork)
   }
 
   private func save() {

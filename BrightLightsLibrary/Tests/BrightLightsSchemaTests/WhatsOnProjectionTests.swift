@@ -88,6 +88,15 @@ struct WhatsOnProjectionTests {
     #expect(result.whileHere?.running.count == 1)
   }
 
+  @Test func futureRunAppearsInItsStayAndRunningGroupBeforeOpening() {
+    let now = date(2027, 3, 10, 12)
+    let stay = Stay(id: UUID(), householdID: UUID(), arrivesOn: date(2027, 3, 12), departure: .booked(date(2027, 3, 15)))
+    let run = listing("Future run", start: date(2027, 3, 12, 19), close: date(2027, 3, 25))
+    let result = WhatsOnProjection(listings: [run], sources: [], stays: [stay], reactions: [], now: now, calendar: ny)
+    #expect(result.comingUp.first?.running.map(\.id) == [run.id])
+    #expect(result.showEverythingByWeek.flatMap(\.days).flatMap(\.items).map(\.id) == [run.id])
+  }
+
   @Test func passesAreHiddenAndLatestDuplicateReactionWins() {
     let now = date(2027, 3, 10, 12)
     let stay = Stay(id: UUID(), householdID: UUID(), arrivesOn: date(2027, 3, 10), departure: .booked(date(2027, 3, 13)))
@@ -112,8 +121,28 @@ struct WhatsOnProjectionTests {
     let extra = listing("Extra", start: date(2027, 3, 13, 19))
     let tentativeResult = WhatsOnProjection(listings: [extra], sources: [], stays: [tentative], reactions: [], now: now, calendar: ny)
     let bookedResult = WhatsOnProjection(listings: [extra], sources: [], stays: [booked], reactions: [], now: now, calendar: ny)
-    #expect(tentativeResult.whileHere?.days.last?.items.first?.id == extra.id)
+    #expect(tentativeResult.whileHere?.extraDay?.items.first?.id == extra.id)
+    #expect(tentativeResult.whileHere?.days.contains(where: { $0.items.contains(where: { $0.id == extra.id }) }) == false)
     #expect(bookedResult.whileHere?.days.isEmpty == true)
+    #expect(bookedResult.whileHere?.extraDay == nil)
+  }
+
+  @Test func showEverythingGroupsOutOfStayListingsByWeek() {
+    let now = date(2027, 3, 1, 12)
+    let stay = Stay(id: UUID(), householdID: UUID(), arrivesOn: date(2027, 3, 8), departure: .booked(date(2027, 3, 10)))
+    let inside = listing("Inside", start: date(2027, 3, 9, 20))
+    let outside = listing("Outside", start: date(2027, 3, 18, 20))
+    let result = WhatsOnProjection(listings: [inside, outside], sources: [], stays: [stay], reactions: [], now: now, calendar: ny)
+    #expect(result.comingUp.flatMap(\.days).flatMap(\.items).map(\.id) == [inside.id])
+    #expect(result.showEverythingByWeek.flatMap(\.days).flatMap(\.items).map(\.id) == [inside.id, outside.id])
+  }
+
+  @Test func comingUpIncludesPerformanceOnDepartureDay() {
+    let now = date(2027, 3, 1, 12)
+    let stay = Stay(id: UUID(), householdID: UUID(), arrivesOn: date(2027, 3, 8), departure: .booked(date(2027, 3, 10)))
+    let departureNight = listing("Departure night", start: date(2027, 3, 10, 20))
+    let result = WhatsOnProjection(listings: [departureNight], sources: [], stays: [stay], reactions: [], now: now, calendar: ny)
+    #expect(result.comingUp.first?.days.flatMap(\.items).map(\.id) == [departureNight.id])
   }
 
   @Test func closingDeadlinesCountFutureStaysAndOnSaleWindowIsFourteenDays() {
@@ -153,6 +182,15 @@ struct WhatsOnProjectionTests {
     #expect(result.deadlines.closing.map(\.staysBeforeClose) == [0, 1, 2])
   }
 
+  @Test func deadlinesHideCancelledAndMissingListingsWithoutAReaction() {
+    let now = date(2027, 3, 1, 12)
+    let cancelled = listing("Cancelled", start: date(2027, 3, 20), close: date(2027, 3, 25), status: .cancelled, onSale: date(2027, 3, 5))
+    let missing = listing("Missing", start: date(2027, 3, 20), close: date(2027, 3, 25), status: .missing, onSale: date(2027, 3, 6))
+    let result = WhatsOnProjection(listings: [cancelled, missing], sources: [], stays: [], reactions: [], now: now, calendar: ny)
+    #expect(result.deadlines.onSale.isEmpty)
+    #expect(result.deadlines.closing.isEmpty)
+  }
+
   @Test func filterOffersAllInterestedAndBooked() {
     let now = date(2027, 3, 10, 12)
     let stay = Stay(id: UUID(), householdID: UUID(), arrivesOn: date(2027, 3, 10), departure: .booked(date(2027, 3, 13)))
@@ -180,5 +218,17 @@ struct WhatsOnProjectionTests {
       try StayRules.validate(arrival: arrival, departure: .tentative(date(2027, 3, 13)), against: [other], calendar: ny)
     }
     #expect(StayRules.normalized(date(2027, 3, 10, 23), calendar: .current) == date(2027, 3, 10))
+  }
+
+  @Test func pickerValuesUseTheNewYorkCalendarOnPacificAndLondonDevices() {
+    var pacific = Calendar(identifier: .gregorian)
+    pacific.timeZone = TimeZone(identifier: "America/Los_Angeles")!
+    var london = Calendar(identifier: .gregorian)
+    london.timeZone = TimeZone(identifier: "Europe/London")!
+    let pacificDevicePickerValue = date(2027, 1, 10, 23)
+    let londonDevicePickerValue = ny.date(from: DateComponents(year: 2027, month: 1, day: 10, hour: 0, minute: 30))!
+    let expected = date(2027, 1, 10)
+    #expect(StayRules.normalized(pacificDevicePickerValue, calendar: pacific) == expected)
+    #expect(StayRules.normalized(londonDevicePickerValue, calendar: london) == expected)
   }
 }

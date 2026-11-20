@@ -45,14 +45,16 @@ public struct WhatsOnStayGroup: Identifiable, Sendable {
   public let title: String
   public let note: String?
   public let days: [WhatsOnDay]
+  public let extraDay: WhatsOnDay?
   public let running: [WhatsOnItem]
   public var id: String { stay?.id.uuidString ?? title }
 
-  public init(stay: Stay?, title: String, note: String?, days: [WhatsOnDay], running: [WhatsOnItem]) {
+  public init(stay: Stay?, title: String, note: String?, days: [WhatsOnDay], extraDay: WhatsOnDay? = nil, running: [WhatsOnItem]) {
     self.stay = stay
     self.title = title
     self.note = note
     self.days = days
+    self.extraDay = extraDay
     self.running = running
   }
 }
@@ -68,8 +70,10 @@ public struct WhatsOnProjection: Sendable {
   public let nextStay: Stay?
   public let whileHere: WhatsOnStayGroup?
   public let comingUp: [WhatsOnStayGroup]
+  public let showEverythingByWeek: [WhatsOnStayGroup]
   public let deadlines: WhatsOnDeadlines
-  public let passedCount: Int
+  public let passedItems: [WhatsOnItem]
+  public var passedCount: Int { passedItems.count }
 
   public init(
     listings: [Listing], sources: [Source], stays: [Stay], reactions: [Reaction],
@@ -82,21 +86,40 @@ public struct WhatsOnProjection: Sendable {
       if $0.arrivesOn != $1.arrivesOn { return $0.arrivesOn < $1.arrivesOn }
       return $0.id.uuidString < $1.id.uuidString
     }
-    let current = sortedStays.first {
-      $0.arrivesOn <= today && Self.endDate($0, calendar: calendar) >= today
-    }
+    let current = Self.currentStay(in: sortedStays, now: now, calendar: calendar)
     let next = sortedStays.first { $0.arrivesOn > today }
     currentStay = current
     nextStay = next
     let allItems = Self.items(listings: listings, sources: sources, reactions: reactions)
     let visible = Self.visibleItems(allItems, now: now, calendar: calendar)
-    passedCount = allItems.filter { $0.reaction?.kind == .pass && Self.isOn($0.listing, at: now, calendar: calendar) }.count
+    passedItems = allItems.filter { $0.reaction?.kind == .pass && Self.isOn($0.listing, at: now, calendar: calendar) }
     whileHere = Self.whileHereGroup(visible, stay: current, now: now, today: today, calendar: calendar)
     let windowEnd = calendar.date(byAdding: .day, value: 60, to: today)!
     let futureStays = sortedStays.filter { $0.arrivesOn <= windowEnd && Self.endDate($0, calendar: calendar) >= today }
     comingUp = Self.comingUpGroups(visible, stays: futureStays, current: current, today: today, windowEnd: windowEnd, calendar: calendar)
-    let deadlineItems = allItems.filter { $0.reaction?.kind != .pass }
+    let allWindowItems = Self.visibleItems(allItems, now: now, calendar: calendar).filter {
+      $0.listing.startsAt < windowEnd && ($0.listing.startsAt >= today || ($0.listing.closesAt.map { $0 >= today } ?? false))
+    }
+    showEverythingByWeek = Self.weekGroups(allWindowItems, today: today, calendar: calendar, note: nil)
+    let deadlineItems = allItems.filter { Self.isListable($0) && $0.reaction?.kind != .pass }
     deadlines = Self.makeDeadlines(deadlineItems, stays: sortedStays, now: now, today: today, windowEnd: windowEnd, calendar: calendar)
+  }
+
+  public static func currentStay(in stays: [Stay], now: Date, calendar: Calendar) -> Stay? {
+    var newYork = calendar
+    newYork.timeZone = TimeZone(identifier: "America/New_York")!
+    let today = newYork.startOfDay(for: now)
+    return stays.sorted {
+      if $0.arrivesOn != $1.arrivesOn { return $0.arrivesOn < $1.arrivesOn }
+      return $0.id.uuidString < $1.id.uuidString
+    }.first { $0.arrivesOn <= today && Self.endDate($0, calendar: newYork) >= today }
+  }
+
+  public static func latestReaction(in reactions: [Reaction]) -> Reaction? {
+    reactions.max {
+      if $0.updatedAt != $1.updatedAt { return $0.updatedAt < $1.updatedAt }
+      return $0.id.uuidString < $1.id.uuidString
+    }
   }
 
   private static func items(listings: [Listing], sources: [Source], reactions: [Reaction]) -> [WhatsOnItem] {
@@ -123,10 +146,14 @@ public struct WhatsOnProjection: Sendable {
 
   private static func visibleItems(_ items: [WhatsOnItem], now: Date, calendar: Calendar) -> [WhatsOnItem] {
     items.filter { item in
-      guard item.listing.status == .listed || item.listing.status == .soldOut || item.reaction != nil else { return false }
+      guard isListable(item) else { return false }
       guard item.reaction?.kind != .pass else { return false }
       return isOn(item.listing, at: now, calendar: calendar)
     }.sorted(by: itemOrder)
+  }
+
+  private static func isListable(_ item: WhatsOnItem) -> Bool {
+    item.listing.status == .listed || item.listing.status == .soldOut || item.reaction != nil
   }
 
   private static func whileHereGroup(_ items: [WhatsOnItem], stay: Stay?, now: Date, today: Date, calendar: Calendar) -> WhatsOnStayGroup? {
@@ -135,12 +162,24 @@ public struct WhatsOnProjection: Sendable {
     let displayEnd = stay.departureKind == .booked ? end : calendar.date(byAdding: .day, value: 1, to: end)!
     let afterDisplayEnd = calendar.date(byAdding: .day, value: 1, to: displayEnd)!
     let justStarted = now.addingTimeInterval(-2 * 60 * 60)
-    let days = dayGroups(items.filter { $0.listing.closesAt == nil && $0.listing.startsAt >= justStarted && $0.listing.startsAt < afterDisplayEnd }, calendar: calendar)
+    let performances = items.filter { $0.listing.closesAt == nil && $0.listing.startsAt >= justStarted && $0.listing.startsAt < afterDisplayEnd }
+    let extraDate = stay.departureKind == .booked ? nil : calendar.date(byAdding: .day, value: 1, to: end)
+    let days = dayGroups(performances.filter { item in
+      guard let extraDate else { return true }
+      return !calendar.isDate(item.listing.startsAt, inSameDayAs: extraDate)
+    }, calendar: calendar)
+    let extraDay: WhatsOnDay?
+    if let extraDate {
+      let extraItems = performances.filter { calendar.isDate($0.listing.startsAt, inSameDayAs: extraDate) }
+      extraDay = extraItems.isEmpty ? nil : WhatsOnDay(date: extraDate, items: extraItems.sorted(by: itemOrder))
+    } else {
+      extraDay = nil
+    }
     let running = items.filter { item in
       guard let close = item.listing.closesAt else { return false }
       return item.listing.startsAt < afterDisplayEnd && close >= today
     }
-    return WhatsOnStayGroup(stay: stay, title: "While we're here", note: nil, days: days, running: running)
+    return WhatsOnStayGroup(stay: stay, title: "While we're here", note: nil, days: days, extraDay: extraDay, running: running)
   }
 
   private static func comingUpGroups(_ visible: [WhatsOnItem], stays: [Stay], current: Stay?, today: Date, windowEnd: Date, calendar: Calendar) -> [WhatsOnStayGroup] {
@@ -151,8 +190,9 @@ public struct WhatsOnProjection: Sendable {
     return stays.map { stay in
       let start = stay.id == current?.id ? calendar.date(byAdding: .day, value: 1, to: today)! : max(stay.arrivesOn, today)
       let end = endDate(stay, calendar: calendar)
+      let afterEnd = calendar.date(byAdding: .day, value: 1, to: end)!
       let group = coming.filter { item in
-        guard item.listing.startsAt <= end else { return false }
+        guard item.listing.startsAt < afterEnd else { return false }
         return item.listing.closesAt.map { $0 >= start } ?? (item.listing.startsAt >= start)
       }
       return WhatsOnStayGroup(stay: stay, title: stayTitle(stay, calendar: calendar), note: stay.departureKind == .booked ? nil : stay.departureKind.rawValue.capitalized, days: dayGroups(group.filter { $0.listing.closesAt == nil }, calendar: calendar), running: group.filter { $0.listing.closesAt != nil })
@@ -194,9 +234,7 @@ public struct WhatsOnProjection: Sendable {
 
   private static func isOn(_ listing: Listing, at now: Date, calendar: Calendar) -> Bool {
     if let closes = listing.closesAt {
-      return calendar.startOfDay(for: listing.startsAt) <= calendar.startOfDay(for: now)
-        ? closes >= calendar.startOfDay(for: now)
-        : listing.startsAt <= now
+      return closes >= calendar.startOfDay(for: now)
     }
     return listing.startsAt >= now.addingTimeInterval(-2 * 60 * 60)
   }

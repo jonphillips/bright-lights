@@ -32,7 +32,7 @@ struct AppContainer: View {
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @SceneStorage("brightLights.selection") private var storedSelection = ""
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
-  @State private var selection = AppScreen.comingUp
+  @State private var selection: AppScreen? = .comingUp
   @State private var filter = WhatsOnFilter.all
 
   var body: some View {
@@ -41,26 +41,18 @@ struct AppContainer: View {
         TabView(selection: $selection) {
           ForEach(AppScreen.allCases) { screen in
             NavigationStack { destination(for: screen) }
-              .tag(screen)
+              .tag(screen as AppScreen?)
               .tabItem { Label(screen.title, systemImage: screen.symbol) }
           }
         }
       } else {
         NavigationSplitView {
-          List {
-            ForEach(AppScreen.allCases) { screen in
-              Button { selection = screen } label: {
-                Label(screen.title, systemImage: screen.symbol)
-                  .frame(maxWidth: .infinity, alignment: .leading)
-                  .contentShape(Rectangle())
-              }
-              .buttonStyle(.plain)
-              .listRowBackground(selection == screen ? Color.accentColor.opacity(0.15) : nil)
-            }
+          List(AppScreen.allCases, selection: $selection) { screen in
+            Label(screen.title, systemImage: screen.symbol).tag(screen as AppScreen?)
           }
           .navigationTitle("Bright Lights")
         } detail: {
-          NavigationStack { destination(for: selection) }
+          NavigationStack { destination(for: selection ?? .comingUp) }
         }
       }
     }
@@ -68,7 +60,7 @@ struct AppContainer: View {
       if let restored = AppScreen(rawValue: storedSelection) { selection = restored }
       else { selection = defaultScreen }
     }
-    .onChange(of: selection) { _, value in storedSelection = value.rawValue }
+    .onChange(of: selection) { _, value in storedSelection = value?.rawValue ?? "" }
   }
 
   @ViewBuilder
@@ -82,11 +74,7 @@ struct AppContainer: View {
   }
 
   private var defaultScreen: AppScreen {
-    let today = Calendar.newYork.startOfDay(for: .now)
-    let hasCurrentStay = stays.contains { stay in
-      let end = stay.departsOn ?? Calendar.newYork.date(byAdding: .day, value: 7, to: stay.arrivesOn)!
-      return stay.arrivesOn <= today && end >= today
-    }
+    let hasCurrentStay = WhatsOnProjection.currentStay(in: stays, now: .now, calendar: .current) != nil
     return hasCurrentStay ? .whileHere : .comingUp
   }
 }
@@ -149,31 +137,19 @@ private struct WhatsOnScreen: View {
     } message: { Text(reactionError) }
   }
 
-  private var passedItems: [WhatsOnItem] {
-    let bySource = Dictionary(sources.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
-    return allListings.compactMap { listing in
-      guard let reaction = reactions.filter({ $0.listingID == listing.id }).max(by: { $0.updatedAt < $1.updatedAt }), reaction.kind == .pass else { return nil }
-      return WhatsOnItem(listing: listing, sourceName: bySource[listing.sourceID] ?? "Unknown venue", reaction: reaction, badge: nil)
-    }
-  }
-
-  private var extraDay: Date? {
-    guard let stay = projection.currentStay, stay.departureKind != .booked else { return nil }
-    let departure = stay.departsOn ?? Calendar.newYork.date(byAdding: .day, value: 7, to: stay.arrivesOn)!
-    return Calendar.newYork.date(byAdding: .day, value: 1, to: Calendar.newYork.startOfDay(for: departure))
-  }
+  private var passedItems: [WhatsOnItem] { projection.passedItems }
 
   @ViewBuilder
   private var whileHereContent: some View {
     if let group = projection.whileHere {
       List {
         if !group.running.isEmpty { itemSection("Running", items: group.running) }
-        ForEach(group.days.filter { day in extraDay.map { !Calendar.newYork.isDate(day.date, inSameDayAs: $0) } ?? true }) { day in
+        ForEach(group.days) { day in
           itemSection(dayTitle(day.date), items: projection.filtered(day.items, by: filter))
         }
         passedSection
-        if let extraDay, let section = group.days.first(where: { Calendar.newYork.isDate($0.date, inSameDayAs: extraDay) }) {
-          itemSection("If you stay through \(nyWeekdayDate(extraDay))", items: projection.filtered(section.items, by: filter))
+        if let extraDay = group.extraDay {
+          itemSection("If you stay through \(nyWeekdayDate(extraDay.date))", items: projection.filtered(extraDay.items, by: filter))
         }
       }
     } else {
@@ -222,7 +198,7 @@ private struct WhatsOnScreen: View {
         }
       }
       if showEverything {
-        ForEach(everythingByWeek) { group in
+        ForEach(projection.showEverythingByWeek) { group in
           Section(group.title) {
             itemRows(projection.filtered(group.days.flatMap(\.items), by: filter))
           }
@@ -281,34 +257,6 @@ private struct WhatsOnScreen: View {
     }
   }
 
-  private var everythingByWeek: [WhatsOnStayGroup] {
-    let sourceNames = Dictionary(sources.map { ($0.id, $0.name) }, uniquingKeysWith: { first, _ in first })
-    let today = Calendar.newYork.startOfDay(for: .now)
-    let end = Calendar.newYork.date(byAdding: .day, value: 60, to: today)!
-      let items = allListings.compactMap { listing -> WhatsOnItem? in
-      guard listing.startsAt < end,
-        listing.startsAt >= today || (listing.closesAt.map { $0 >= today } ?? false) else { return nil }
-      let reaction = reactions.filter { $0.listingID == listing.id }.max {
-        $0.updatedAt == $1.updatedAt ? $0.id.uuidString < $1.id.uuidString : $0.updatedAt < $1.updatedAt
-      }
-      guard listing.status == .listed || listing.status == .soldOut || reaction != nil, reaction?.kind != .pass else { return nil }
-      let badge = listing.status == .soldOut ? "Sold out" : listing.status == .cancelled && reaction != nil ? "Cancelled" : listing.status == .missing && reaction != nil ? "No longer listed" : nil
-      return WhatsOnItem(listing: listing, sourceName: sourceNames[listing.sourceID] ?? "Unknown venue", reaction: reaction, badge: badge)
-    }
-    let starts = Set(items.compactMap { item in
-      let date = max(today, Calendar.newYork.startOfDay(for: item.listing.startsAt))
-      return Calendar.newYork.dateInterval(of: .weekOfYear, for: date)?.start
-    }).sorted()
-    return starts.map { start in
-      let weekEnd = Calendar.newYork.date(byAdding: .day, value: 7, to: start)!
-      let weekItems = items.filter {
-        let date = max(today, Calendar.newYork.startOfDay(for: $0.listing.startsAt))
-        return date >= start && date < weekEnd
-      }
-      return WhatsOnStayGroup(stay: nil, title: nyDate(start), note: nil, days: [WhatsOnDay(date: start, items: weekItems)], running: [])
-    }
-  }
-
   private func dayTitle(_ date: Date) -> String {
     let calendar = Calendar.newYork
     if calendar.isDateInToday(date) { return "Tonight" }
@@ -346,14 +294,18 @@ private struct ListingRow: View {
 
 private struct ListingDetailView: View {
   let item: WhatsOnItem
+  @FetchAll private var reactions: [Reaction]
   @State private var note: String
   @State private var showingError = false
   @State private var errorMessage = ""
 
   init(item: WhatsOnItem) {
     self.item = item
+    _reactions = FetchAll(Reaction.where { $0.listingID.eq(item.listing.id) })
     _note = State(initialValue: item.reaction?.note ?? "")
   }
+
+  private var currentReaction: Reaction? { WhatsOnProjection.latestReaction(in: reactions) }
 
   var body: some View {
     Form {
@@ -368,27 +320,42 @@ private struct ListingDetailView: View {
       }
       Section("Your reaction") {
         ForEach([ReactionKind.interested, .booked, .pass, .went], id: \.self) { kind in
-          Button(kind.rawValue.capitalized) { save(kind) }
-            .disabled(kind == .went && item.listing.startsAt > .now)
+          Button { save(kind) } label: {
+            HStack {
+              Text(kind.rawValue.capitalized)
+              Spacer()
+              if currentReaction?.kind == kind { Image(systemName: "checkmark.circle.fill") }
+            }
+          }.disabled(kind == .went && item.listing.startsAt > .now)
         }
         TextField("Note", text: $note, axis: .vertical)
-        Button("Save note") { save(item.reaction?.kind ?? .interested) }
-        if item.reaction != nil {
+        if currentReaction == nil {
+          Text("Pick a reaction to add a note").font(.caption).foregroundStyle(.secondary)
+        }
+        Button("Save note") { saveNote() }
+          .disabled(currentReaction == nil)
+        if currentReaction != nil {
           Button("Clear reaction", role: .destructive) { clear() }
         }
       }
     }
     .navigationTitle(item.listing.title)
     .alert("Couldn't save reaction", isPresented: $showingError) { Button("OK", role: .cancel) {} } message: { Text(errorMessage) }
+    .onChange(of: currentReaction?.note) { _, value in note = value ?? "" }
   }
 
   private func save(_ kind: ReactionKind) {
     @Dependency(\.defaultDatabase) var database
-    let reaction = Reaction(id: UUID(), listingID: item.listing.id, kind: kind, note: note.isEmpty ? nil : note, updatedAt: .now)
+    let reaction = Reaction(id: currentReaction?.id ?? UUID(), listingID: item.listing.id, kind: kind, note: note.isEmpty ? nil : note, updatedAt: .now)
     Task {
       do { try await database.write { db in try Reaction.upsertForListing(reaction, in: db) } }
       catch { errorMessage = error.localizedDescription; showingError = true }
     }
+  }
+
+  private func saveNote() {
+    guard let kind = currentReaction?.kind else { return }
+    save(kind)
   }
 
   private func clear() {
