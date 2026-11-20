@@ -20,7 +20,7 @@ struct NewProjectionTests {
 
     let result = NewProjection(
       listings: [late, early, soldOut, reacted, past, cancelled, retiredListing],
-      sources: [other, retired, active], reactions: reactions, now: now
+      sources: [other, retired, active], reactions: reactions, tasteRecordIDs: [], now: now
     )
 
     #expect(result.groups.map(\.source.name) == ["Alpha", "Beta"])

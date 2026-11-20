@@ -15,6 +15,7 @@ struct CaptureScreen: View {
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
   @FetchAll(Listing.canonical.order(by: \.startsAt)) private var listings
   @FetchAll private var reactions: [Reaction]
+  @FetchAll private var tasteRecords: [TasteRecord]
   @State private var inspectorPresented = false
   @State private var showingReport = false
   @State private var showingFlagPrompt = false
@@ -24,8 +25,6 @@ struct CaptureScreen: View {
   @State private var screenRoute: CaptureScreenRoute?
 
   private var projection: RoundsProjection { RoundsProjection(sources: sources, stays: stays, now: .now) }
-  private var newProjection: NewProjection { NewProjection(listings: listings, sources: sources, reactions: reactions, now: .now) }
-  private var currentNewCount: Int { model.currentRoundsSource.map { newProjection.count(for: $0.id) } ?? 0 }
   private var screenSheet: Binding<CaptureScreenRoute?> {
     Binding(
       get: { horizontalSizeClass == .compact ? screenRoute : nil },
@@ -35,6 +34,11 @@ struct CaptureScreen: View {
 
   var body: some View {
     @Bindable var model = model
+    let newProjection = NewProjection(
+      listings: listings, sources: sources, reactions: reactions,
+      tasteRecordIDs: Set(tasteRecords.map(\.id)), now: .now
+    )
+    let currentNewCount = model.currentRoundsSource.map { newProjection.count(for: $0.id) } ?? 0
     WebBrowserView(
       page: model.page,
       accessory: { page in
@@ -42,12 +46,10 @@ struct CaptureScreen: View {
           let fixSources = sourcesForActions(page.url)
           let next = projection.next(after: model.currentRoundsSource?.id)
           Button {
-            if let next {
-              if let current = model.currentRoundsSource, currentNewCount > 0 {
-                openScreen(current, then: next)
-              } else {
-                router.capture(next)
-              }
+            if currentNewCount > 0, let current = model.currentRoundsSource {
+              openScreen(current, then: next, from: newProjection)
+            } else if let next {
+              router.capture(next)
             }
           } label: {
             Text(currentNewCount > 0 ? "Review \(currentNewCount)" : next == nil ? "Round done" : "Next")
@@ -97,7 +99,7 @@ struct CaptureScreen: View {
             }
             .disabled(model.currentRoundsSource == nil)
           } else if let source = model.currentRoundsSource, currentNewCount > 0 {
-            Button { openScreen(source, then: nil) } label: {
+            Button { openScreen(source, then: nil, from: newProjection) } label: {
               Text("\(currentNewCount) new · Review")
             }
           } else if let report = model.report {
@@ -124,13 +126,18 @@ struct CaptureScreen: View {
       NavigationStack {
         if let route = screenRoute {
           ScreenList(source: route.source, listings: route.listings, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
+            .id(route.id)
         } else {
           RoundsList(onSelect: selectSource)
         }
       }
         .inspectorColumnWidth(min: 300, ideal: 360, max: 440)
     }
+    .onChange(of: inspectorPresented) { _, isPresented in
+      if !isPresented { screenRoute = nil }
+    }
     .onChange(of: horizontalSizeClass, initial: true) { _, sizeClass in
+      screenRoute = nil
       inspectorPresented = sizeClass != .compact
     }
     .onChange(of: model.page.url) { _, _ in
@@ -176,6 +183,7 @@ struct CaptureScreen: View {
     .sheet(item: screenSheet) { route in
       NavigationStack {
         ScreenList(source: route.source, listings: route.listings, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
+          .id(route.id)
       }
     }
     .alert("Couldn't mark source as checked", isPresented: Binding(
@@ -206,8 +214,8 @@ struct CaptureScreen: View {
     if horizontalSizeClass == .compact { inspectorPresented = false }
   }
 
-  private func openScreen(_ source: Source, then next: Source?) {
-    let rows = newProjection.groups.first { $0.source.id == source.id }?.listings ?? []
+  private func openScreen(_ source: Source, then next: Source?, from projection: NewProjection) {
+    let rows = projection.groups.first { $0.source.id == source.id }?.listings ?? []
     screenRoute = CaptureScreenRoute(source: source, listings: rows, nextSource: next)
     if horizontalSizeClass != .compact { inspectorPresented = true }
   }

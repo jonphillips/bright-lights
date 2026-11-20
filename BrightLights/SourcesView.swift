@@ -172,9 +172,7 @@ private struct SourceDetailView: View {
   }
 
   private var clearedListings: [Listing] {
-    let latest = Dictionary(grouping: reactions, by: \.listingID).compactMapValues { WhatsOnProjection.latestReaction(in: $0) }
-    let clearedIDs = Set(latest.values.filter { $0.kind == .cleared }.map(\.listingID))
-    return listings.filter { clearedIDs.contains($0.id) && ($0.closesAt ?? $0.startsAt) >= .now }
+    ClearedListingRows.make(listings: listings, reactions: reactions, now: .now)
   }
 }
 
@@ -190,9 +188,7 @@ private struct ClearedListingsView: View {
   }
 
   private var clearedListings: [Listing] {
-    let latest = Dictionary(grouping: reactions, by: \.listingID).compactMapValues { WhatsOnProjection.latestReaction(in: $0) }
-    let clearedIDs = Set(latest.values.filter { $0.kind == .cleared }.map(\.listingID))
-    return listings.filter { clearedIDs.contains($0.id) && ($0.closesAt ?? $0.startsAt) >= .now }
+    ClearedListingRows.make(listings: listings, reactions: reactions, now: .now)
   }
 
   var body: some View {
@@ -222,7 +218,7 @@ private struct ClearedListingsView: View {
 
   private func keep(_ listing: Listing) {
     @Dependency(\.defaultDatabase) var database
-    let current = reactions.filter { $0.listingID == listing.id }.max { $0.updatedAt < $1.updatedAt }
+    let current = ClearedListingRows.latestReaction(for: listing.id, in: reactions)
     let reaction = Reaction(
       id: current?.id ?? UUID(), listingID: listing.id, kind: .kept,
       note: current?.note, authorID: current?.authorID, updatedAt: .now
@@ -236,4 +232,17 @@ private struct ClearedListingsView: View {
 
 private extension Source {
   var methodLabel: String { adapter.map { "\(method) (\($0))" } ?? method }
+}
+
+private enum ClearedListingRows {
+  static func make(listings: [Listing], reactions: [Reaction], now: Date) -> [Listing] {
+    let latest = Dictionary(grouping: reactions, by: \.listingID)
+      .compactMapValues { WhatsOnProjection.latestReaction(in: $0) }
+    let clearedIDs = Set(latest.values.filter { $0.kind == .cleared }.map(\.listingID))
+    return listings.filter { clearedIDs.contains($0.id) && ($0.closesAt ?? $0.startsAt) >= now }
+  }
+
+  static func latestReaction(for listingID: Listing.ID, in reactions: [Reaction]) -> Reaction? {
+    WhatsOnProjection.latestReaction(in: reactions.filter { $0.listingID == listingID })
+  }
 }

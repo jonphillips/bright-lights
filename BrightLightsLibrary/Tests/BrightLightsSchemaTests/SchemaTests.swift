@@ -315,12 +315,12 @@ struct SchemaTests {
     let reaction = Reaction(id: UUID(), listingID: expired.id, kind: .kept, updatedAt: cutoff.addingTimeInterval(-100))
     try await database.write { db in
       try Listing.insert { Listing.Draft(expired); Listing.Draft(future) }.execute(db)
-      try Reaction.upsertForListing(reaction, in: db)
+      try Reaction.insert { Reaction.Draft(reaction) }.execute(db)
       try Reaction.insert { Reaction.Draft(Reaction(id: UUID(), listingID: future.id, kind: .cleared)) }.execute(db)
       try Listing.pruneExpired(before: cutoff, in: db)
       #expect(try Listing.find(expired.id).fetchOne(db) == nil)
       #expect(try Reaction.where { $0.listingID.eq(expired.id) }.fetchCount(db) == 0)
-      #expect(try TasteRecord.fetchCount(db) == 1)
+      #expect(try TasteRecord.fetchCount(db) == 2)
       #expect(try Listing.find(future.id).fetchOne(db) != nil)
     }
   }
@@ -403,8 +403,34 @@ struct SchemaTests {
       let source = try #require(try Source.find(sourceID).fetchOne(db))
       let currentListing = try #require(try Listing.find(listing.id).fetchOne(db))
       let reaction = try #require(try Reaction.where { $0.listingID.eq(listing.id) }.fetchOne(db))
-      let projection = NewProjection(listings: [currentListing], sources: [source], reactions: [reaction], now: now)
+      let projection = NewProjection(
+        listings: [currentListing], sources: [source], reactions: [reaction], tasteRecordIDs: [], now: now
+      )
       #expect(projection.total == 0)
+    }
+  }
+
+  @Test func duplicateListingRowsShareTheScreeningDecision() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let first = try makeListing(sourceID: sourceID, key: "duplicate-event", title: "Same event")
+    let second = try makeListing(sourceID: sourceID, key: "duplicate-event", title: "Same event")
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(first); Listing.Draft(second) }.execute(db)
+      try Reaction.upsertForListing(
+        Reaction(id: UUID(), listingID: first.id, kind: .cleared, updatedAt: now), in: db
+      )
+      let source = try #require(try Source.find(sourceID).fetchOne(db))
+      let tasteRecord = try #require(try TasteRecord.fetchAll(db).first)
+      let projection = NewProjection(
+        listings: [first, second], sources: [source], reactions: [Reaction(id: UUID(), listingID: first.id, kind: .cleared)],
+        tasteRecordIDs: [tasteRecord.id], now: now
+      )
+      #expect(projection.total == 0)
+      let written = try Reaction.screen(kept: [], cleared: [second.id], authorID: nil, now: now, in: db)
+      #expect(written == 0)
+      #expect(try Reaction.where { $0.listingID.eq(second.id) }.fetchOne(db) == nil)
     }
   }
 

@@ -11,13 +11,21 @@ public struct NewProjection: Sendable {
   public let groups: [NewSourceGroup]
   public var total: Int { groups.reduce(0) { $0 + $1.count } }
 
-  public init(listings: [Listing], sources: [Source], reactions: [Reaction], now: Date) {
+  public init(
+    listings: [Listing], sources: [Source], reactions: [Reaction], tasteRecordIDs: Set<UUID>, now: Date
+  ) {
     let activeSources = sources.filter { $0.retiredAt == nil }
     let activeIDs = Set(activeSources.map(\.id))
+    let sourcesByID = Dictionary(activeSources.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
     let reactedIDs = Set(reactions.map(\.listingID))
     let unscreened = listings.filter { listing in
-      activeIDs.contains(listing.sourceID)
+      guard let source = sourcesByID[listing.sourceID] else { return false }
+      let tasteRecordID = TasteRecord.id(
+        householdID: source.householdID, sourceRegistryID: source.registryID, stableKey: listing.stableKey
+      )
+      return activeIDs.contains(listing.sourceID)
         && !reactedIDs.contains(listing.id)
+        && !tasteRecordIDs.contains(tasteRecordID)
         && (listing.status == .listed || listing.status == .soldOut)
         && (listing.closesAt ?? listing.startsAt) >= now
     }

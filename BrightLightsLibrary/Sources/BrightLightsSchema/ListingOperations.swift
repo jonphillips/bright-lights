@@ -74,6 +74,7 @@ public extension Listing {
 
   /// Removes listings 30 days after their end date. Taste records keep decisions alive.
   static func pruneExpired(before cutoff: Date, in db: Database) throws {
+    _ = try TasteRecord.backfill(in: db)
     try #sql(
       """
       DELETE FROM \(Listing.self)

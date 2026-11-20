@@ -60,7 +60,12 @@ public extension Reaction {
     for (ids, kind) in [(kept, ReactionKind.kept), (cleared, .cleared)] {
       for listingID in ids.sorted(by: { $0.uuidString < $1.uuidString }) {
         guard try Reaction.where({ $0.listingID.eq(listingID) }).fetchOne(db) == nil,
-          try Listing.find(listingID).fetchOne(db) != nil else { continue }
+          let listing = try Listing.find(listingID).fetchOne(db),
+          let source = try Source.find(listing.sourceID).fetchOne(db) else { continue }
+        let tasteRecordID = TasteRecord.id(
+          householdID: source.householdID, sourceRegistryID: source.registryID, stableKey: listing.stableKey
+        )
+        guard try TasteRecord.find(tasteRecordID).fetchOne(db) == nil else { continue }
         let reaction = Reaction(id: UUID(), listingID: listingID, kind: kind, authorID: authorID, updatedAt: now)
         try upsertForListing(reaction, in: db)
         writes += 1

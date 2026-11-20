@@ -13,9 +13,12 @@ struct ScreenList: View {
   @State private var showingError = false
   @State private var errorMessage = ""
 
-  private var clearedCount: Int { listings.count - kept.count }
+  private var visibleIDs: Set<Listing.ID> { Set(listings.map(\.id)) }
+  private var selectedIDs: Set<Listing.ID> { kept.intersection(visibleIDs) }
+  private var selectedCount: Int { selectedIDs.count }
+  private var visibleClearedCount: Int { visibleIDs.count - selectedCount }
   private var doneTitle: String {
-    kept.isEmpty ? "Clear all \(listings.count)" : "Keep \(kept.count) · Clear \(clearedCount)"
+    selectedCount == 0 ? "Clear all \(visibleIDs.count)" : "Keep \(selectedCount) · Clear \(visibleClearedCount)"
   }
 
   var body: some View {
@@ -28,7 +31,7 @@ struct ScreenList: View {
             VStack(alignment: .leading, spacing: 3) {
               Text(listing.title).font(.headline)
               Text(metadata(for: listing)).font(.subheadline).foregroundStyle(.secondary)
-              let performers = performerNames(listing.performers)
+              let performers = ListingDisplay.performerNames(listing.performers)
               if !performers.isEmpty { Text(performers).font(.subheadline).foregroundStyle(.secondary) }
             }
             Spacer(minLength: 0)
@@ -61,8 +64,8 @@ struct ScreenList: View {
 
   private func saveScreen() {
     @Dependency(\.defaultDatabase) var database
-    let visibleIDs = Set(listings.map(\.id))
-    let selectedIDs = kept.intersection(visibleIDs)
+    let visibleIDs = self.visibleIDs
+    let selectedIDs = self.selectedIDs
     let clearedIDs = visibleIDs.subtracting(selectedIDs)
     Task {
       do {
@@ -78,18 +81,9 @@ struct ScreenList: View {
   }
 
   private func metadata(for listing: Listing) -> String {
-    let formatter = DateFormatter()
-    formatter.timeZone = TimeZone(identifier: "America/New_York")
-    formatter.dateStyle = .full
-    formatter.timeStyle = .short
-    var parts = [formatter.string(from: listing.startsAt)]
+    var parts = [ListingDisplay.newYorkDateTime(listing.startsAt)]
     if let room = listing.room, !room.isEmpty { parts.append(room) }
     return parts.joined(separator: " · ")
   }
 
-  private func performerNames(_ json: String) -> String {
-    guard let data = json.data(using: .utf8),
-      let performers = try? JSONDecoder().decode([String].self, from: data) else { return json }
-    return performers.joined(separator: ", ")
-  }
 }

@@ -42,7 +42,9 @@ struct AppContainer: View {
   @FetchAll(Source.active.order(by: \.name)) private var sources
   @FetchAll(Listing.canonical) private var listings
   @FetchAll private var reactions: [Reaction]
+  @FetchAll private var tasteRecords: [TasteRecord]
   @State private var router: AppRouter
+  @State private var newPath: [Source.ID] = []
   @State private var filter = WhatsOnFilter.picked
   @State private var browserModel: BrowserModel
   @State private var sourceFixesModel = SourceFixesModel()
@@ -54,15 +56,18 @@ struct AppContainer: View {
   }
 
   private var roundsBadgeCount: Int { RoundsProjection(sources: sources, stays: stays, now: .now).badgeCount }
-  private var newBadgeCount: Int { NewProjection(listings: listings, sources: sources, reactions: reactions, now: .now).total }
 
   var body: some View {
     @Bindable var router = router
+    let newBadgeCount = NewProjection(
+      listings: listings, sources: sources, reactions: reactions,
+      tasteRecordIDs: Set(tasteRecords.map(\.id)), now: .now
+    ).total
     Group {
       if horizontalSizeClass == .compact {
         TabView(selection: $router.selection) {
           ForEach(AppScreen.allCases) { screen in
-            NavigationStack { destination(for: screen) }
+            navigationStack(for: screen)
               .tag(screen as AppScreen?)
               .tabItem { Label(screen.title, systemImage: screen.symbol) }
               .badge(screen == .capture ? roundsBadgeCount : screen == .new ? newBadgeCount : 0)
@@ -83,7 +88,7 @@ struct AppContainer: View {
           }
           .navigationTitle("Bright Lights")
         } detail: {
-          NavigationStack { destination(for: router.selection ?? .comingUp) }
+          navigationStack(for: router.selection ?? .comingUp)
         }
       }
     }
@@ -102,10 +107,19 @@ struct AppContainer: View {
     switch screen {
     case .whileHere: WhatsOnScreen(mode: .whileHere, filter: $filter)
     case .comingUp: WhatsOnScreen(mode: .comingUp, filter: $filter)
-    case .new: NewScreen()
+    case .new: NewScreen(path: $newPath)
     case .capture: CaptureScreen()
     case .stays: StaysView()
     case .sources: SourcesView()
+    }
+  }
+
+  @ViewBuilder
+  private func navigationStack(for screen: AppScreen) -> some View {
+    if screen == .new {
+      NavigationStack(path: $newPath) { destination(for: screen) }
+    } else {
+      NavigationStack { destination(for: screen) }
     }
   }
 
@@ -118,24 +132,23 @@ struct AppContainer: View {
 private enum WhatsOnMode { case whileHere, comingUp }
 
 private struct NewScreen: View {
+  @Binding var path: [Source.ID]
   @FetchAll(Listing.canonical.order(by: \.startsAt)) private var listings: [Listing]
   @FetchAll(Source.active.order(by: \.name)) private var sources: [Source]
   @FetchAll private var reactions: [Reaction]
-  @Environment(\.dismiss) private var dismiss
-
-  private var projection: NewProjection {
-    NewProjection(listings: listings, sources: sources, reactions: reactions, now: .now)
-  }
+  @FetchAll private var tasteRecords: [TasteRecord]
 
   var body: some View {
+    let projection = NewProjection(
+      listings: listings, sources: sources, reactions: reactions,
+      tasteRecordIDs: Set(tasteRecords.map(\.id)), now: .now
+    )
     Group {
-      if projection.groups.isEmpty {
+      if projection.groups.isEmpty && path.isEmpty {
         ContentUnavailableView("Nothing new", systemImage: "tray.full")
       } else {
         List(projection.groups) { group in
-          NavigationLink {
-            ScreenList(source: group.source, listings: group.listings, onDone: { dismiss() })
-          } label: {
+          NavigationLink(value: group.source.id) {
             HStack {
               Text(group.source.name)
               Spacer()
@@ -146,6 +159,14 @@ private struct NewScreen: View {
       }
     }
     .navigationTitle("New")
+    .navigationDestination(for: Source.ID.self) { sourceID in
+      if let source = sources.first(where: { $0.id == sourceID }) {
+        let rows = projection.groups.first(where: { $0.source.id == sourceID })?.listings ?? []
+        ScreenList(source: source, listings: rows, onDone: { path.removeAll() })
+      } else {
+        ContentUnavailableView("Source unavailable", systemImage: "building.2")
+      }
+    }
   }
 }
 
@@ -377,10 +398,10 @@ private struct ListingDetailView: View {
       Section(item.listing.title) {
         LabeledContent("Venue", value: item.sourceName)
         if let room = item.listing.room { LabeledContent("Room", value: room) }
-        LabeledContent("Performers", value: performerNames(item.listing.performers))
-        LabeledContent("When", value: item.listing.closesAt.map { "\(nyDateTime(item.listing.startsAt)) – \(nyDateTime($0))" } ?? nyDateTime(item.listing.startsAt))
+        LabeledContent("Performers", value: ListingDisplay.performerNames(item.listing.performers))
+        LabeledContent("When", value: item.listing.closesAt.map { "\(ListingDisplay.newYorkDateTime(item.listing.startsAt)) – \(ListingDisplay.newYorkDateTime($0))" } ?? ListingDisplay.newYorkDateTime(item.listing.startsAt))
         LabeledContent("Status", value: item.badge ?? item.listing.status.rawValue.capitalized)
-        if let onSale = item.listing.onSaleAt { LabeledContent("On sale", value: nyDateTime(onSale)) }
+        if let onSale = item.listing.onSaleAt { LabeledContent("On sale", value: ListingDisplay.newYorkDateTime(onSale)) }
         if let url = item.listing.ticketURL.flatMap(URL.init(string:)) {
           Button { router.capture(url) } label: { Label("Tickets", systemImage: "ticket") }
         }
@@ -452,14 +473,6 @@ private func nyTime(_ date: Date) -> String {
   return formatter.string(from: date)
 }
 
-private func nyDateTime(_ date: Date) -> String {
-  let formatter = DateFormatter()
-  formatter.timeZone = Calendar.newYork.timeZone
-  formatter.dateStyle = .full
-  formatter.timeStyle = .short
-  return formatter.string(from: date) + (TimeZone.current.identifier == "America/New_York" ? "" : " ET")
-}
-
 private func nyDate(_ date: Date) -> String {
   let formatter = DateFormatter()
   formatter.timeZone = Calendar.newYork.timeZone
@@ -473,12 +486,6 @@ private func nyWeekdayDate(_ date: Date) -> String {
   formatter.timeZone = Calendar.newYork.timeZone
   formatter.dateFormat = "EEEE, MMM d"
   return formatter.string(from: date)
-}
-
-private func performerNames(_ json: String) -> String {
-  guard let data = json.data(using: .utf8),
-    let performers = try? JSONDecoder().decode([String].self, from: data) else { return json }
-  return performers.joined(separator: ", ")
 }
 
 private func reactionSymbol(_ reaction: ReactionKind) -> String {
