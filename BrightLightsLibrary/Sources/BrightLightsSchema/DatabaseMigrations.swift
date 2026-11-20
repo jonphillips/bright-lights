@@ -56,6 +56,17 @@ public enum BrightLightsDatabaseMigrations {
         ALTER TABLE "sources" ADD COLUMN "lastCheckNote" TEXT;
         """)
     }
+    registerSourceFixesV3(on: &migrator)
     return migrator
+  }
+
+  private static func registerSourceFixesV3(on migrator: inout DatabaseMigrator) {
+    migrator.registerMigration("Add source fixes v3") { db in
+      try db.execute(sql: """
+        ALTER TABLE "sources" ADD COLUMN "startPageURL" TEXT;
+        ALTER TABLE "sources" ADD COLUMN "flaggedAt" TEXT;
+        ALTER TABLE "sources" ADD COLUMN "flagNote" TEXT;
+        """)
+    }
   }
 }

@@ -53,6 +53,42 @@ struct SchemaTests {
     }
   }
 
+  @Test func sourcePageURLFallsBackToRegistryPage() {
+    let source = Source(
+      id: UUID(), householdID: UUID(), registryID: "test", name: "Test", type: "venue",
+      priority: "core", area: "NYC", mode: .manual, method: "manual",
+      listingURL: "https://example.com/events", registeredHosts: "[\"example.com\"]", cadence: "weekly"
+    )
+    #expect(source.pageURL == source.listingURL)
+    #expect(Source(
+      id: source.id, householdID: source.householdID, registryID: source.registryID,
+      name: source.name, type: source.type, priority: source.priority, area: source.area,
+      mode: source.mode, method: source.method, listingURL: source.listingURL,
+      startPageURL: "https://example.com/calendar", registeredHosts: source.registeredHosts,
+      cadence: "weekly"
+    ).pageURL == "https://example.com/calendar")
+  }
+
+  @Test func registrySyncPreservesSourceFixesAndClearsStartPageWhenRegistryCatchesUp() async throws {
+    try await database.write { db in
+      try Source.syncFromRegistry(in: db)
+      let source = try #require(Source.fetchAll(db).first { $0.registryID == "town-hall" })
+      try Source.find(source.id).update {
+        $0.startPageURL = #bind("https://thetownhall.org/calendar")
+        $0.flaggedAt = #bind(Date(timeIntervalSince1970: 1_800_000_000))
+        $0.flagNote = #bind("wrong page")
+      }.execute(db)
+
+      try Source.syncFromRegistry(data: registryData(
+        id: source.registryID, name: source.name, listingURL: "https://thetownhall.org/calendar"
+      ), in: db)
+      let updated = try #require(try Source.find(source.id).fetchOne(db))
+      #expect(updated.startPageURL == nil)
+      #expect(updated.flaggedAt == Date(timeIntervalSince1970: 1_800_000_000))
+      #expect(updated.flagNote == "wrong page")
+    }
+  }
+
   @Test func unchangedRegistrySyncDoesNotTouchSourceSyncMetadata() async throws {
     try await database.write { db in
       try Source.syncFromRegistry(in: db)
@@ -305,7 +341,16 @@ struct SchemaTests {
     ExtractedListing(stableKey: key, title: title, time: .performance(Date(timeIntervalSince1970: 1_900_000_000)), rung: rung)
   }
 
-  @Test func migrationRegistersTheFrozenS2SchemaAndCheckingSchema() {
-    #expect(BrightLightsDatabaseMigrations.makeMigrator().migrations.count == 2)
+  @Test func migrationRegistersTheFrozenV2SchemaAndSourceFixesSchema() {
+    #expect(BrightLightsDatabaseMigrations.makeMigrator().migrations.count == 3)
+  }
+
+  private func registryData(id: String, name: String, listingURL: String) -> Data {
+    let registry: [String: Any] = ["sources": [[
+      "id": id, "name": name, "source_type": "venue", "area": "NYC", "priority": "core",
+      "listing_url": listingURL, "registered_hosts": ["thetownhall.org"], "mode": "manual",
+      "method": "manual", "cadence": "weekly"
+    ]]]
+    return try! JSONSerialization.data(withJSONObject: registry)
   }
 }

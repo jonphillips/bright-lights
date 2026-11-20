@@ -8,13 +8,28 @@ struct SourcesView: View {
 
   var body: some View {
     List {
+      let flagged = sources.filter { $0.flaggedAt != nil }
+      if !flagged.isEmpty {
+        Section("Flagged") {
+          ForEach(flagged) { source in
+            NavigationLink { SourceDetailView(source: source) } label: {
+              VStack(alignment: .leading, spacing: 3) {
+                SourceRow(source: source)
+                if let note = source.flagNote {
+                  Text(note).font(.caption).foregroundStyle(.secondary)
+                }
+              }
+            }
+          }
+        }
+      }
       Section("Automated") {
-        ForEach(sources.filter { $0.mode == .automated }) { source in
+        ForEach(sources.filter { $0.mode == .automated && $0.flaggedAt == nil }) { source in
           NavigationLink { SourceDetailView(source: source) } label: { SourceRow(source: source) }
         }
       }
       Section("Manual") {
-        ForEach(sources.filter { $0.mode == .manual }) { source in
+        ForEach(sources.filter { $0.mode == .manual && $0.flaggedAt == nil }) { source in
           NavigationLink { SourceDetailView(source: source) } label: { SourceRow(source: source) }
         }
       }
@@ -35,6 +50,7 @@ private struct SourceRow: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 4) {
       Text(source.name).font(.headline)
+      if source.flaggedAt != nil { Image(systemName: "flag.fill").font(.caption).foregroundStyle(.orange) }
       Text("\(source.area) · \(source.methodLabel)")
         .font(.subheadline).foregroundStyle(.secondary)
       Text("Checks \(source.cadence) · \(source.lastCheckOutcome.rawValue)")
@@ -54,17 +70,23 @@ private struct SourceRow: View {
 
 private struct SourceDetailView: View {
   @Environment(AppRouter.self) private var router
+  @Environment(SourceFixesModel.self) private var sourceFixes
   let source: Source
+  @FetchAll private var currentSources: [Source]
   @FetchAll private var listings: [Listing]
+  @State private var showingFlagPrompt = false
+  @State private var flagNote = ""
 
   init(source: Source) {
     self.source = source
+    self._currentSources = FetchAll(Source.where { $0.id.eq(source.id) })
     self._listings = FetchAll(
       Listing.canonical.where { $0.sourceID.eq(source.id) }.order(by: \.startsAt)
     )
   }
 
   var body: some View {
+    let source = currentSources.first ?? self.source
     Form {
       Section("Source") {
         LabeledContent("ID", value: source.id.uuidString)
@@ -106,11 +128,38 @@ private struct SourceDetailView: View {
         LabeledContent("Registered hosts", value: source.registeredHosts)
         LabeledContent("Excluded hosts", value: source.excludedHosts)
         if let url = URL(string: source.listingURL) {
-          Link(source.listingURL, destination: url)
+          Link(destination: url) { LabeledContent("Registry page", value: source.listingURL) }
+        }
+      }
+      Section("Fixes") {
+        if let startPageURL = source.startPageURL {
+          LabeledContent("Start page", value: startPageURL)
+          Text("Set in the app").font(.caption).foregroundStyle(.secondary)
+          Button("Reset", role: .destructive) { sourceFixes.resetStartPage(for: source) }
+        }
+        if source.flaggedAt != nil {
+          Label("Flagged", systemImage: "flag.fill").foregroundStyle(.orange)
+          if let note = source.flagNote { Text(note).foregroundStyle(.secondary) }
+          Button("Unflag") { sourceFixes.unflag(source) }
+        } else {
+          Button("Flag…") { flagNote = ""; showingFlagPrompt = true }
         }
       }
     }
     .navigationTitle(source.name)
+    .alert("Flag \(source.name)", isPresented: $showingFlagPrompt) {
+      TextField("Note (optional)", text: $flagNote)
+      Button("Flag") { sourceFixes.flag(source, note: flagNote) }
+      Button("Cancel", role: .cancel) {}
+    } message: { Text("Add a short note about what isn't working.") }
+    .onChange(of: flagNote) { _, value in
+      if value.count > 200 { flagNote = String(value.prefix(200)) }
+    }
+    .alert("Couldn't update source", isPresented: Binding(
+      get: { sourceFixes.errorMessage != nil }, set: { if !$0 { sourceFixes.errorMessage = nil } }
+    )) {
+      Button("OK", role: .cancel) { sourceFixes.errorMessage = nil }
+    } message: { Text(sourceFixes.errorMessage ?? "") }
   }
 }
 

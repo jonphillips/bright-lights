@@ -117,6 +117,7 @@ public extension Source {
   ) throws {
     let registeredHosts = try encodeJSON(item.registeredHosts ?? [])
     let excludedHosts = try encodeJSON(item.excludedHosts ?? [])
+    let startPageURL = source.startPageURL == item.listingURL ? nil : source.startPageURL
     guard source.householdID != householdID || source.name != item.name
       || source.type != item.sourceType || source.priority != item.priority
       || source.area != (item.area ?? "") || source.mode != mode || source.method != item.method
@@ -124,6 +125,7 @@ public extension Source {
       || source.listingURL != item.listingURL || source.feedURL != item.feedURL || source.registeredHosts != registeredHosts
       || source.excludedHosts != excludedHosts || source.cadence != item.cadence
       || source.pagination != item.pagination?.encoded || source.retiredAt != nil
+      || source.startPageURL != startPageURL
     else { return }
     try Source.find(source.id).update {
       $0.householdID = #bind(householdID)
@@ -136,6 +138,7 @@ public extension Source {
       $0.adapter = #bind(item.adapter)
       $0.adapterVenue = #bind(item.adapterVenue)
       $0.listingURL = #bind(item.listingURL)
+      $0.startPageURL = #bind(startPageURL)
       $0.feedURL = #bind(item.feedURL)
       $0.registeredHosts = #bind(registeredHosts)
       $0.excludedHosts = #bind(excludedHosts)

@@ -89,6 +89,27 @@ struct RoundsAndBrowserCaptureTests {
     #expect(!SourcePageMatcher.isListingPage(URL(string: "https://example.com/events/artist")!, for: venue))
   }
 
+  @Test func listingMatchAndTieBreakUseAnAppSetStartPage() {
+    let source = Source(
+      id: UUID(), householdID: UUID(), registryID: "test", name: "Test", type: "venue",
+      priority: "core", area: "NYC", mode: .manual, method: "manual",
+      listingURL: "https://example.com/home", startPageURL: "https://example.com/events/calendar",
+      registeredHosts: "[\"example.com\"]", cadence: "weekly"
+    )
+    #expect(SourcePageMatcher.isListingPage(URL(string: "https://example.com/events/calendar?month=2")!, for: source))
+    #expect(!SourcePageMatcher.isListingPage(URL(string: source.listingURL)!, for: source))
+    let other = Source(
+      id: UUID(), householdID: source.householdID, registryID: "other", name: "A Other", type: "venue",
+      priority: "core", area: "NYC", mode: .manual, method: "manual",
+      listingURL: "https://example.com/events/archive", registeredHosts: source.registeredHosts, cadence: "weekly"
+    )
+    #expect(SourcePageMatcher.source(
+      for: URL(string: "https://example.com/events/calendar/tonight")!, among: [other, source]
+    )?.id == source.id)
+    #expect(SourcePageMatcher.canUseAsStartPage(URL(string: "https://sub.example.com/events")!, for: source))
+    #expect(!SourcePageMatcher.canUseAsStartPage(URL(string: "https://other.test/events")!, for: source))
+  }
+
   @Test func browserCaptureWritesBrowserRowsAndRecordsOnlyNonemptyListingPage() async throws {
     let fixtureURL = try #require(Bundle.module.url(forResource: "bowery-ballroom", withExtension: "html", subdirectory: "Fixtures"))
     let html = try String(contentsOf: fixtureURL, encoding: .utf8)

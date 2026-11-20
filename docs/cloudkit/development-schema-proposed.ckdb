@@ -95,6 +95,12 @@ DEFINE SCHEMA
         sqlitedata_icloud_userModificationTime_retiredAt             ENCRYPTED INT64,
         sqlitedata_icloud_userModificationTime_lastContentHash       ENCRYPTED INT64,
         sqlitedata_icloud_userModificationTime_lastCheckNote         ENCRYPTED INT64,
+        startPageURL                                                  ENCRYPTED STRING,
+        flaggedAt                                                     ENCRYPTED TIMESTAMP,
+        flagNote                                                      ENCRYPTED STRING,
+        sqlitedata_icloud_userModificationTime_startPageURL           ENCRYPTED INT64,
+        sqlitedata_icloud_userModificationTime_flaggedAt              ENCRYPTED INT64,
+        sqlitedata_icloud_userModificationTime_flagNote               ENCRYPTED INT64,
         GRANT WRITE TO "_creator",
         GRANT CREATE TO "_icloud",
         GRANT READ TO "_world"

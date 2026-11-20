@@ -8,12 +8,15 @@ import WebKit
 
 struct CaptureScreen: View {
   @Environment(BrowserModel.self) private var model
+  @Environment(SourceFixesModel.self) private var sourceFixes
   @Environment(AppRouter.self) private var router
   @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @FetchAll(Source.active.order(by: \.name)) private var sources
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
   @State private var inspectorPresented = false
   @State private var showingReport = false
+  @State private var showingFlagPrompt = false
+  @State private var flagNote = ""
   @State private var passiveCaptureTask: Task<Void, Never>?
 
   private var projection: RoundsProjection { RoundsProjection(sources: sources, stays: stays, now: .now) }
@@ -24,6 +27,7 @@ struct CaptureScreen: View {
       page: model.page,
       accessory: { page in
         HStack(spacing: 12) {
+          let fixSource = source(for: page.url)
           let next = projection.next(after: model.currentRoundsSource?.id)
           Button {
             if let next { router.capture(next) }
@@ -40,6 +44,26 @@ struct CaptureScreen: View {
             Label(model.isReading ? "Reading…" : "Capture", systemImage: "plus.circle.fill")
           }
           .disabled(model.isReading || page.url == nil)
+          if let fixSource {
+            Menu {
+              if let url = startPageURL(page.url, for: fixSource) {
+                Button("Use as start page") {
+                  sourceFixes.setStartPage(url.absoluteString, for: fixSource)
+                }
+              }
+              if fixSource.flaggedAt == nil {
+                Button("Flag…") { flagNote = ""; showingFlagPrompt = true }
+              } else {
+                Button("Unflag") { sourceFixes.unflag(fixSource) }
+              }
+            } label: {
+              Image(systemName: "ellipsis.circle")
+                .accessibilityLabel("Source actions")
+            }
+          }
+          if let message = sourceFixes.confirmationMessage {
+            Text(message).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+          }
           if let error = model.captureError {
             Text(error).font(.caption).foregroundStyle(.secondary).lineLimit(1)
           } else if let report = model.report, report.listings.isEmpty {
@@ -119,11 +143,42 @@ struct CaptureScreen: View {
     )) {
       Button("OK", role: .cancel) { model.errorMessage = nil }
     } message: { Text(model.errorMessage ?? "") }
+    .alert("Flag \(source(for: model.page.url)?.name ?? "source")", isPresented: $showingFlagPrompt) {
+      TextField("Note (optional)", text: $flagNote)
+      Button("Flag") {
+        if let source = source(for: model.page.url) { sourceFixes.flag(source, note: flagNote) }
+      }
+      Button("Cancel", role: .cancel) {}
+    } message: { Text("Add a short note about what isn't working.") }
+    .onChange(of: flagNote) { _, value in
+      if value.count > 200 { flagNote = String(value.prefix(200)) }
+    }
+    .alert("Couldn't update source", isPresented: Binding(
+      get: { sourceFixes.errorMessage != nil }, set: { if !$0 { sourceFixes.errorMessage = nil } }
+    )) {
+      Button("OK", role: .cancel) { sourceFixes.errorMessage = nil }
+    } message: { Text(sourceFixes.errorMessage ?? "") }
   }
 
   private func selectSource(_ source: Source) {
     router.capture(source)
     if horizontalSizeClass == .compact { inspectorPresented = false }
+  }
+
+  private func source(for url: URL?) -> Source? {
+    guard let url else { return nil }
+    if let current = model.currentRoundsSource,
+      SourcePageMatcher.canUseAsStartPage(url, for: current) { return current }
+    return SourcePageMatcher.source(for: url, among: sources)
+  }
+
+  private func startPageURL(_ pageURL: URL?, for source: Source) -> URL? {
+    guard let pageURL, SourcePageMatcher.canUseAsStartPage(pageURL, for: source),
+      var components = URLComponents(url: pageURL, resolvingAgainstBaseURL: false) else { return nil }
+    components.fragment = nil
+    guard let cleaned = components.url,
+      let existing = URL(string: source.pageURL), existing.absoluteString != cleaned.absoluteString else { return nil }
+    return cleaned
   }
 
   private func listingDate(_ listing: ExtractedListing) -> String {

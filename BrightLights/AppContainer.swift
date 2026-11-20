@@ -40,6 +40,7 @@ struct AppContainer: View {
   @State private var router: AppRouter
   @State private var filter = WhatsOnFilter.all
   @State private var browserModel: BrowserModel
+  @State private var sourceFixesModel = SourceFixesModel()
 
   init() {
     let browserModel = BrowserModel()
@@ -79,6 +80,7 @@ struct AppContainer: View {
       }
     }
     .environment(browserModel)
+    .environment(sourceFixesModel)
     .environment(router)
     .onAppear {
       if let restored = AppScreen(rawValue: storedSelection) { router.selection = restored }

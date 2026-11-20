@@ -10,17 +10,21 @@ public enum SourcePageMatcher {
     let matches = sources.filter { $0.retiredAt == nil && host(pageURL.host, matches: $0) }
     if let currentSource, matches.contains(where: { $0.id == currentSource.id }) { return currentSource }
     return matches.sorted { lhs, rhs in
-      let left = listingURL(lhs).map { sameHostAndPrefix(pageURL, $0) } ?? false
-      let right = listingURL(rhs).map { sameHostAndPrefix(pageURL, $0) } ?? false
+      let left = URL(string: lhs.pageURL).map { sameHostAndPrefix(pageURL, $0) } ?? false
+      let right = URL(string: rhs.pageURL).map { sameHostAndPrefix(pageURL, $0) } ?? false
       if left != right { return left }
       return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
     }.first
   }
 
   public static func isListingPage(_ pageURL: URL, for source: Source) -> Bool {
-    guard let registered = listingURL(source), let pageHost = normalizedHost(pageURL.host),
+    guard let registered = URL(string: source.pageURL), let pageHost = normalizedHost(pageURL.host),
       let sourceHost = normalizedHost(registered.host), pageHost == sourceHost else { return false }
     return normalizedPath(pageURL.path) == normalizedPath(registered.path)
+  }
+
+  public static func canUseAsStartPage(_ pageURL: URL, for source: Source) -> Bool {
+    host(pageURL.host, matches: source)
   }
 
   public static func allowsPassiveCapture(_ source: Source) -> Bool {
@@ -36,8 +40,6 @@ public enum SourcePageMatcher {
       return pageHost == host || pageHost.hasSuffix(".\(host)")
     }
   }
-
-  private static func listingURL(_ source: Source) -> URL? { URL(string: source.listingURL) }
 
   private static func sameHostAndPrefix(_ page: URL, _ listing: URL) -> Bool {
     guard normalizedHost(page.host) == normalizedHost(listing.host) else { return false }
