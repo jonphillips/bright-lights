@@ -8,6 +8,7 @@ public extension Listing {
   static func reconcile(
     _ extracted: [ExtractedListing],
     sourceID: Source.ID,
+    capturedBy: ListingCaptureSource = .mac,
     complete: Bool,
     now: Date,
     makeID: () -> UUID,
@@ -52,7 +53,7 @@ public extension Listing {
         ticketURL: item.ticketURL?.absoluteString, onSaleAt: item.onSaleDate,
         startsAt: startsAt, closesAt: closesAt, status: status,
         rung: ExtractionRung(rawValue: item.rung.rawValue) ?? .model,
-        capturedBy: .mac, firstSeenAt: current?.firstSeenAt ?? now, updatedAt: now
+        capturedBy: capturedBy, firstSeenAt: current?.firstSeenAt ?? now, updatedAt: now
       )
       if current == nil { try Listing.insert { Listing.Draft(row) }.execute(db) }
       else { try Listing.upsert { Listing.Draft(row) }.execute(db) }

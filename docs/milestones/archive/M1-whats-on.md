@@ -10,7 +10,7 @@ TestFlight and the CloudKit Production schema are M2.*
 - [x] **S2** — App scaffold, schema, seeded sources
 - [x] **S3** — The Mac checks the sources
 - [x] **S4** — Stays and What's on
-- [ ] **S5** — Rounds and browser capture
+- [x] **S5** — Rounds and browser capture
 
 Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. All five
 are expanded below.

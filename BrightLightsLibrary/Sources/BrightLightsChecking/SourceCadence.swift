@@ -11,6 +11,10 @@ public enum SourceCadence {
   public static func isDue(_ source: Source, at now: Date, stays: [Stay]) -> Bool {
     guard source.mode == .automated, source.retiredAt == nil else { return false }
     guard let lastCheckedAt = source.lastCheckedAt else { return true }
+    return now.timeIntervalSince(lastCheckedAt) > interval(for: source, at: now, stays: stays)
+  }
+
+  public static func interval(for source: Source, at now: Date, stays: [Stay]) -> TimeInterval {
     let duringStay = stays.contains { stay in
       var calendar = Calendar(identifier: .gregorian)
       calendar.timeZone = TimeZone(identifier: "America/New_York")!
@@ -21,8 +25,7 @@ public enum SourceCadence {
       let end = calendar.date(byAdding: .day, value: 1, to: departureDay) ?? departureDay
       return now >= start && now < end
     }
-    let interval = duringStay || source.cadence == "nightly" ? nightlyInterval : weeklyInterval
-    return now.timeIntervalSince(lastCheckedAt) > interval
+    return duringStay || source.cadence == "nightly" ? nightlyInterval : weeklyInterval
   }
 
   public static func orderedDue(_ sources: [Source], at now: Date, stays: [Stay]) -> [Source] {

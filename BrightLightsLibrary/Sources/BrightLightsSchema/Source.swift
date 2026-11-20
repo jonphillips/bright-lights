@@ -1,4 +1,5 @@
 import Foundation
+import BrightLightsExtraction
 import SQLiteData
 
 public enum SourceMode: String, QueryBindable, CaseIterable, Sendable {
@@ -70,6 +71,19 @@ public struct Source: Identifiable, Equatable, Sendable {
 }
 
 public extension Source {
+  var extractionDescriptor: SourceDescriptor {
+    func strings(_ value: String) -> [String] {
+      (try? JSONDecoder().decode([String].self, from: Data(value.utf8))) ?? []
+    }
+    return SourceDescriptor(
+      id: registryID,
+      adapter: adapter.flatMap(SourceDescriptor.Adapter.init(rawValue:)),
+      registeredHosts: strings(registeredHosts),
+      excludedHosts: strings(excludedHosts),
+      adapterVenue: adapterVenue
+    )
+  }
+
   static var active: Where<Source> {
     Source.canonical.where { $0.retiredAt.is(nil) }
   }
