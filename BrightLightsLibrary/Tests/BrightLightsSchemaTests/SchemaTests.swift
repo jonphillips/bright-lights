@@ -241,6 +241,20 @@ struct SchemaTests {
     }
   }
 
+  @Test func clearingReactionRemovesEveryOfflineDuplicate() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let listing = try makeListing(sourceID: sourceID, key: "clear-test", title: "Clear test")
+    let first = Reaction(id: UUID(), listingID: listing.id, kind: .booked)
+    let duplicate = Reaction(id: UUID(), listingID: listing.id, kind: .interested)
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(listing) }.execute(db)
+      try Reaction.insert { Reaction.Draft(first); Reaction.Draft(duplicate) }.execute(db)
+      try Reaction.clear(listingID: listing.id, in: db)
+      #expect(try Reaction.where { $0.listingID.eq(listing.id) }.fetchCount(db) == 0)
+    }
+  }
+
   @Test func pruningDeletesOnlyPastListingsWithoutReactions() async throws {
     let sourceID = UUID()
     try await createSource(id: sourceID)

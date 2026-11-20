@@ -25,6 +25,11 @@ public struct Reaction: Identifiable, Equatable, Sendable {
 }
 
 public extension Reaction {
+  /// Remove every offline duplicate for a listing.
+  static func clear(listingID: Listing.ID, in db: Database) throws {
+    try Reaction.where { $0.listingID.eq(listingID) }.delete().execute(db)
+  }
+
   /// Reactions are household state: edits replace the one row for a listing.
   /// Converges any offline duplicates before writing the replacement.
   static func upsertForListing(_ reaction: Reaction, in db: Database) throws {
