@@ -5,6 +5,10 @@
 browser, which captures the listings on every page Jon views on that source's site through the same extraction
 engine. Looking is capturing.*
 
+*Amended 2026-11-20 (Amendment 2, below): Rounds becomes the **Capture** tab. The browser is the tab, and the
+list of sources due is a panel beside it, so a round is look, capture, Next. Every way into the browser leads to
+that one tab.*
+
 *Amended 2026-11-19 (Amendment 1, below): a source can declare a **capture helper**, a small bundled script that
 reveals the rest of the listings or reads data the page already holds. A helper only does what a reader could do
 with a few clicks. On a blocked source it runs only in Jon's visible browser session.*
@@ -115,3 +119,32 @@ challenge, login or 403.
 - Helpers are per-site code and will break when sites change, as adapters do. Rule 6 makes a break degrade to plain
   capture, and rule 5 makes it visible.
 - Reading a source more deeply also helps the open question on marking one-page sources `missing`.
+
+## Amendment 2 — the Capture tab (2026-11-20)
+
+### Context
+
+S5 built Rounds as decision 1 and 2 describe: a list, where tapping a source pushes the browser over it. On the iPad
+during the S5 device pass, Jon found that slow for a round. Each source needs a Back to get to the next one, and the
+browser was also pushed from Sources and from a listing's Tickets link. That put the one persistent `WebPage` on
+several screens at once on iPhone, which is fragile. Jon asked for a Capture tab that is the browser, with the list
+of sources to capture close at hand.
+
+### Decision
+
+1. **Rounds becomes Capture.** It's a tab on iPhone and a sidebar row on iPad and Mac, and it keeps the badge
+   (decision 1).
+2. **The browser is the tab's main view.** The list of sources from decision 1 is a panel beside it that Jon can
+   show or hide: a side column on iPad and Mac, a sheet on iPhone. When no page is open, the browser shows the
+   same list on its empty page.
+3. **A round is look, capture, Next.** **Next** opens the next source on the list, so Jon never leaves the
+   browser during a round.
+4. **One browser, one place.** Sources' **Open in browser** and a listing's **Tickets** switch to the Capture tab
+   and load the page there. Nothing else shows the browser.
+5. Capture itself doesn't change: passive and explicit capture, matching, the ration and the chip stay as
+   decisions 3 and 4 and the S5 brief describe them.
+
+### Consequences
+
+- The M1 S5 device gate runs on the Capture tab ([efforts/capture-tab.md](../efforts/capture-tab.md)).
+- On iPad, Jon can hide the app's sidebar to give the browser more room, since the panel holds the list.

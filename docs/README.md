@@ -3,6 +3,7 @@
 ## Dispatch and history
 
 - [Next dispatch](NEXT_UP.md)
+- [Efforts](efforts/README.md)
 - [Completed dispatches](DONE-LOG.md)
 - [Device passes](device-passes.md)
 - [Open questions](open-questions.md)

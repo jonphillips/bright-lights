@@ -1,5 +1,6 @@
-# Next Up — nothing dispatched
+# Next Up — The Capture tab
 
-Nothing dispatched.
-
+**Slices:** effort `capture-tab`
+**Briefs:** [docs/efforts/capture-tab.md](efforts/capture-tab.md)
+**Done when:** per the brief
 **Owed:** see [device-passes.md](device-passes.md)

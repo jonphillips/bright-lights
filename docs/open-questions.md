@@ -48,7 +48,3 @@
   mini's `SourceChecks` log, give the reason. Sort them into: a site change or adapter fix (a dispatch), a challenge
   or 403 (move the source to manual in the registry, since nothing works around it), or a transient error (no
   action). A failing source shows in Rounds after three failures, so S5 covers the gap in the meantime.
-- **Rounds beside the browser on iPad (S5 review, PR #16).** The S5 brief put the browser in the detail column with
-  Rounds in the sidebar. The build pushes the browser over Rounds in the detail column, so each source needs a Back.
-  Decide during the S5 device pass: if a round feels slow, a follow-up gives Rounds its own column (a three-column
-  split while Rounds is selected).
