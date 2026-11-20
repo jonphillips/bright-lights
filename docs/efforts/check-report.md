@@ -6,7 +6,7 @@ doing?" and get an answer read from the report, without opening Console on the m
 
 **Implements:** a follow-up to [ADR-0003](../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface).
 Jon asked for it on 2026-11-20. Queued after [mac-installer.md](mac-installer.md), whose build stamp each record
-carries.
+carries, and after [screening.md](screening.md).
 
 ## Why
 
@@ -23,7 +23,9 @@ no error.
   - the outcome and the failure reason (the check note);
   - listings found, new, changed and marked missing;
   - the rung, pages read and model calls;
-  - how long it took.
+  - how long it took;
+  - the source's flag and note, and a start page set in the app, if any
+    ([ADR-0005 Amendment 3](../decisions/0005-rounds-and-browser-capture.md#amendment-3--fixing-a-source-from-the-app-2026-11-20)).
 - **Written only by the Mac that holds the checker lease,** after each run. Browser captures aren't in it yet.
 - **One file per month,** deleting files older than about 60 days.
 - **Read as files** by the architect on whichever Mac syncs the app's iCloud Drive folder. An MCP tool over the same

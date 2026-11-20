@@ -9,5 +9,7 @@ with `jon-platform/scripts/archive-brief`. **The table's row order is the queue*
 
 | Brief | Implements | Status |
 | --- | --- | --- |
+| [source-fixes.md](source-fixes.md) | ADR-0005 Amendment 3 (fixing a source from the app) | Dispatched |
 | [mac-installer.md](mac-installer.md) | ADR-0003 (the install step) | Ready |
+| [screening.md](screening.md) | ADR-0006 and ADR-0002 Amendment 1 (screening, the taste record, deletion) | Ready |
 | [check-report.md](check-report.md) | ADR-0003 point 6 (failures surface) | Designed |

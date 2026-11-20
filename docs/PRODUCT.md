@@ -1,6 +1,6 @@
 # Bright Lights — Product Brief
 
-*Last updated: 2026-11-18. Grew out of [BRAINSTORM.md](BRAINSTORM.md); the facts about sources come from
+*Last updated: 2026-11-20. Grew out of [BRAINSTORM.md](BRAINSTORM.md); the facts about sources come from
 [sources/SURVEY.md](sources/SURVEY.md).*
 
 ## What it is
@@ -15,15 +15,18 @@ podcasts, talks, Off-Broadway) and answers three questions:
 
 It doesn't plan stays like an itinerary. It gives a short menu with deadlines, and Jon and Wendy decide.
 
-## The core loop: sources → listings → reactions
+## The core loop: sources → listings → screening → reactions
 
 1. **Sources.** About 25 followed venues, presenters and editorial feeds, each with a way to read it: automated or
    manual ([ADR-0004](decisions/0004-one-extraction-engine.md)).
 2. **Listings.** The always-on Mac checks the automated sources ([ADR-0003](decisions/0003-the-mac-checks-the-sources.md)).
    Jon covers the rest through **Rounds**, a checklist of sources due for a look that opens each one in the in-app
    browser, which captures listings while he reads ([ADR-0005](decisions/0005-rounds-and-browser-capture.md)).
-3. **Reactions.** Interested, booked, pass, or went plus a note. Reactions are shared state, and the start of the
-   taste record.
+3. **Screening.** New listings wait in **New**, or appear right after a capture. A screen lists them with none
+   selected. Jon taps the ones worth keeping, and the rest are cleared and never shown again. What's on shows what
+   was kept ([ADR-0006](decisions/0006-screening-and-the-taste-record.md)).
+4. **Reactions.** Kept listings can become interested, booked, pass, or went, each with an optional note. Reactions
+   are shared state. Every decision, clears included, goes into a **taste record** that outlives the listing.
 
 **Stays** frame what's on. A stay is an arrival plus a departure that may be tentative or open, because return flights
 may be open-ended.
@@ -49,7 +52,8 @@ Sources seeded from the survey; automated checks on the Mac; the extraction engi
 ## Later (M2 and beyond)
 
 - **Suggesting which week to come next**, weighted toward what's only on during that week (see BRAINSTORM).
-- **Taste:** performers Jon has rated well rank higher; adapts Galavant ADR-0053.
+- **Taste:** New arrives ranked, from keep rates and a model that reads the taste record and Jon's own taste notes.
+  It suggests, and Jon still decides. Adapts Galavant ADR-0053 (ADR-0006).
 - **Editorial picks** attached to listings (The New Yorker Goings On RSS first).
 - **Getting home:** travel-time estimates from the apartment.
 - **Chat access** through jon-platform's `MCPServerKit` / `ChatAccessKit`.
