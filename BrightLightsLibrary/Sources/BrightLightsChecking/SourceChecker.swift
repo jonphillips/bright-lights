@@ -268,7 +268,7 @@ public struct SourceChecker: Sendable {
   }
 
   private static func urls(source: Source, pagination: PaginationRule?, now: Date) throws -> [URL] {
-    guard let base = URL(string: source.feedURL ?? source.listingURL) else { throw SourceCheckError.fetchFailed("invalid listing URL") }
+    guard let base = URL(string: source.feedURL ?? source.pageURL) else { throw SourceCheckError.fetchFailed("invalid listing URL") }
     var urls = [base]
     switch pagination {
     case let .pages(template, first, max):

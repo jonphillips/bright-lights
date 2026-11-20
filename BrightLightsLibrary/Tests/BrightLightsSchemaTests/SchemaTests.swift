@@ -53,9 +53,74 @@ struct SchemaTests {
     }
   }
 
+  @Test func sourcePageURLFallsBackToRegistryPage() {
+    let source = Source(
+      id: UUID(), householdID: UUID(), registryID: "test", name: "Test", type: "venue",
+      priority: "core", area: "NYC", mode: .manual, method: "manual",
+      listingURL: "https://example.com/events", registeredHosts: "[\"example.com\"]", cadence: "weekly"
+    )
+    #expect(source.pageURL == source.listingURL)
+    #expect(Source(
+      id: source.id, householdID: source.householdID, registryID: source.registryID,
+      name: source.name, type: source.type, priority: source.priority, area: source.area,
+      mode: source.mode, method: source.method, listingURL: source.listingURL,
+      startPageURL: "https://example.com/calendar", registeredHosts: source.registeredHosts,
+      cadence: "weekly"
+    ).pageURL == "https://example.com/calendar")
+  }
+
+  @Test func registrySyncPreservesSourceFixesAndClearsStartPageWhenRegistryCatchesUp() async throws {
+    try await database.write { db in
+      try Source.syncFromRegistry(in: db)
+      let source = try #require(Source.fetchAll(db).first { $0.registryID == "town-hall" })
+      try Source.find(source.id).update {
+        $0.startPageURL = #bind("https://thetownhall.org/calendar")
+        $0.flaggedAt = #bind(Date(timeIntervalSince1970: 1_800_000_000))
+        $0.flagNote = #bind("wrong page")
+      }.execute(db)
+
+      try Source.syncFromRegistry(data: registryData(
+        id: source.registryID, name: source.name, listingURL: "https://thetownhall.org/calendar"
+      ), in: db)
+      let updated = try #require(try Source.find(source.id).fetchOne(db))
+      #expect(updated.startPageURL == nil)
+      #expect(updated.flaggedAt == Date(timeIntervalSince1970: 1_800_000_000))
+      #expect(updated.flagNote == "wrong page")
+    }
+  }
+
+  @Test func registrySyncPreservesSourceFixesWhenOtherRegistryFieldsChange() async throws {
+    try await database.write { db in
+      try Source.syncFromRegistry(in: db)
+      let source = try #require(Source.fetchAll(db).first { $0.registryID == "town-hall" })
+      let startPage = "https://thetownhall.org/calendar"
+      let flaggedAt = Date(timeIntervalSince1970: 1_800_000_000)
+      try Source.find(source.id).update {
+        $0.startPageURL = #bind(startPage)
+        $0.flaggedAt = #bind(flaggedAt)
+        $0.flagNote = #bind("wrong page")
+      }.execute(db)
+
+      try Source.syncFromRegistry(data: registryData(
+        id: source.registryID, name: "Town Hall Updated", listingURL: source.listingURL
+      ), in: db)
+      let updated = try #require(try Source.find(source.id).fetchOne(db))
+      #expect(updated.name == "Town Hall Updated")
+      #expect(updated.startPageURL == startPage)
+      #expect(updated.flaggedAt == flaggedAt)
+      #expect(updated.flagNote == "wrong page")
+    }
+  }
+
   @Test func unchangedRegistrySyncDoesNotTouchSourceSyncMetadata() async throws {
     try await database.write { db in
       try Source.syncFromRegistry(in: db)
+      guard let source = try Source.fetchAll(db).first else { return }
+      try Source.find(source.id).update {
+        $0.startPageURL = #bind("https://example.com/app-page")
+        $0.flaggedAt = #bind(Date(timeIntervalSince1970: 1_800_000_000))
+        $0.flagNote = #bind("does not read")
+      }.execute(db)
     }
     let before = try await database.read { db in
       try SyncMetadata.where { $0.recordType.eq("sources") }
@@ -305,7 +370,41 @@ struct SchemaTests {
     ExtractedListing(stableKey: key, title: title, time: .performance(Date(timeIntervalSince1970: 1_900_000_000)), rung: rung)
   }
 
-  @Test func migrationRegistersTheFrozenS2SchemaAndCheckingSchema() {
-    #expect(BrightLightsDatabaseMigrations.makeMigrator().migrations.count == 2)
+  @Test func sourceFixesMigrationAddsNullableFieldsToAV2Database() async throws {
+    let legacyDatabase = try SQLiteData.defaultDatabase(configuration: Configuration())
+    let migrator = BrightLightsDatabaseMigrations.makeMigrator()
+    try migrator.migrate(legacyDatabase, upTo: "Add source checking state v2")
+    try await legacyDatabase.write { db in
+      try db.execute(sql: """
+        INSERT INTO households (id, name, createdAt)
+        VALUES ('household', 'Household', '2001-01-01T00:00:00.000Z');
+        INSERT INTO sources (
+          id, householdID, registryID, name, type, priority, area, mode, method, listingURL,
+          registeredHosts, excludedHosts, cadence, lastCheckOutcome, consecutiveFailures, createdAt
+        ) VALUES (
+          'source', 'household', 'legacy', 'Legacy source', 'venue', 'core', 'NYC', 'manual', 'manual',
+          'https://example.com/events', '["example.com"]', '[]', 'weekly', 'never', 0,
+          '2001-01-01T00:00:00.000Z'
+        );
+        """)
+    }
+    try migrator.migrate(legacyDatabase)
+    try await legacyDatabase.write { db in
+      try db.execute(sql: """
+        CREATE TEMP TABLE migration_assertion (value INTEGER CHECK (value = 1));
+        INSERT INTO migration_assertion
+        SELECT count(*) = 1 AND sum(startPageURL IS NULL AND flaggedAt IS NULL AND flagNote IS NULL) = 1
+        FROM sources WHERE id = 'source';
+        """)
+    }
+  }
+
+  private func registryData(id: String, name: String, listingURL: String) -> Data {
+    let registry: [String: Any] = ["sources": [[
+      "id": id, "name": name, "source_type": "venue", "area": "NYC", "priority": "core",
+      "listing_url": listingURL, "registered_hosts": ["thetownhall.org"], "mode": "manual",
+      "method": "manual", "cadence": "weekly"
+    ]]]
+    return try! JSONSerialization.data(withJSONObject: registry)
   }
 }

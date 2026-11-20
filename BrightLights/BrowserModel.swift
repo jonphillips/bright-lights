@@ -24,7 +24,7 @@ final class BrowserModel {
   func open(_ source: Source) {
     currentRoundsSource = source
     navigationStarted()
-    guard let url = URL(string: source.listingURL) else { return }
+    guard let url = URL(string: source.pageURL) else { return }
     page.load(URLRequest(url: url))
   }
 

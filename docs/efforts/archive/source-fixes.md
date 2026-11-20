@@ -4,7 +4,7 @@
 start page, and **Flag** marks a source as not working, with a note. The registry never overwrites either one.
 Three synced columns on `Source`.
 
-**Implements:** [ADR-0005 Amendment 3](../decisions/0005-rounds-and-browser-capture.md#amendment-3--fixing-a-source-from-the-app-2026-11-20).
+**Implements:** [ADR-0005 Amendment 3](../../decisions/0005-rounds-and-browser-capture.md#amendment-3--fixing-a-source-from-the-app-2026-11-20).
 **Builds on:** the Capture tab (PR #19): `CaptureScreen`, `BrowserModel`, `RoundsList`, `AppRouter`.
 
 ## The work

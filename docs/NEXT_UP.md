@@ -1,6 +1,6 @@
-# Next Up — Fixing a source from the app
+# Next Up — Install Bright Lights on the Mac
 
-**Slices:** effort `source-fixes`
-**Briefs:** [docs/efforts/source-fixes.md](efforts/source-fixes.md)
+**Slices:** effort `mac-installer`
+**Briefs:** [docs/efforts/mac-installer.md](efforts/mac-installer.md)
 **Done when:** per the brief
 **Owed:** see [device-passes.md](device-passes.md)

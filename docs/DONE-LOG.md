@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-20 — Fixing a source from the app (`effort/source-fixes`)
+
+- **Result:** Added app-owned start pages and source flags, with registry reconciliation that preserves both fixes and clears a start page when the registry catches up. Prepared and validated the CloudKit Development proposal for the three synced fields.
+- **Verification:** check-drift.sh passed: SwiftLint, 81 package tests, and iOS Simulator and macOS builds.
+- **Owed:** source-fixes's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-20 — Capture tab (`effort/capture-tab`)
 
 - **Result:** Replaced the Rounds and Browser screens with a Capture tab that keeps one browser page, presents due sources in an inspector and home list, advances with Next, and routes source and ticket actions into Capture.

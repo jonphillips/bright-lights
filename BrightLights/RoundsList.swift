@@ -49,6 +49,12 @@ private struct SourceRoundRow: View {
       HStack {
         Text(source.name).font(.headline)
         Spacer()
+        if source.flaggedAt != nil {
+          Image(systemName: "flag.fill")
+            .font(.caption)
+            .foregroundStyle(.orange)
+            .accessibilityLabel("Flagged source")
+        }
         if isCurrent {
           Label("Current", systemImage: "arrow.forward.circle.fill")
             .font(.caption)

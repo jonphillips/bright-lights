@@ -83,10 +83,43 @@ struct RoundsAndBrowserCaptureTests {
     #expect(SourcePageMatcher.source(for: URL(string: "https://elsewhere.test/events")!, among: [first, second]) == nil)
   }
 
+  @Test func pageCandidatesIncludeEveryActiveSourceOnASharedHost() {
+    let bowery = source("Bowery Ballroom", mode: .manual, listingURL: "https://mercuryeastpresents.com/bowery-ballroom/",
+      hosts: "[\"mercuryeastpresents.com\"]")
+    let mercury = source("Mercury Lounge", mode: .manual, listingURL: "https://mercuryeastpresents.com/mercury-lounge/",
+      hosts: "[\"mercuryeastpresents.com\"]")
+    var retired = source("Retired", mode: .manual, listingURL: "https://mercuryeastpresents.com/retired/",
+      hosts: "[\"mercuryeastpresents.com\"]")
+    retired.retiredAt = .now
+    let page = URL(string: "https://mercuryeastpresents.com/calendar/real-monthly-page")!
+    #expect(SourcePageMatcher.candidates(for: page, among: [bowery, mercury, retired]).map(\.id) == [bowery.id, mercury.id])
+  }
+
   @Test func listingPageIgnoresTrailingSlashQueryAndFragment() {
     let venue = source("Venue", mode: .manual, listingURL: "https://example.com/events/", hosts: "[\"example.com\"]")
     #expect(SourcePageMatcher.isListingPage(URL(string: "https://www.example.com/events?month=2#top")!, for: venue))
     #expect(!SourcePageMatcher.isListingPage(URL(string: "https://example.com/events/artist")!, for: venue))
+  }
+
+  @Test func listingMatchAndTieBreakUseAnAppSetStartPage() {
+    let source = Source(
+      id: UUID(), householdID: UUID(), registryID: "test", name: "Test", type: "venue",
+      priority: "core", area: "NYC", mode: .manual, method: "manual",
+      listingURL: "https://example.com/home", startPageURL: "https://example.com/events/calendar",
+      registeredHosts: "[\"example.com\"]", cadence: "weekly"
+    )
+    #expect(SourcePageMatcher.isListingPage(URL(string: "https://example.com/events/calendar?month=2")!, for: source))
+    #expect(!SourcePageMatcher.isListingPage(URL(string: source.listingURL)!, for: source))
+    let other = Source(
+      id: UUID(), householdID: source.householdID, registryID: "other", name: "A Other", type: "venue",
+      priority: "core", area: "NYC", mode: .manual, method: "manual",
+      listingURL: "https://example.com/events/archive", registeredHosts: source.registeredHosts, cadence: "weekly"
+    )
+    #expect(SourcePageMatcher.source(
+      for: URL(string: "https://example.com/events/calendar/tonight")!, among: [other, source]
+    )?.id == source.id)
+    #expect(SourcePageMatcher.canUseAsStartPage(URL(string: "https://sub.example.com/events")!, for: source))
+    #expect(!SourcePageMatcher.canUseAsStartPage(URL(string: "https://other.test/events")!, for: source))
   }
 
   @Test func browserCaptureWritesBrowserRowsAndRecordsOnlyNonemptyListingPage() async throws {
