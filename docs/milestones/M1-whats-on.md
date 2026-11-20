@@ -12,8 +12,8 @@ TestFlight and the CloudKit Production schema are M2.*
 - [x] **S4** — Stays and What's on
 - [ ] **S5** — Rounds and browser capture
 
-Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. S1 to S4
-are expanded below; S5 is an outline.
+Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. All five
+are expanded below.
 
 ## S1 — Extraction engine (package only)
 
@@ -570,10 +570,158 @@ those in the view, or in a small `@Observable` model if the view gets heavy.
 - Taste ranking, editorial picks, getting-home times, and suggesting when to come (M2).
 - Notifications, calendar reading, and inviting Wendy.
 
-## S5 — Rounds and browser capture (outline)
+## S5 — Rounds and browser capture
 
-The Rounds due-list (ADR-0005, point 1) and the persistent in-app browser from `WebExtractorKit` with passive capture
-on registered hosts. The capture chip, the manual **Capture** button, and assigning a page to a source.
+**Goal:** the sources the Mac can't read get read by Jon. **Rounds** lists the sources due for a look. Tapping one
+opens it in the persistent in-app browser, and the listings on the pages he reads are captured as he goes, through
+the same engine and upsert as the Mac (ADR-0005). After one full round, What's on holds the manual sources' listings
+too.
+
+**Builds on S3 and S4 (PRs #8 and #14):**
+- `SourceCadence` holds the interval and stay rules.
+- `Source.needsManualLook` marks failing automated sources.
+- `Listing.reconcile` is the change-only upsert.
+- `AppContainer`'s `AppScreen` enum gains Rounds.
+
+**Not here:** capture helpers (ADR-0005 Amendment 1). S5 ships plain capture, `currentDOM()` only. The UCB reveal
+helper is its own dispatch afterwards, and helpers for manual sources come from experience.
+
+**No schema change.** A browser capture records itself on `Source`'s existing check fields (below). If the build
+seems to need a column, stop and say so in the PR.
+
+**Shared pieces (refactors, tested):**
+- **`Source.extractionDescriptor`** in `BrightLightsSchema` replaces `SourceChecker`'s private `descriptor(for:)`. The
+  Mac and the browser then build the same `SourceDescriptor`, and the same page gets the same stable keys.
+- **`Listing.reconcile` takes `capturedBy`** instead of hard-coding `.mac`. Its content comparison is unchanged, so
+  the browser re-reading a listing the Mac already has writes nothing.
+- **`SourceCadence.interval(for:at:stays:)`** is the one interval rule: 20 hours for nightly or during a stay, 6 days
+  20 hours for weekly. `isDue` uses it for automated sources and Rounds uses it for manual ones. A refactor only:
+  the S3 tests keep passing unchanged.
+
+**Rounds (a pure `RoundsProjection` in `BrightLightsChecking`, tested):**
+- **Its input** is the active sources, the stays and `now`. Its output is three groups:
+  - **Due:** manual sources whose last check is older than their interval, or that were never checked. Most overdue
+    first; never-checked counts as most overdue, then by name.
+  - **Not reading automatically:** automated sources with `needsManualLook`, most consecutive failures first. UCB
+    belongs here today.
+  - **Up to date:** the other manual sources, by name, so Jon can open any of them any time.
+- **The badge** on Rounds counts Due plus Not reading automatically.
+- **Each row** shows the source's name, when it was last checked ("never" if not), its listing count, and for a failing
+  automated source, its check note.
+- **Mark as checked** (a swipe action, and a toolbar button in the browser) records a manual look with no capture.
+  That's for a page with nothing new, or an aggregator Jon scanned. It sets `lastCheckedAt` to now and `.succeeded`,
+  keeps the listing count, and sets the note to "Marked checked".
+
+**The browser:**
+- **One persistent session:** a `BrowserModel` holding one `WebPage.browser()` (the persistent default data store),
+  kept in `AppContainer` and passed through the environment, as Galavant's `BrowserScreenModel` is. A challenge Jon
+  passes or a site login holds across launches and tab switches. The app never sees credentials.
+- **The view** is `WebExtractorKit`'s `WebBrowserView` over that page. Its accessory slot holds the **Capture** button,
+  **Mark as checked** and the capture chip.
+- **Opening it:**
+  - Tapping a Rounds row opens the browser at the source's `listingURL`, with that source as the **current Rounds
+    source**.
+  - On iPhone the browser is pushed full-screen.
+  - On iPad and Mac it fills the detail column, with Rounds in the sidebar.
+- **Other ways in:**
+  - The listing detail's **Tickets** link and the source detail's new **Open in browser** open the same browser.
+  - S4's system-browser fallback goes away.
+
+**Capture (a `BrowserCapture` type in `BrightLightsChecking`, tested with fixtures and an in-memory database):**
+- **The steps:** given a source, a page URL and the page's HTML, it:
+  1. Runs `ExtractionEngine` with `source.extractionDescriptor` (JSON only when the source has a `feed_url`, as the Mac
+     does).
+  2. Calls `Listing.reconcile` with `capturedBy: .browser` and `complete: false`.
+  3. Returns a report: the listings found, the rows written, the new ones, and any warnings.
+- **Browser captures never mark anything missing.** A page Jon happens to view is never known to be the whole
+  calendar.
+- **Matching a page to a source** (pure, tested):
+  - A page belongs to a source when its host equals one of the source's registered hosts or is a subdomain of one,
+    ignoring a leading `www.`.
+  - When several active sources match, prefer the current Rounds source, then a source whose `listingURL` host and
+    path the page's URL starts with.
+  - Otherwise there's no match, and the **Capture** button asks.
+- **The source's listing page** is a page whose host matches and whose path equals `listingURL`'s path, ignoring a
+  trailing slash, the query and the fragment. Capturing it with at least one listing records a check:
+  - `lastCheckedAt`, `.succeeded`, `lastListingCount` and `consecutiveFailures = 0`.
+  - `lastCheckNote` reads "Captured in the browser", plus any warnings.
+  - `lastContentHash` is untouched.
+
+  A capture on any other page writes its listings but doesn't count as a check. For a failing automated source, this
+  takes it off Rounds until the Mac fails three more times, which is the intent: Jon has just covered it.
+- **Passive capture** runs when a page finishes loading and has settled for 1 second, if:
+  - the page matches a source, and
+  - that source's type is **venue** or **presenter**.
+
+  A new navigation cancels a capture still in progress.
+- **Aggregators and editorial sources** (type `aggregator` or `editorial`: Playbill, BroadwayWorld, Oh My Rockness,
+  DoNYC, Songkick, Bandsintown, Eventbrite and Brooklyn Vegan) are **never captured passively**. Their pages list the
+  whole city, and PRODUCT.md rules out a catalog of the city. Jon captures from them only with **Capture**, on a page he
+  picked, such as an artist's page or a filtered search.
+- **The Capture button** captures the current page on demand:
+  - If the page matches a source, it uses that one.
+  - Otherwise it asks Jon to choose a source, with the current Rounds source first. That assignment is for this
+    capture only; registered hosts stay registry-owned.
+- **The model ration:**
+  - Each device keeps an in-memory cache, for the app session, of `(source, URL, ExtractionEngine.pageHash)`
+    extracted this session. The same page with the same content is never extracted twice. A deterministic-rung page
+    costs nothing anyway.
+  - Without a model key, a model-rung page doesn't capture. The chip says "No model key — add one in Settings".
+  - The key syncs through iCloud Keychain, so the iPad normally has Jon's key already.
+- **The chip** shows "Reading…" while capture runs, then "14 listings from Comedy Cellar · 3 new", or "No listings
+  found", or the error. Tapping it shows the captured listings (date, title, status) so Jon can check them. A capture
+  that finds nothing records no check; the chip offers **Mark as checked** instead.
+- **Logging:** each capture goes to OSLog (category `BrowserCapture`) with the source, page, counts, rung and model
+  call, as the Mac's checks are logged.
+
+**Politeness:** the browser is Jon's own browsing. Capture reads only the DOM the page already loaded and makes no
+requests of its own. No robots.txt check applies, and nothing gets around a challenge: Jon passes it himself or
+doesn't.
+
+**Tests (package):**
+- **`RoundsProjection`:**
+  - Never-checked sources come first.
+  - Overdue order.
+  - During a stay, manual sources use the nightly interval.
+  - A failing automated source sits in its own group.
+  - **Mark as checked** clears a source from Due.
+  - The badge count.
+- **Page matching:**
+  - A subdomain and `www.`.
+  - Two sources on one host, decided by the current Rounds source and then by the `listingURL` prefix.
+  - An unregistered host.
+  - The listing-page rule, with a trailing slash and a query string.
+- **`BrowserCapture`:**
+  - A fixture page (`bowery-ballroom.html` stands in) writes rows with `capturedBy: .browser`.
+  - Capturing it again writes nothing (the `SyncMetadata` probe).
+  - A page whose content matches the Mac's rows writes nothing.
+  - Nothing is ever marked missing.
+  - A listing-page capture records the check fields, and another page's capture doesn't.
+  - A zero-listing capture records no check.
+- **Passive rules:** a venue source captures passively; an aggregator doesn't, but captures on request.
+- **The ration:** the same page hash calls the stub model once per session, and a changed page calls it again.
+- **The refactors:**
+  - `extractionDescriptor` keys a fixture the same way the checker did.
+  - The S3 cadence tests pass unchanged on `SourceCadence.interval`.
+
+**Done when:** `check-drift` passes; closeout (ADR-0005 D16).
+
+- **The gate it owes** is M1's own: one full round on the iPad.
+  - Rounds shows its badge and lists the 15 manual sources plus UCB.
+  - Open Comedy Cellar (pass any challenge yourself). The chip reports its listings, the source leaves Due, and its
+    shows appear in What's on.
+  - Do the same for Town Hall, 92NY and LIVE from NYPL.
+  - On DoNYC, nothing captures until **Capture** is pressed on a page chosen there.
+  - Mark one source checked with nothing captured.
+  - Afterwards, the iPhone shows the captured listings after sync.
+  - In the PR, the executor reports the fixture-test results only. Agents don't drive the browser.
+
+**Not in S5:**
+
+- Capture helpers, including UCB's "Load more" (their own dispatches, ADR-0005 Amendment 1).
+- The Safari share extension (M2).
+- A favorites list, and filtering aggregator captures by it (open questions).
+- Notifications for Rounds.
 
 ## M1 done
 
