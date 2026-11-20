@@ -4,36 +4,25 @@ import SwiftUI
 
 struct SourcesView: View {
   @FetchAll(Source.active.order(by: \.name)) private var sources
-  @State private var selectedSourceID: Source.ID?
   @State private var showingSettings = false
 
-  private var selectedSource: Source? { sources.first { $0.id == selectedSourceID } }
-
   var body: some View {
-    NavigationSplitView {
-      List(selection: $selectedSourceID) {
-        Section("Automated") {
-          ForEach(sources.filter { $0.mode == .automated }) { source in
-            NavigationLink(value: source.id) { SourceRow(source: source) }
-          }
-        }
-        Section("Manual") {
-          ForEach(sources.filter { $0.mode == .manual }) { source in
-            NavigationLink(value: source.id) { SourceRow(source: source) }
-          }
+    List {
+      Section("Automated") {
+        ForEach(sources.filter { $0.mode == .automated }) { source in
+          NavigationLink { SourceDetailView(source: source) } label: { SourceRow(source: source) }
         }
       }
-      .navigationTitle("Sources")
-      .toolbar {
-        ToolbarItem(placement: .primaryAction) {
-          Button { showingSettings = true } label: { Label("Settings", systemImage: "gear") }
+      Section("Manual") {
+        ForEach(sources.filter { $0.mode == .manual }) { source in
+          NavigationLink { SourceDetailView(source: source) } label: { SourceRow(source: source) }
         }
       }
-    } detail: {
-      if let selectedSource {
-        SourceDetailView(source: selectedSource)
-      } else {
-        ContentUnavailableView("Choose a source", systemImage: "calendar.badge.clock")
+    }
+    .navigationTitle("Sources")
+    .toolbar {
+      ToolbarItem(placement: .primaryAction) {
+        Button { showingSettings = true } label: { Label("Settings", systemImage: "gear") }
       }
     }
     .sheet(isPresented: $showingSettings) { NavigationStack { SettingsView() } }
