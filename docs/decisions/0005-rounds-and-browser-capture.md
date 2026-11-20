@@ -5,6 +5,9 @@
 browser, which captures the listings on every page Jon views on that source's site through the same extraction
 engine. Looking is capturing.*
 
+*Amended 2026-11-20 (Amendment 3, below): Jon can fix a source's start page from the Capture tab, and flag a
+source that isn't working, without a registry change. The registry never overwrites either one.*
+
 *Amended 2026-11-20 (Amendment 2, below): Rounds becomes the **Capture** tab. The browser is the tab, and the
 list of sources due is a panel beside it, so a round is look, capture, Next. Every way into the browser leads to
 that one tab.*
@@ -148,3 +151,39 @@ of sources to capture close at hand.
 
 - The M1 S5 device gate runs on the Capture tab ([efforts/archive/capture-tab.md](../efforts/archive/capture-tab.md)).
 - On iPad, Jon can hide the app's sidebar to give the browser more room, since the panel holds the list.
+
+## Amendment 3 — fixing a source from the app (2026-11-20)
+
+### Context
+
+In the S5 device pass on the Capture tab, some sources opened on the wrong page, and some captured nothing. Fixing
+either one takes a registry change and a new build. An edit in the app wouldn't survive anyway: each launch's
+`syncFromRegistry` writes the registry's `listing_url` back onto every source. A wrong start page also has a hidden
+cost. A source is marked checked only by a capture on its listing page (decision 3), so a source whose start page is
+wrong never leaves Due.
+
+### Decision
+
+1. **A start page set in the app.** `Source.startPageURL`, synced, is optional. When it's set, it replaces the
+   registry's `listingURL` everywhere a source's page is used:
+   - where the Capture tab opens the source;
+   - in the listing-page match that marks a source checked;
+   - in the Mac's check. A `feedURL` still comes first there, as it does today.
+2. **Set from the page itself.** In the Capture tab, on a page of the current source, **Use as start page** saves
+   the page's URL. It's offered only on the source's registered hosts, so capture's host rule (decision 4) still
+   holds. Sources' detail shows the start page, marks it "set in the app", and has **Reset** to go back to the
+   registry's.
+3. **The registry never writes these fields.** `syncFromRegistry` leaves `startPageURL` and the flag alone. When
+   the registry's `listing_url` catches up with a start page set in the app, sync clears `startPageURL`, since the
+   registry now agrees.
+4. **A flag for "this isn't working".** `Source.flaggedAt` and `Source.flagNote`, synced. **Flag** (Capture tab
+   and Sources) takes a short note, such as "opens on the homepage" or "captures nothing". A flagged source shows a
+   flag in the Capture panel and Sources, and Sources lists flagged sources first. **Unflag** clears both. The flag
+   changes nothing about checking or due dates. It tells the architect which sources need an adapter, helper or
+   registry fix, and the check report carries it ([efforts/check-report.md](../efforts/check-report.md)).
+
+### Consequences
+
+- The registry stays the source of truth for everything else. A start page Jon sets is a quick fix until the
+  registry catches up, and a flag is a to-do for the architect.
+- Three synced columns on `Source`, added to the Development schema.

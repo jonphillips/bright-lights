@@ -4,6 +4,14 @@
 
 - **Editorial signal.** How does a critic's pick attach to a listing? And which editorial sources are usable at all
   (NYT paywall, usage rights)?
+- **The taste work (M2).** ADR-0006 keeps the evidence: a `TasteRecord` for every keep, clear, pass, booking and
+  visit, outliving its listing. Still open:
+  - How the counts and the model rank New, and whether ranking means sorting, pre-selecting rows, or both.
+  - Whether the model may ever clear a listing without Jon's tap. Jon decides, once he's seen its suggestions.
+  - Where taste notes live (Galavant ADR-0053 D2 is the model).
+  - How long taste records last, and how many go into one prompt: a year of clears is thousands of rows, too many to
+    send whole.
+  - Whether it runs on the checking Mac each night, so New arrives already sorted.
 - **Favorites list.** Opportunistic sources need one, so it needs a minimal home.
 - **Places.** Restaurants and bars near the apartment: in scope for v1 or not? If yes, lift Galavant's places parts
   rather than copying them.
@@ -47,4 +55,5 @@
   automated sources failed on the mini's first nights. Each one's `lastCheckNote` on the Sources screen, and the
   mini's `SourceChecks` log, give the reason. Sort them into: a site change or adapter fix (a dispatch), a challenge
   or 403 (move the source to manual in the registry, since nothing works around it), or a transient error (no
-  action). A failing source shows in Rounds after three failures, so S5 covers the gap in the meantime.
+  action). A failing source shows in Rounds after three failures, so S5 covers the gap in the meantime. Once
+  `source-fixes` lands, Jon flags the broken ones in the app, and the flags are this list.

@@ -4,6 +4,9 @@
 Wendy is a share, not a migration. Listings sync like any other row. Writers change a row only when its content
 changes, so nightly checks don't churn CloudKit.*
 
+*Amended 2026-11-20 (Amendment 1, below) by ADR-0006: every listing is deleted 30 days after it ends, reacted or
+not. What was decided about it lives on in the taste record.*
+
 ## Context
 
 Jon curates now, and Wendy joins later as a full peer with no ceremony (BRAINSTORM, settled). jon-platform's
@@ -47,3 +50,16 @@ they change constantly. The survey found about 1,500 future listings across the 
   TestFlight in M2, and every synced column added in M1 is named carefully (house schema hygiene).
 - Inviting Wendy needs no data work: it's `share(record:)` on the household (jon-platform persistence-and-sync,
   "Creating and accepting the share").
+
+## Amendment 1 — what's deleted, and when (2026-11-20)
+
+ADR-0006 adds screening (`kept` and `cleared` reactions) and a `TasteRecord` that outlives its listing. Decision 3's
+deletion rule changes:
+
+- **Every listing is deleted 30 days after it ends** (`closesAt`, else `startsAt`), whether or not it has a
+  reaction. Its reaction is deleted with it, by the existing cascade.
+- **The taste record keeps the history.** "Listings with reactions are kept, because they're the history the taste
+  work reads" no longer applies. The taste work reads `TasteRecord` instead (ADR-0006 decision 7).
+- **Nothing is deleted before it ends.** A `missing` listing, and a `cleared` one, stay until 30 days after their
+  date, as before. A cleared listing must stay, because it's what keeps the next capture from showing it again.
+- Deletion still runs on the checking Mac after each run (`Listing.pruneExpired`), and the deletes sync.
