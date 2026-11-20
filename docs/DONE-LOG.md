@@ -14,6 +14,7 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 - **Result:** Added polite scheduled source checks on the Mac, change-only listing upserts, check outcomes, model-call rationing, and CloudKit convergence for seeded Household and Source records. Confirmed Irving Plaza is a single-page source and removed the incorrect Mercury East adapter assignment.
 - **Verification:** scripts/check-drift.sh passed all 46 package tests, strict lint, and iOS and macOS builds, including final review fixes for typed checker keys, key removal, and Mercury Lounge pagination. Two live Check all passes covered all 29 automated sources; the second wrote 0 rows. After a fresh-store sync and restart, SQLiteData reported 1 Household, 44 Sources, 867 Listings, 912 server-known records, 0 unsynced records, and 0 pending zone changes.
 - **Owed:** M1 S3's device gate, in [device-passes.md](device-passes.md).
+- **Device gate:** passed on Jon's device report of 2026-11-20. The Mac holds the checking role, and most of the eligible automated sources ran and wrote listings, which show on the Mac and the iPad. A few sources failed; that follow-up is in [open-questions.md](open-questions.md).
 
 ## 2026-11-18 — Bright Lights app scaffold, shared schema, and seeded sources (`codex/m1-s2-app-scaffold-schema-seeded-sources`)
 
