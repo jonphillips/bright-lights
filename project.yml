@@ -41,6 +41,23 @@ targets:
           - iCloud.com.jonphillips.BrightLights
         com.apple.developer.icloud-services:
           - CloudKit
+    postBuildScripts:
+      - name: Write build stamp
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - $(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)
+          - $(SRCROOT)/scripts/write-build-stamp
+          - $(SRCROOT)/scripts/apply-build-stamp
+          - $(DERIVED_FILE_DIR)/bright-lights-build-stamp.plist
+        outputFiles:
+          - $(TARGET_BUILD_DIR)/$(INFOPLIST_PATH)
+          - $(DERIVED_FILE_DIR)/bright-lights-build-stamp
+        script: |
+          set -euo pipefail
+          "$SRCROOT/scripts/apply-build-stamp" \
+            "$TARGET_BUILD_DIR/$INFOPLIST_PATH" \
+            "$DERIVED_FILE_DIR/bright-lights-build-stamp.plist"
+          touch "$DERIVED_FILE_DIR/bright-lights-build-stamp"
     info:
       path: BrightLights/Info.plist
       properties:
@@ -82,3 +99,11 @@ targets:
     supportedDestinations: [iOS, macOS]
     scheme:
       testTargets: []
+      preActions:
+        - name: Write build stamp metadata
+          settingsTarget: BrightLights
+          script: |
+            set -euo pipefail
+            stamp_plist="$DERIVED_FILE_DIR/bright-lights-build-stamp.plist"
+            /usr/bin/plutil -create xml1 "$stamp_plist"
+            "$SRCROOT/scripts/write-build-stamp" "$stamp_plist" "$SRCROOT"

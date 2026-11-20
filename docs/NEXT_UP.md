@@ -1,6 +1,6 @@
-# Next Up — Install Bright Lights on the Mac
+# Next Up — Screening, and the taste record
 
-**Slices:** effort `mac-installer`
-**Briefs:** [docs/efforts/mac-installer.md](efforts/mac-installer.md)
+**Slices:** effort `screening`
+**Briefs:** [docs/efforts/screening.md](efforts/screening.md)
 **Done when:** per the brief
 **Owed:** see [device-passes.md](device-passes.md)
