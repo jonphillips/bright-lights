@@ -9,7 +9,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
   case comingUp
   case stays
   case sources
-  case rounds
+  case capture
 
   var id: Self { self }
   var title: String {
@@ -18,7 +18,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
     case .comingUp: "Coming up"
     case .stays: "Stays"
     case .sources: "Sources"
-    case .rounds: "Rounds"
+    case .capture: "Capture"
     }
   }
   var symbol: String {
@@ -27,7 +27,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
     case .comingUp: "calendar"
     case .stays: "house"
     case .sources: "building.2"
-    case .rounds: "checklist"
+    case .capture: "safari"
     }
   }
 }
@@ -37,46 +37,54 @@ struct AppContainer: View {
   @SceneStorage("brightLights.selection") private var storedSelection = ""
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
   @FetchAll(Source.active.order(by: \.name)) private var sources
-  @State private var selection: AppScreen? = .comingUp
+  @State private var router: AppRouter
   @State private var filter = WhatsOnFilter.all
-  @State private var browserModel = BrowserModel()
+  @State private var browserModel: BrowserModel
+
+  init() {
+    let browserModel = BrowserModel()
+    _browserModel = State(initialValue: browserModel)
+    _router = State(initialValue: AppRouter(browserModel: browserModel))
+  }
 
   private var roundsBadgeCount: Int { RoundsProjection(sources: sources, stays: stays, now: .now).badgeCount }
 
   var body: some View {
+    @Bindable var router = router
     Group {
       if horizontalSizeClass == .compact {
-        TabView(selection: $selection) {
+        TabView(selection: $router.selection) {
           ForEach(AppScreen.allCases) { screen in
             NavigationStack { destination(for: screen) }
               .tag(screen as AppScreen?)
               .tabItem { Label(screen.title, systemImage: screen.symbol) }
-              .badge(screen == .rounds ? roundsBadgeCount : 0)
+              .badge(screen == .capture ? roundsBadgeCount : 0)
           }
         }
       } else {
         NavigationSplitView {
-          List(AppScreen.allCases, selection: $selection) { screen in
+          List(AppScreen.allCases, selection: $router.selection) { screen in
             HStack {
               Label(screen.title, systemImage: screen.symbol)
               Spacer()
-              if screen == .rounds, roundsBadgeCount > 0 {
+              if screen == .capture, roundsBadgeCount > 0 {
                 Text(roundsBadgeCount.formatted()).font(.caption).foregroundStyle(.secondary)
               }
             }
           }
           .navigationTitle("Bright Lights")
         } detail: {
-          NavigationStack { destination(for: selection ?? .comingUp) }
+          NavigationStack { destination(for: router.selection ?? .comingUp) }
         }
       }
     }
     .environment(browserModel)
+    .environment(router)
     .onAppear {
-      if let restored = AppScreen(rawValue: storedSelection) { selection = restored }
-      else { selection = defaultScreen }
+      if let restored = AppScreen(rawValue: storedSelection) { router.selection = restored }
+      else { router.selection = defaultScreen }
     }
-    .onChange(of: selection) { _, value in storedSelection = value?.rawValue ?? "" }
+    .onChange(of: router.selection) { _, value in storedSelection = value?.rawValue ?? "" }
   }
 
   @ViewBuilder
@@ -86,7 +94,7 @@ struct AppContainer: View {
     case .comingUp: WhatsOnScreen(mode: .comingUp, filter: $filter)
     case .stays: StaysView()
     case .sources: SourcesView()
-    case .rounds: RoundsView()
+    case .capture: CaptureScreen()
     }
   }
 
@@ -310,6 +318,7 @@ private struct ListingRow: View {
 }
 
 private struct ListingDetailView: View {
+  @Environment(AppRouter.self) private var router
   let item: WhatsOnItem
   @FetchAll private var reactions: [Reaction]
   @State private var note: String
@@ -334,7 +343,7 @@ private struct ListingDetailView: View {
         LabeledContent("Status", value: item.badge ?? item.listing.status.rawValue.capitalized)
         if let onSale = item.listing.onSaleAt { LabeledContent("On sale", value: nyDateTime(onSale)) }
         if let url = item.listing.ticketURL.flatMap(URL.init(string:)) {
-          NavigationLink { BrowserScreen(url: url) } label: { Label("Tickets", systemImage: "ticket") }
+          Button { router.capture(url) } label: { Label("Tickets", systemImage: "ticket") }
         }
       }
       Section("Your reaction") {

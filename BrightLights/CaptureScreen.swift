@@ -6,27 +6,36 @@ import SwiftUI
 import WebExtractorKit
 import WebKit
 
-struct BrowserScreen: View {
+struct CaptureScreen: View {
   @Environment(BrowserModel.self) private var model
+  @Environment(AppRouter.self) private var router
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @FetchAll(Source.active.order(by: \.name)) private var sources
-  let source: Source?
-  let startingURL: URL?
+  @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
+  @State private var inspectorPresented = false
   @State private var showingReport = false
   @State private var passiveCaptureTask: Task<Void, Never>?
 
-  init(source: Source? = nil, url: URL? = nil) { self.source = source; self.startingURL = url }
+  private var projection: RoundsProjection { RoundsProjection(sources: sources, stays: stays, now: .now) }
 
   var body: some View {
     @Bindable var model = model
     WebBrowserView(
       page: model.page,
-      initialURL: model.initialURL ?? source.flatMap { URL(string: $0.listingURL) } ?? startingURL,
       accessory: { page in
         HStack(spacing: 12) {
-          Button("Mark as checked") {
-            if let current = model.currentRoundsSource ?? source { model.markChecked(current) }
+          let next = projection.next(after: model.currentRoundsSource?.id)
+          Button {
+            if let next { router.capture(next) }
+          } label: {
+            Text(next == nil ? "Round done" : "Next")
           }
-          .disabled(model.currentRoundsSource == nil && source == nil)
+          .disabled(next == nil)
+
+          Button("Mark as checked") {
+            if let current = model.currentRoundsSource { model.markChecked(current) }
+          }
+          .disabled(model.currentRoundsSource == nil)
           Button { Task { await model.capture(page: page, sources: sources) } } label: {
             Label(model.isReading ? "Reading…" : "Capture", systemImage: "plus.circle.fill")
           }
@@ -36,9 +45,9 @@ struct BrowserScreen: View {
           } else if let report = model.report, report.listings.isEmpty {
             Text("No listings found").font(.caption).foregroundStyle(.secondary)
             Button("Mark as checked") {
-              if let current = model.currentRoundsSource ?? source { model.markChecked(current) }
+              if let current = model.currentRoundsSource { model.markChecked(current) }
             }
-            .disabled(model.currentRoundsSource == nil && source == nil)
+            .disabled(model.currentRoundsSource == nil)
           } else if let report = model.report {
             Button { showingReport = true } label: {
               Text("\(report.listings.count) listings from \(report.sourceName) · \(report.newListings) new")
@@ -46,12 +55,25 @@ struct BrowserScreen: View {
           }
         }
       },
-      home: { _ in ContentUnavailableView("Open a source", systemImage: "safari") }
+      home: { _ in
+        RoundsList(onSelect: selectSource)
+      }
     )
-    .navigationTitle(source?.name ?? "Browser")
-    .onAppear {
-      if let source { model.open(source) }
-      else if let startingURL, model.page.url != startingURL { model.open(startingURL) }
+    .navigationTitle("Capture")
+    .toolbar {
+      ToolbarItem(placement: .primaryAction) {
+        Button { inspectorPresented.toggle() } label: {
+          Label("Sources due", systemImage: "sidebar.trailing")
+        }
+        .accessibilityLabel(inspectorPresented ? "Hide sources due" : "Show sources due")
+      }
+    }
+    .inspector(isPresented: $inspectorPresented) {
+      RoundsList(onSelect: selectSource)
+        .inspectorColumnWidth(min: 300, ideal: 360, max: 440)
+    }
+    .onChange(of: horizontalSizeClass, initial: true) { _, sizeClass in
+      inspectorPresented = sizeClass != .compact
     }
     .onChange(of: model.page.url) { _, _ in
       model.navigationStarted()
@@ -97,6 +119,11 @@ struct BrowserScreen: View {
     )) {
       Button("OK", role: .cancel) { model.errorMessage = nil }
     } message: { Text(model.errorMessage ?? "") }
+  }
+
+  private func selectSource(_ source: Source) {
+    router.capture(source)
+    if horizontalSizeClass == .compact { inspectorPresented = false }
   }
 
   private func listingDate(_ listing: ExtractedListing) -> String {

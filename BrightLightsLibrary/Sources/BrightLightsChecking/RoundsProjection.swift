@@ -13,6 +13,10 @@ public struct RoundsProjection: Sendable, Equatable {
   public var upToDate: [Source]
   public var badgeCount: Int { due.count + notReadingAutomatically.count }
 
+  public func next(after currentSourceID: Source.ID?) -> Source? {
+    (due + notReadingAutomatically).first { $0.id != currentSourceID }
+  }
+
   public init(sources: [Source], stays: [Stay], now: Date) {
     let active = sources.filter { $0.retiredAt == nil }
     due = active.filter { source in

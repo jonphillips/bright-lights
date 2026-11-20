@@ -146,5 +146,5 @@ of sources to capture close at hand.
 
 ### Consequences
 
-- The M1 S5 device gate runs on the Capture tab ([efforts/capture-tab.md](../efforts/capture-tab.md)).
+- The M1 S5 device gate runs on the Capture tab ([efforts/archive/capture-tab.md](../efforts/archive/capture-tab.md)).
 - On iPad, Jon can hide the app's sidebar to give the browser more room, since the panel holds the list.

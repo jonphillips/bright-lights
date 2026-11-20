@@ -1,6 +1,6 @@
-# Next Up — The Capture tab
+# Next Up — Install Bright Lights on the Mac
 
-**Slices:** effort `capture-tab`
-**Briefs:** [docs/efforts/capture-tab.md](efforts/capture-tab.md)
+**Slices:** effort `mac-installer`
+**Briefs:** [docs/efforts/mac-installer.md](efforts/mac-installer.md)
 **Done when:** per the brief
 **Owed:** see [device-passes.md](device-passes.md)
