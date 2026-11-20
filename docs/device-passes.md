@@ -3,5 +3,4 @@
 Real-device checks still owed, and held setup steps. A completing PR adds its own line here (jon-platform ADR-0005
 D15).
 
-- **M1 S3:** On the Mac mini, install Bright Lights from Xcode, enable sync, enter the model key, turn on Check sources on this Mac, and approve its login item. After a night, verify on the iPad that automated sources show listings and last-check times. ([M1](milestones/M1-whats-on.md))
 - **M1 S4:** On iPad add a tentative stay covering today, confirm tonight’s listings and the extra-day group, mark two listings Interested and Booked, and add a note. After sync to iPhone verify the stay, reactions, note, and Booked filter; on iPad book the departure and confirm the extra day disappears, with available deadlines visible in Coming up. ([M1](milestones/M1-whats-on.md))
