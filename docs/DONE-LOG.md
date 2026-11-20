@@ -8,6 +8,8 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 - **Result:** Added app-owned start pages and source flags, with registry reconciliation that preserves both fixes and clears a start page when the registry catches up. Prepared and validated the CloudKit Development proposal for the three synced fields.
 - **Verification:** check-drift.sh passed: SwiftLint, 81 package tests, and iOS Simulator and macOS builds.
 - **Owed:** source-fixes's device gate, in [device-passes.md](device-passes.md).
+- **Device gate:** passed on Jon's device report of 2026-11-20, built from `aafe067`. The Development schema was imported first (below). On iPad, Jon set a source's start page from Capture, flagged sources with notes, and saw the flags on iPhone after sync.
+- **Schema:** the architect imported the three `sources` fields into CloudKit Development on 2026-11-20, from a fresh export plus the six new fields. Development matched the proposal afterwards, and Production was unchanged.
 
 ## 2026-11-20 — Capture tab (`effort/capture-tab`)
 
