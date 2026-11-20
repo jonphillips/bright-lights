@@ -3,6 +3,11 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-20 — Capture tab (`effort/capture-tab`)
+
+- **Result:** Replaced the Rounds and Browser screens with a Capture tab that keeps one browser page, presents due sources in an inspector and home list, advances with Next, and routes source and ticket actions into Capture.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint, BrightLightsLibrary tests (78 tests), and iOS/macOS builds.
+
 ## 2026-11-19 — Rounds and browser capture (`m1/s5-rounds-browser-capture`)
 
 - **Result:** Added Rounds with due-source groups and a persistent in-app browser. Browser captures use the shared extraction and listing reconciliation path, record browser provenance, and cache page extraction for the app session.

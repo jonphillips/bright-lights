@@ -26,6 +26,42 @@ struct RoundsAndBrowserCaptureTests {
     #expect(result.badgeCount == 3)
   }
 
+  @Test func nextSourceSkipsCurrentAndMovesFromDueToManualLook() {
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
+    let first = source("A due", mode: .manual)
+    let current = source("B due", mode: .manual)
+    var failed = source("C failed", mode: .automated)
+    failed.consecutiveFailures = Source.manualLookFailureThreshold
+    let result = RoundsProjection(sources: [first, current, failed], stays: [], now: now)
+
+    #expect(result.next(after: nil)?.id == first.id)
+    #expect(result.next(after: first.id)?.id == current.id)
+    #expect(result.next(after: current.id)?.id == first.id)
+
+    let lastDue = RoundsProjection(sources: [current, failed], stays: [], now: now)
+    #expect(lastDue.next(after: current.id)?.id == failed.id)
+  }
+
+  @Test func nextSourceStartsAtTopAfterCurrentLeavesDue() {
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
+    let checked = source("Already checked", mode: .manual, lastCheckedAt: now)
+    let due = source("Still due", mode: .manual)
+    let result = RoundsProjection(sources: [checked, due], stays: [], now: now)
+
+    #expect(result.due.map(\.id) == [due.id])
+    #expect(result.next(after: checked.id)?.id == due.id)
+  }
+
+  @Test func nextSourceIsNilWhenGroupsAreEmptyOrOnlyContainCurrent() {
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
+    let current = source("Current", mode: .manual)
+    let due = RoundsProjection(sources: [current], stays: [], now: now)
+    let empty = RoundsProjection(sources: [], stays: [], now: now)
+
+    #expect(due.next(after: current.id) == nil)
+    #expect(empty.next(after: nil) == nil)
+  }
+
   @Test func manualWeeklySourcesUseNightlyCadenceDuringStay() {
     let now = Date(timeIntervalSince1970: 1_900_000_000)
     let checked = now.addingTimeInterval(-24 * 60 * 60)

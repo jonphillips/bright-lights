@@ -53,6 +53,7 @@ private struct SourceRow: View {
 }
 
 private struct SourceDetailView: View {
+  @Environment(AppRouter.self) private var router
   let source: Source
   @FetchAll private var listings: [Listing]
 
@@ -95,8 +96,8 @@ private struct SourceDetailView: View {
         }
       }
       Section("Capture") {
-        NavigationLink {
-          BrowserScreen(source: source)
+        Button {
+          router.capture(source)
         } label: {
           Label("Open in browser", systemImage: "safari")
         }

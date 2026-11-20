@@ -4,7 +4,7 @@
 panel beside it, and **Next** steps through a round without leaving the browser. Every other way into the browser
 switches to this tab. No schema change.
 
-**Implements:** [ADR-0005 Amendment 2](../decisions/0005-rounds-and-browser-capture.md#amendment-2--the-capture-tab-2026-11-20).
+**Implements:** [ADR-0005 Amendment 2](../../decisions/0005-rounds-and-browser-capture.md#amendment-2--the-capture-tab-2026-11-20).
 **Builds on:** M1 S5 (PR #16): `RoundsProjection`, `BrowserModel`, `BrowserScreen`, `RoundsView`, and the
 `SourcesView` fix in 53e94bd.
 
