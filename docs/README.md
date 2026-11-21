@@ -13,6 +13,7 @@
 - [Product brief](PRODUCT.md)
 - [Decisions](decisions/README.md)
 - [M1 — What's on](milestones/archive/M1-whats-on.md)
+- [M2 — Wendy joins](milestones/M2-wendy-joins.md)
 - [Product brainstorm](BRAINSTORM.md)
 - [Event source survey](sources/SURVEY.md)
 - [Source survey data](sources/survey.json)

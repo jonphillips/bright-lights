@@ -1,6 +1,6 @@
 # ADR-0007: Places — a map and an ideas list, with one shared standing per place
 
-*Status: proposed — 2026-11-21. Summary: A **place** is anything with a spot on the map that Jon and Wendy hold an
+*Status: accepted — 2026-11-21 (PR #28). Summary: A **place** is anything with a spot on the map that Jon and Wendy hold an
 opinion about: a restaurant, a bar, a park, a shop, a walk, the Cyclone. Each place has one shared **standing**,
 which is the check sheet: to try (high, normal or someday), tried (our place, would return, or once was enough), or
 not for us. Visits are a dated log under the place. A place can have a **season**, like the Christmas windows or
