@@ -72,16 +72,13 @@ public extension Listing {
     return writes
   }
 
-  /// Prunes expired unreacted rows with one DELETE and a correlated reaction check.
+  /// Removes listings 30 days after their end date. Taste records keep decisions alive.
   static func pruneExpired(before cutoff: Date, in db: Database) throws {
+    _ = try TasteRecord.backfill(in: db)
     try #sql(
       """
       DELETE FROM \(Listing.self)
       WHERE COALESCE(\(Listing.closesAt), \(Listing.startsAt)) < \(cutoff)
-        AND NOT EXISTS (
-          SELECT 1 FROM \(Reaction.self)
-          WHERE \(Reaction.listingID) = \(Listing.id)
-        )
       """
     ).execute(db)
   }

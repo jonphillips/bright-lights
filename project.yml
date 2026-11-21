@@ -105,5 +105,6 @@ targets:
           script: |
             set -euo pipefail
             stamp_plist="$DERIVED_FILE_DIR/bright-lights-build-stamp.plist"
+            mkdir -p "$DERIVED_FILE_DIR"
             /usr/bin/plutil -create xml1 "$stamp_plist"
             "$SRCROOT/scripts/write-build-stamp" "$stamp_plist" "$SRCROOT"

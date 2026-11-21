@@ -23,6 +23,7 @@ struct BrightLightsApp: App {
         try $0.defaultDatabase.write { db in
           _ = try Household.ensureDefault(in: db)
           try Source.syncFromRegistry(in: db)
+          _ = try TasteRecord.backfill(in: db)
         }
       }
     } catch {
@@ -56,6 +57,7 @@ private func startSyncIfEnabled() async {
     try await database.write { db in
       _ = try Household.ensureDefault(in: db)
       try Source.syncFromRegistry(in: db)
+      _ = try TasteRecord.backfill(in: db)
     }
     try await engine.syncChanges()
   } catch {

@@ -7,27 +7,30 @@ import BrightLightsSchema
 enum AppScreen: String, CaseIterable, Identifiable {
   case whileHere
   case comingUp
+  case new
+  case capture
   case stays
   case sources
-  case capture
 
   var id: Self { self }
   var title: String {
     switch self {
     case .whileHere: "While we're here"
     case .comingUp: "Coming up"
+    case .new: "New"
+    case .capture: "Capture"
     case .stays: "Stays"
     case .sources: "Sources"
-    case .capture: "Capture"
     }
   }
   var symbol: String {
     switch self {
     case .whileHere: "moon.stars"
     case .comingUp: "calendar"
+    case .new: "tray.full"
+    case .capture: "safari"
     case .stays: "house"
     case .sources: "building.2"
-    case .capture: "safari"
     }
   }
 }
@@ -37,8 +40,12 @@ struct AppContainer: View {
   @SceneStorage("brightLights.selection") private var storedSelection = ""
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
   @FetchAll(Source.active.order(by: \.name)) private var sources
+  @FetchAll(Listing.canonical) private var listings
+  @FetchAll private var reactions: [Reaction]
+  @FetchAll private var tasteRecords: [TasteRecord]
   @State private var router: AppRouter
-  @State private var filter = WhatsOnFilter.all
+  @State private var newPath: [Source.ID] = []
+  @State private var filter = WhatsOnFilter.picked
   @State private var browserModel: BrowserModel
   @State private var sourceFixesModel = SourceFixesModel()
 
@@ -52,14 +59,18 @@ struct AppContainer: View {
 
   var body: some View {
     @Bindable var router = router
+    let newBadgeCount = NewProjection(
+      listings: listings, sources: sources, reactions: reactions,
+      tasteRecordIDs: Set(tasteRecords.map(\.id)), now: .now
+    ).total
     Group {
       if horizontalSizeClass == .compact {
         TabView(selection: $router.selection) {
           ForEach(AppScreen.allCases) { screen in
-            NavigationStack { destination(for: screen) }
+            navigationStack(for: screen)
               .tag(screen as AppScreen?)
               .tabItem { Label(screen.title, systemImage: screen.symbol) }
-              .badge(screen == .capture ? roundsBadgeCount : 0)
+              .badge(screen == .capture ? roundsBadgeCount : screen == .new ? newBadgeCount : 0)
           }
         }
       } else {
@@ -70,12 +81,14 @@ struct AppContainer: View {
               Spacer()
               if screen == .capture, roundsBadgeCount > 0 {
                 Text(roundsBadgeCount.formatted()).font(.caption).foregroundStyle(.secondary)
+              } else if screen == .new, newBadgeCount > 0 {
+                Text(newBadgeCount.formatted()).font(.caption).foregroundStyle(.secondary)
               }
             }
           }
           .navigationTitle("Bright Lights")
         } detail: {
-          NavigationStack { destination(for: router.selection ?? .comingUp) }
+          navigationStack(for: router.selection ?? .comingUp)
         }
       }
     }
@@ -94,9 +107,19 @@ struct AppContainer: View {
     switch screen {
     case .whileHere: WhatsOnScreen(mode: .whileHere, filter: $filter)
     case .comingUp: WhatsOnScreen(mode: .comingUp, filter: $filter)
+    case .new: NewScreen(path: $newPath)
+    case .capture: CaptureScreen()
     case .stays: StaysView()
     case .sources: SourcesView()
-    case .capture: CaptureScreen()
+    }
+  }
+
+  @ViewBuilder
+  private func navigationStack(for screen: AppScreen) -> some View {
+    if screen == .new {
+      NavigationStack(path: $newPath) { destination(for: screen) }
+    } else {
+      NavigationStack { destination(for: screen) }
     }
   }
 
@@ -107,6 +130,45 @@ struct AppContainer: View {
 }
 
 private enum WhatsOnMode { case whileHere, comingUp }
+
+private struct NewScreen: View {
+  @Binding var path: [Source.ID]
+  @FetchAll(Listing.canonical.order(by: \.startsAt)) private var listings: [Listing]
+  @FetchAll(Source.active.order(by: \.name)) private var sources: [Source]
+  @FetchAll private var reactions: [Reaction]
+  @FetchAll private var tasteRecords: [TasteRecord]
+
+  var body: some View {
+    let projection = NewProjection(
+      listings: listings, sources: sources, reactions: reactions,
+      tasteRecordIDs: Set(tasteRecords.map(\.id)), now: .now
+    )
+    Group {
+      if projection.groups.isEmpty && path.isEmpty {
+        ContentUnavailableView("Nothing new", systemImage: "tray.full")
+      } else {
+        List(projection.groups) { group in
+          NavigationLink(value: group.source.id) {
+            HStack {
+              Text(group.source.name)
+              Spacer()
+              Text(group.count.formatted()).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+            }
+          }
+        }
+      }
+    }
+    .navigationTitle("New")
+    .navigationDestination(for: Source.ID.self) { sourceID in
+      if let source = sources.first(where: { $0.id == sourceID }) {
+        let rows = projection.groups.first(where: { $0.source.id == sourceID })?.listings ?? []
+        ScreenList(source: source, listings: rows, onDone: { path.removeAll() })
+      } else {
+        ContentUnavailableView("Source unavailable", systemImage: "building.2")
+      }
+    }
+  }
+}
 
 private struct WhatsOnScreen: View {
   let mode: WhatsOnMode
@@ -264,7 +326,11 @@ private struct WhatsOnScreen: View {
     Button("Booked") { setReaction(.booked, for: item) }
     Button("Pass") { setReaction(.pass, for: item) }
     if item.listing.startsAt <= .now { Button("Went") { setReaction(.went, for: item) } }
-    Button("Clear reaction", role: .destructive) { clearReaction(for: item) }
+    if item.reaction == nil {
+      Button("Clear") { setReaction(.cleared, for: item) }
+    } else {
+      Button("Remove reaction") { setReaction(.kept, for: item) }
+    }
   }
 
   private func setReaction(_ kind: ReactionKind, for item: WhatsOnItem) {
@@ -272,14 +338,6 @@ private struct WhatsOnScreen: View {
     let reaction = Reaction(id: UUID(), listingID: item.listing.id, kind: kind, note: item.reaction?.note, updatedAt: .now)
     Task {
       do { try await database.write { db in try Reaction.upsertForListing(reaction, in: db) } }
-      catch { reactionError = error.localizedDescription; showingReactionError = true }
-    }
-  }
-
-  private func clearReaction(for item: WhatsOnItem) {
-    @Dependency(\.defaultDatabase) var database
-    Task {
-      do { try await database.write { db in try Reaction.clear(listingID: item.listing.id, in: db) } }
       catch { reactionError = error.localizedDescription; showingReactionError = true }
     }
   }
@@ -340,19 +398,19 @@ private struct ListingDetailView: View {
       Section(item.listing.title) {
         LabeledContent("Venue", value: item.sourceName)
         if let room = item.listing.room { LabeledContent("Room", value: room) }
-        LabeledContent("Performers", value: performerNames(item.listing.performers))
-        LabeledContent("When", value: item.listing.closesAt.map { "\(nyDateTime(item.listing.startsAt)) – \(nyDateTime($0))" } ?? nyDateTime(item.listing.startsAt))
+        LabeledContent("Performers", value: ListingDisplay.performerNames(item.listing.performers))
+        LabeledContent("When", value: item.listing.closesAt.map { "\(ListingDisplay.newYorkDateTime(item.listing.startsAt)) – \(ListingDisplay.newYorkDateTime($0))" } ?? ListingDisplay.newYorkDateTime(item.listing.startsAt))
         LabeledContent("Status", value: item.badge ?? item.listing.status.rawValue.capitalized)
-        if let onSale = item.listing.onSaleAt { LabeledContent("On sale", value: nyDateTime(onSale)) }
+        if let onSale = item.listing.onSaleAt { LabeledContent("On sale", value: ListingDisplay.newYorkDateTime(onSale)) }
         if let url = item.listing.ticketURL.flatMap(URL.init(string:)) {
           Button { router.capture(url) } label: { Label("Tickets", systemImage: "ticket") }
         }
       }
       Section("Your reaction") {
-        ForEach([ReactionKind.interested, .booked, .pass, .went], id: \.self) { kind in
+        ForEach([ReactionKind.kept, .interested, .booked, .went, .pass], id: \.self) { kind in
           Button { save(kind) } label: {
             HStack {
-              Text(kind.rawValue.capitalized)
+              Text(kind.title)
               Spacer()
               if currentReaction?.kind == kind { Image(systemName: "checkmark.circle.fill") }
             }
@@ -365,7 +423,9 @@ private struct ListingDetailView: View {
         Button("Save note") { saveNote() }
           .disabled(currentReaction == nil)
         if currentReaction != nil {
-          Button("Clear reaction", role: .destructive) { clear() }
+          Button("Remove reaction") { save(.kept) }
+        } else {
+          Button("Clear") { save(.cleared) }
         }
       }
     }
@@ -388,13 +448,6 @@ private struct ListingDetailView: View {
     save(kind)
   }
 
-  private func clear() {
-    @Dependency(\.defaultDatabase) var database
-    Task {
-      do { try await database.write { db in try Reaction.clear(listingID: item.listing.id, in: db) } }
-      catch { errorMessage = error.localizedDescription; showingError = true }
-    }
-  }
 }
 
 private struct PassedListingsView: View {
@@ -420,14 +473,6 @@ private func nyTime(_ date: Date) -> String {
   return formatter.string(from: date)
 }
 
-private func nyDateTime(_ date: Date) -> String {
-  let formatter = DateFormatter()
-  formatter.timeZone = Calendar.newYork.timeZone
-  formatter.dateStyle = .full
-  formatter.timeStyle = .short
-  return formatter.string(from: date) + (TimeZone.current.identifier == "America/New_York" ? "" : " ET")
-}
-
 private func nyDate(_ date: Date) -> String {
   let formatter = DateFormatter()
   formatter.timeZone = Calendar.newYork.timeZone
@@ -443,17 +488,13 @@ private func nyWeekdayDate(_ date: Date) -> String {
   return formatter.string(from: date)
 }
 
-private func performerNames(_ json: String) -> String {
-  guard let data = json.data(using: .utf8),
-    let performers = try? JSONDecoder().decode([String].self, from: data) else { return json }
-  return performers.joined(separator: ", ")
-}
-
 private func reactionSymbol(_ reaction: ReactionKind) -> String {
   switch reaction {
+  case .kept: "checkmark"
   case .interested: "heart.fill"
   case .booked: "ticket.fill"
   case .went: "checkmark.circle.fill"
   case .pass: "eye.slash"
+  case .cleared: "xmark"
   }
 }

@@ -306,32 +306,131 @@ struct SchemaTests {
     }
   }
 
-  @Test func clearingReactionRemovesEveryOfflineDuplicate() async throws {
-    let sourceID = UUID()
-    try await createSource(id: sourceID)
-    let listing = try makeListing(sourceID: sourceID, key: "clear-test", title: "Clear test")
-    let first = Reaction(id: UUID(), listingID: listing.id, kind: .booked)
-    let duplicate = Reaction(id: UUID(), listingID: listing.id, kind: .interested)
-    try await database.write { db in
-      try Listing.insert { Listing.Draft(listing) }.execute(db)
-      try Reaction.insert { Reaction.Draft(first); Reaction.Draft(duplicate) }.execute(db)
-      try Reaction.clear(listingID: listing.id, in: db)
-      #expect(try Reaction.where { $0.listingID.eq(listing.id) }.fetchCount(db) == 0)
-    }
-  }
-
-  @Test func pruningDeletesOnlyPastListingsWithoutReactions() async throws {
+  @Test func pruningDeletesExpiredListingsAndTheirReactionsButKeepsTasteRecords() async throws {
     let sourceID = UUID()
     try await createSource(id: sourceID)
     let cutoff = Date(timeIntervalSince1970: 1_900_000_000)
-    let unreacted = try makeListing(sourceID: sourceID, key: "old-unreacted", title: "Old", date: cutoff.addingTimeInterval(-1))
-    let reacted = try makeListing(sourceID: sourceID, key: "old-reacted", title: "Kept", date: cutoff.addingTimeInterval(-1))
+    let expired = try makeListing(sourceID: sourceID, key: "old-reacted", title: "Kept", date: cutoff.addingTimeInterval(-1))
+    let future = try makeListing(sourceID: sourceID, key: "future-cleared", title: "Cleared", date: cutoff.addingTimeInterval(86_400))
+    let reaction = Reaction(id: UUID(), listingID: expired.id, kind: .kept, updatedAt: cutoff.addingTimeInterval(-100))
     try await database.write { db in
-      try Listing.insert { Listing.Draft(unreacted); Listing.Draft(reacted) }.execute(db)
-      try Reaction.insert { Reaction.Draft(Reaction(id: UUID(), listingID: reacted.id, kind: .went)) }.execute(db)
+      try Listing.insert { Listing.Draft(expired); Listing.Draft(future) }.execute(db)
+      try Reaction.insert { Reaction.Draft(reaction) }.execute(db)
+      try Reaction.insert { Reaction.Draft(Reaction(id: UUID(), listingID: future.id, kind: .cleared)) }.execute(db)
       try Listing.pruneExpired(before: cutoff, in: db)
-      #expect(try Listing.find(unreacted.id).fetchOne(db) == nil)
-      #expect(try Listing.find(reacted.id).fetchOne(db) != nil)
+      #expect(try Listing.find(expired.id).fetchOne(db) == nil)
+      #expect(try Reaction.where { $0.listingID.eq(expired.id) }.fetchCount(db) == 0)
+      #expect(try TasteRecord.fetchCount(db) == 2)
+      #expect(try Listing.find(future.id).fetchOne(db) != nil)
+    }
+  }
+
+  @Test func tasteRecordIDIsStableAndInputSensitiveWithVersionEightBits() {
+    let household = UUID(uuidString: "00000000-0000-0000-0000-000000000001")!
+    let expected = TasteRecord.id(householdID: household, sourceRegistryID: "venue", stableKey: "event")
+    #expect(expected == TasteRecord.id(householdID: household, sourceRegistryID: "venue", stableKey: "event"))
+    #expect(expected != TasteRecord.id(householdID: UUID(), sourceRegistryID: "venue", stableKey: "event"))
+    #expect(expected != TasteRecord.id(householdID: household, sourceRegistryID: "other", stableKey: "event"))
+    #expect(expected != TasteRecord.id(householdID: household, sourceRegistryID: "venue", stableKey: "other"))
+    let bytes = withUnsafeBytes(of: expected.uuid) { Array($0) }
+    #expect(bytes[6] >> 4 == 8)
+    #expect(bytes[8] >> 6 == 2)
+  }
+
+  @Test func reactionsUpsertTasteRecordAndPreserveFirstDecisionTime() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let listing = try makeListing(sourceID: sourceID, key: "taste-upsert", title: "Show")
+    let first = Date(timeIntervalSince1970: 1_800_000_000)
+    let later = first.addingTimeInterval(300)
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(listing) }.execute(db)
+      try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .kept, note: "first", updatedAt: first), in: db)
+      try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .booked, note: "later", updatedAt: later), in: db)
+      let household = try #require(try Source.find(sourceID).fetchOne(db)?.householdID)
+      let id = TasteRecord.id(householdID: household, sourceRegistryID: sourceID.uuidString, stableKey: listing.stableKey)
+      let record = try #require(try TasteRecord.find(id).fetchOne(db))
+      #expect(record.kind == .booked)
+      #expect(record.note == "later")
+      #expect(record.firstDecidedAt == first)
+      #expect(record.updatedAt == later)
+      #expect(record.title == listing.title)
+    }
+  }
+
+  @Test func screeningWritesKeptAndClearedAndSkipsExistingReactions() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let existing = try makeListing(sourceID: sourceID, key: "already", title: "Already reacted")
+    let kept = try makeListing(sourceID: sourceID, key: "kept", title: "Keep")
+    let cleared = try makeListing(sourceID: sourceID, key: "cleared", title: "Clear")
+    let time = Date(timeIntervalSince1970: 1_800_000_000)
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(existing); Listing.Draft(kept); Listing.Draft(cleared) }.execute(db)
+      try Reaction.insert { Reaction.Draft(Reaction(id: UUID(), listingID: existing.id, kind: .booked)) }.execute(db)
+      let written = try Reaction.screen(kept: [existing.id, kept.id], cleared: [cleared.id], authorID: nil, now: time, in: db)
+      #expect(written == 2)
+      #expect(try Reaction.where { $0.listingID.eq(existing.id) }.fetchOne(db)?.kind == .booked)
+      #expect(try Reaction.where { $0.listingID.eq(kept.id) }.fetchOne(db)?.kind == .kept)
+      #expect(try Reaction.where { $0.listingID.eq(cleared.id) }.fetchOne(db)?.kind == .cleared)
+      #expect(try TasteRecord.fetchCount(db) == 2)
+    }
+  }
+
+  @Test func tasteBackfillIsIdempotent() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let listing = try makeListing(sourceID: sourceID, key: "backfill", title: "Legacy reaction")
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(listing) }.execute(db)
+      try Reaction.insert { Reaction.Draft(Reaction(id: UUID(), listingID: listing.id, kind: .interested)) }.execute(db)
+      #expect(try TasteRecord.backfill(in: db) == 1)
+      #expect(try TasteRecord.backfill(in: db) == 0)
+      #expect(try TasteRecord.fetchCount(db) == 1)
+    }
+  }
+
+  @Test func recapturingClearedListingDoesNotMakeItNewAgain() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let listing = try makeListing(sourceID: sourceID, key: "screened", title: "Already cleared")
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(listing) }.execute(db)
+      try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .cleared, updatedAt: now), in: db)
+      _ = try Listing.reconcile([extracted("screened", title: listing.title)], sourceID: sourceID,
+        complete: false, now: now, makeID: UUID.init, in: db)
+      let source = try #require(try Source.find(sourceID).fetchOne(db))
+      let currentListing = try #require(try Listing.find(listing.id).fetchOne(db))
+      let reaction = try #require(try Reaction.where { $0.listingID.eq(listing.id) }.fetchOne(db))
+      let projection = NewProjection(
+        listings: [currentListing], sources: [source], reactions: [reaction], tasteRecordIDs: [], now: now
+      )
+      #expect(projection.total == 0)
+    }
+  }
+
+  @Test func duplicateListingRowsShareTheScreeningDecision() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let first = try makeListing(sourceID: sourceID, key: "duplicate-event", title: "Same event")
+    let second = try makeListing(sourceID: sourceID, key: "duplicate-event", title: "Same event")
+    let now = Date(timeIntervalSince1970: 1_800_000_000)
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(first); Listing.Draft(second) }.execute(db)
+      try Reaction.upsertForListing(
+        Reaction(id: UUID(), listingID: first.id, kind: .cleared, updatedAt: now), in: db
+      )
+      let source = try #require(try Source.find(sourceID).fetchOne(db))
+      let tasteRecord = try #require(try TasteRecord.fetchAll(db).first)
+      let projection = NewProjection(
+        listings: [first, second], sources: [source], reactions: [Reaction(id: UUID(), listingID: first.id, kind: .cleared)],
+        tasteRecordIDs: [tasteRecord.id], now: now
+      )
+      #expect(projection.total == 0)
+      let written = try Reaction.screen(kept: [], cleared: [second.id], authorID: nil, now: now, in: db)
+      #expect(written == 0)
+      #expect(try Reaction.where { $0.listingID.eq(second.id) }.fetchOne(db) == nil)
     }
   }
 

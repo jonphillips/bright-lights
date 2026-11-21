@@ -1,15 +1,17 @@
 import Foundation
 
 public enum WhatsOnFilter: String, CaseIterable, Hashable, Sendable {
-  case all
+  case picked
   case interestedAndBooked
   case booked
+  case everything
 
   public var title: String {
     switch self {
-    case .all: "All"
+    case .picked: "Picked"
     case .interestedAndBooked: "Interested & booked"
     case .booked: "Booked"
+    case .everything: "Everything"
     }
   }
 }
@@ -101,7 +103,7 @@ public struct WhatsOnProjection: Sendable {
       $0.listing.startsAt < windowEnd && ($0.listing.startsAt >= today || ($0.listing.closesAt.map { $0 >= today } ?? false))
     }
     showEverythingByWeek = Self.weekGroups(allWindowItems, today: today, calendar: calendar, note: nil)
-    let deadlineItems = allItems.filter { Self.isListable($0) && $0.reaction?.kind != .pass }
+    let deadlineItems = allItems.filter { Self.isListable($0) && $0.reaction?.kind.isHidden != true }
     deadlines = Self.makeDeadlines(deadlineItems, stays: sortedStays, now: now, today: today, windowEnd: windowEnd, calendar: calendar)
   }
 
@@ -147,7 +149,7 @@ public struct WhatsOnProjection: Sendable {
   private static func visibleItems(_ items: [WhatsOnItem], now: Date, calendar: Calendar) -> [WhatsOnItem] {
     items.filter { item in
       guard isListable(item) else { return false }
-      guard item.reaction?.kind != .pass else { return false }
+      guard item.reaction?.kind.isHidden != true else { return false }
       return isOn(item.listing, at: now, calendar: calendar)
     }.sorted(by: itemOrder)
   }
@@ -216,9 +218,10 @@ public struct WhatsOnProjection: Sendable {
   public func filtered(_ items: [WhatsOnItem], by filter: WhatsOnFilter) -> [WhatsOnItem] {
     items.filter { item in
       switch filter {
-      case .all: true
+      case .picked: item.reaction?.kind.isPicked == true
       case .interestedAndBooked: item.reaction?.kind == .interested || item.reaction?.kind == .booked
       case .booked: item.reaction?.kind == .booked
+      case .everything: item.reaction == nil || item.reaction?.kind.isPicked == true
       }
     }
   }

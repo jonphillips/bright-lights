@@ -2,10 +2,16 @@ import Foundation
 import SQLiteData
 
 public enum ReactionKind: String, QueryBindable, CaseIterable, Sendable {
+  case kept
   case interested
   case booked
-  case pass
   case went
+  case pass
+  case cleared
+
+  public var isPicked: Bool { self == .kept || self == .interested || self == .booked || self == .went }
+  public var isHidden: Bool { self == .pass || self == .cleared }
+  public var title: String { rawValue.capitalized }
 }
 
 @Table
@@ -25,11 +31,6 @@ public struct Reaction: Identifiable, Equatable, Sendable {
 }
 
 public extension Reaction {
-  /// Remove every offline duplicate for a listing.
-  static func clear(listingID: Listing.ID, in db: Database) throws {
-    try Reaction.where { $0.listingID.eq(listingID) }.delete().execute(db)
-  }
-
   /// Reactions are household state: edits replace the one row for a listing.
   /// Converges any offline duplicates before writing the replacement.
   static func upsertForListing(_ reaction: Reaction, in db: Database) throws {
@@ -50,5 +51,26 @@ public extension Reaction {
     } else {
       try Reaction.insert { Reaction.Draft(reaction) }.execute(db)
     }
+    try TasteRecord.upsertForReaction(reaction, in: db)
+  }
+
+  @discardableResult
+  static func screen(kept: Set<Listing.ID>, cleared: Set<Listing.ID>, authorID: UUID?, now: Date, in db: Database) throws -> Int {
+    var writes = 0
+    for (ids, kind) in [(kept, ReactionKind.kept), (cleared, .cleared)] {
+      for listingID in ids.sorted(by: { $0.uuidString < $1.uuidString }) {
+        guard try Reaction.where({ $0.listingID.eq(listingID) }).fetchOne(db) == nil,
+          let listing = try Listing.find(listingID).fetchOne(db),
+          let source = try Source.find(listing.sourceID).fetchOne(db) else { continue }
+        let tasteRecordID = TasteRecord.id(
+          householdID: source.householdID, sourceRegistryID: source.registryID, stableKey: listing.stableKey
+        )
+        guard try TasteRecord.find(tasteRecordID).fetchOne(db) == nil else { continue }
+        let reaction = Reaction(id: UUID(), listingID: listingID, kind: kind, authorID: authorID, updatedAt: now)
+        try upsertForListing(reaction, in: db)
+        writes += 1
+      }
+    }
+    return writes
   }
 }

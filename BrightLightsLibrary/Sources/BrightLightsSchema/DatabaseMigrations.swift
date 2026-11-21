@@ -57,7 +57,26 @@ public enum BrightLightsDatabaseMigrations {
         """)
     }
     registerSourceFixesV3(on: &migrator)
+    registerTasteRecordsV4(on: &migrator)
     return migrator
+  }
+
+  private static func registerTasteRecordsV4(on migrator: inout DatabaseMigrator) {
+    migrator.registerMigration("Add taste records v4") { db in
+      try db.execute(sql: """
+        CREATE TABLE "tasteRecords" (
+          "id" TEXT PRIMARY KEY NOT NULL,
+          "householdID" TEXT NOT NULL REFERENCES "households"("id") ON DELETE CASCADE,
+          "sourceRegistryID" TEXT NOT NULL, "sourceName" TEXT NOT NULL,
+          "stableKey" TEXT NOT NULL, "title" TEXT NOT NULL, "performers" TEXT NOT NULL,
+          "room" TEXT, "startsAt" TEXT NOT NULL, "closesAt" TEXT,
+          "kind" TEXT NOT NULL, "note" TEXT, "authorID" TEXT,
+          "firstDecidedAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL
+        ) STRICT;
+        CREATE INDEX "index_tasteRecords_on_sourceRegistryID_and_stableKey"
+          ON "tasteRecords"("sourceRegistryID", "stableKey");
+        """)
+    }
   }
 
   private static func registerSourceFixesV3(on migrator: inout DatabaseMigrator) {
