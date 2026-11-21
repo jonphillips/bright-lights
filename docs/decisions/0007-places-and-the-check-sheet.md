@@ -3,8 +3,9 @@
 *Status: proposed — 2026-11-21. Summary: A **place** is anything with a spot on the map that Jon and Wendy hold an
 opinion about: a restaurant, a bar, a park, a shop, a walk, the Cyclone. Each place has one shared **standing**,
 which is the check sheet: to try (high, normal or someday), tried (our place, would return, or once was enough), or
-not for us. Visits are a dated log under the place. Food places record which meals they serve, so the map can filter
-to Food, then Lunch or Dinner. Venues aren't places and don't join the check sheet.*
+not for us. Visits are a dated log under the place. A place can have a **season**, like the Christmas windows or
+the Cyclone, and then it behaves like a listing with a closing date. Food places record which meals they serve, so
+the map can filter to Food, then Lunch or Dinner. Venues aren't places and don't join the check sheet.*
 
 ## Context
 
@@ -24,7 +25,8 @@ places already, and they shape this decision in three ways:
 
 Jon settled these on 2026-11-21:
 - The standing is **shared**: one per place, for both of them. Disagreements go in notes.
-- **Anything can be a place.** It isn't limited to restaurants and bars.
+- **Anything can be a place.** It isn't limited to restaurants and bars. Something that's only on for a while,
+  like the Christmas windows, is a place with a season, not a separate kind of item.
 - **Venues don't join the check sheet.** Sources stay sources.
 - The map needs an **easy filter for food, and for lunch or dinner**.
 
@@ -32,7 +34,7 @@ Jon settled these on 2026-11-21:
 
 1. **A place is anything with a location.** It might be an Apple Maps point of interest, an address, or a dropped
    pin, and its location is what puts it on the map. A place has a name, a location, a **kind** (D4), an optional
-   note, and a standing (D2).
+   note, a standing (D2), and a **when** (D10).
 2. **One shared standing per place, with seven values in three groups:**
    - **To try:** high, normal or someday. That's the priority.
    - **Tried:** our place, would return, once was enough, or not said yet.
@@ -80,6 +82,18 @@ Jon settled these on 2026-11-21:
    record types in the CloudKit Development schema, and deploying them to Production waits for TestFlight (M2), as
    for every M1 table. Wendy sees and edits all of it (ADR-0002). Deleting a place deletes its visits, so the app
    offers Not for us first.
+10. **A place's when: always, every year, or once.** It's an enum with associated values:
+    - `.always`, which is most places.
+    - `.yearly(from: MonthDay, to: MonthDay)`, for a season that comes back each year: the Christmas windows from
+      about Nov 20 to Jan 5, or the Cyclone in summer. A season can run across New Year.
+    - `.once(from: Date, to: Date)`, for something on only once: a pop-up, an installation.
+
+    A place out of season stays on the map and the list, marked with when it's next on, and filters can hide it.
+    A to-try place in season is offered to every stay its season overlaps (ADR-0008), and the end of its season
+    gets the same warning as a listing's close in Coming up ("ends Jan 5, and you're only in town once more before
+    then"). Being good for one visit needs nothing new: after the visit it's tried, and a yearly place marked
+    *would return* comes back next season. A `.once` place whose dates have passed drops out of to-try views and
+    keeps its history. Like everything else on a place, it's never pruned.
 
 ## Considered and rejected
 
@@ -92,6 +106,9 @@ Jon settled these on 2026-11-21:
   filter can't express something, and adding one is cheaper than removing one.
 - **Venues as places.** Jon ruled it out. It would also put about 25 venues on the check sheet that are already
   followed for their listings.
+- **A separate one-off item** for things like the Christmas windows. They have a place and they're done once,
+  which a place with a season and *once was enough* already covers. A second kind of item would split the map, the
+  list and the filters.
 - **Storing opening hours now.** Lunch and dinner only need meals. Hours ("open Monday night?") are a larger,
   permanent column, so they wait until they're wanted.
 
@@ -103,5 +120,6 @@ Jon settled these on 2026-11-21:
   hygiene.
 - The meal filter is only as good as the meals filled in. The count of places with no meals set is what keeps it
   honest.
-- Later work, kept in `open-questions.md`: pinning a place to a stay, opening hours and "open tonight," progress by
+- Pinning a place to a stay is ADR-0008's stay plan.
+- Later work, kept in `open-questions.md`: opening hours and "open tonight," progress by
   neighborhood, travel time from the apartment (BRAINSTORM's "getting home"), and places in chat access.

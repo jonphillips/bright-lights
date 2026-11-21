@@ -11,6 +11,7 @@ jon-platform `docs/adr/`.
 | [0004](0004-one-extraction-engine.md) | One extraction engine, deterministic first, with a model as the last resort | accepted |
 | [0005](0005-rounds-and-browser-capture.md) | Rounds: a due-list of sources, captured in the in-app browser while Jon reads; the Capture tab (Amendment 2); fixing a source from the app (Amendment 3) | accepted |
 | [0006](0006-screening-and-the-taste-record.md) | Screening: new listings are kept or cleared, and a taste record outlives them | proposed |
-| [0007](0007-places-and-the-check-sheet.md) | Places: a map and an ideas list, with one shared standing per place (the check sheet) | proposed |
+| [0007](0007-places-and-the-check-sheet.md) | Places: a map and an ideas list, with one shared standing per place (the check sheet) and an optional season | proposed |
+| [0008](0008-the-stay-plan.md) | The stay plan: a list and the days, with errands from a shared Reminders list | proposed |
 
 Status changes to **accepted** when Jon merges the plan PR that proposes it.
