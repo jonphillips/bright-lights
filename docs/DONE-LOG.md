@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-21 — Nightly check report (`codex/check-report`)
+
+- **Result:** Added reconcile counts, per-source check records, coordinated iCloud report storage, and the check-report summary command.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint, 95 package tests, the report fixture test, and the iOS and macOS builds. Signed macOS build and codesign entitlement checks passed for CloudDocuments and the Bright Lights ubiquity container.
+- **Owed:** check-report's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-20 — Screening and the taste record (`effort/screening`)
 
 - **Result:** Added source grouped screening, persistent taste records, and picked versus unscreened projections. Listings now prune 30 days after ending regardless of reaction.

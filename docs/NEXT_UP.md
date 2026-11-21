@@ -1,6 +1,5 @@
-# Next Up — The nightly check report
+# Next Up — nothing dispatched
 
-**Slices:** effort `check-report`
-**Briefs:** [docs/efforts/check-report.md](efforts/check-report.md)
-**Done when:** per the brief
+Nothing dispatched.
+
 **Owed:** see [device-passes.md](device-passes.md)

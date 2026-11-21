@@ -180,7 +180,7 @@ wrong never leaves Due.
    and Sources) takes a short note, such as "opens on the homepage" or "captures nothing". A flagged source shows a
    flag in the Capture panel and Sources, and Sources lists flagged sources first. **Unflag** clears both. The flag
    changes nothing about checking or due dates. It tells the architect which sources need an adapter, helper or
-   registry fix, and the check report carries it ([efforts/check-report.md](../efforts/check-report.md)).
+   registry fix, and the check report carries it ([efforts/archive/check-report.md](../efforts/archive/check-report.md)).
 
 ### Consequences
 

@@ -9,4 +9,3 @@ with `jon-platform/scripts/archive-brief`. **The table's row order is the queue*
 
 | Brief | Implements | Status |
 | --- | --- | --- |
-| [check-report.md](check-report.md) | ADR-0003 point 6 (failures surface) | Ready |
