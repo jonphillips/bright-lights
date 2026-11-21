@@ -17,7 +17,7 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 - **Result:** Added a per-build Git stamp, launch-time login-item restoration, and a verified rollback installer for the checking Mac.
 - **Verification:** scripts/check-drift.sh passed: SwiftLint, 85 package tests, and iOS/macOS builds. A signed macOS build also passed build-stamp, codesign, and Development CloudKit entitlement checks.
 - **Owed:** mac-installer's device gate, in [device-passes.md](device-passes.md).
-- **Device gate:** install and login passed on Jon's device report of 2026-11-20. `scripts/install-bright-lights` installed into `/Applications`. After logging out and back in, the running process was `/Applications/BrightLights.app/Contents/MacOS/BrightLights`, not the Xcode build, so re-registering the login item at launch is enough. The first nightly run from the installed copy is still owed, in [device-passes.md](device-passes.md).
+- **Device gate:** install and login passed on Jon's device report of 2026-11-20. `scripts/install-bright-lights` installed into `/Applications`. After logging out and back in, the running process was `/Applications/BrightLights.app/Contents/MacOS/BrightLights`, not the Xcode build, so re-registering the login item at launch is enough. The first nightly run from the installed copy passed on Jon's device report of 2026-11-21: Settings on the checking Mac showed **Last household check** from that night.
 
 ## 2026-11-20 — Fixing a source from the app (`effort/source-fixes`)
 
@@ -37,12 +37,14 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 - **Result:** Added Rounds with due-source groups and a persistent in-app browser. Browser captures use the shared extraction and listing reconciliation path, record browser provenance, and cache page extraction for the app session.
 - **Verification:** check-drift passed: SwiftLint, 75 package tests, and iOS and macOS builds.
 - **Owed:** M1 S5's device gate, in [device-passes.md](device-passes.md).
+- **Device gate:** passed on Jon's device report of 2026-11-21, run on the Capture tab ([capture-tab](efforts/archive/capture-tab.md)) as Jon held it on 2026-11-20: a full round with **Next** on iPad, DoNYC capturing only on **Capture**, **Tickets** and **Open in browser** landing in Capture, and the iPhone sheet and sync.
 
 ## 2026-11-19 — Stays and What’s on (`m1/s4-stays-and-whats-on`)
 
 - **Result:** Added New York stay validation, the pure WhatsOnProjection, adaptive navigation for While we’re here, Coming up and Stays, listing details, and shared reactions. S4 adds no schema columns or migrations.
 - **Verification:** scripts/check-drift.sh passed strict SwiftLint, 65 package tests, and iOS and macOS builds.
 - **Owed:** M1 S4's device gate, in [device-passes.md](device-passes.md).
+- **Device gate:** passed on Jon's device report of 2026-11-21: a tentative stay, reactions and a note on iPad, synced to iPhone with the Booked filter, and the extra day gone once the departure was booked.
 
 ## 2026-11-19 — Mac source checker (`m1/s3-mac-checker`)
 
