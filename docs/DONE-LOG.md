@@ -14,6 +14,7 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 - **Result:** Added a per-build Git stamp, launch-time login-item restoration, and a verified rollback installer for the checking Mac.
 - **Verification:** scripts/check-drift.sh passed: SwiftLint, 85 package tests, and iOS/macOS builds. A signed macOS build also passed build-stamp, codesign, and Development CloudKit entitlement checks.
 - **Owed:** mac-installer's device gate, in [device-passes.md](device-passes.md).
+- **Device gate:** install and login passed on Jon's device report of 2026-11-20. `scripts/install-bright-lights` installed into `/Applications`. After logging out and back in, the running process was `/Applications/BrightLights.app/Contents/MacOS/BrightLights`, not the Xcode build, so re-registering the login item at launch is enough. The first nightly run from the installed copy is still owed, in [device-passes.md](device-passes.md).
 
 ## 2026-11-20 — Fixing a source from the app (`effort/source-fixes`)
 
