@@ -8,6 +8,9 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 - **Result:** Added source grouped screening, persistent taste records, and picked versus unscreened projections. Listings now prune 30 days after ending regardless of reaction.
 - **Verification:** scripts/check-drift.sh passed: SwiftLint, 91 package tests, iOS Simulator build, and macOS build.
 - **Owed:** screening's device gate, in [device-passes.md](device-passes.md).
+- **Device gate:** passed on Jon's device report of 2026-11-21, built from `a5feee0` on iPad, iPhone and the checking Mac. The Development schema was imported first (below).
+- **Build fix:** the architect added `a5feee0` during the pass. The build-stamp pre-action now creates `DERIVED_FILE_DIR` before writing, so a Mac build into an empty build folder no longer fails at "Write build stamp metadata".
+- **Schema:** the architect imported `tasteRecords` into CloudKit Development on 2026-11-20. The live export matched the proposal's base beforehand. Afterwards Development matched the proposal apart from CloudKit's field order, and Production was unchanged.
 
 ## 2026-11-20 — Install Bright Lights on the Mac (`codex/mac-installer`)
 
