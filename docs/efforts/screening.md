@@ -1,6 +1,6 @@
 # Effort — Screening, and the taste record
 
-**Status:** Ready · **Summary:** New listings wait in **New** until Jon screens them. A screen lists one source's new
+**Status:** Dispatched · **Summary:** New listings wait in **New** until Jon screens them. A screen lists one source's new
 listings with none selected: tap to keep, and **Done** clears the rest for good. What's on shows what was kept. Every
 decision is also written to a `TasteRecord` that outlives its listing. Listings are now deleted 30 days after they
 end, whatever their reaction. New reaction kinds, one new synced table.
