@@ -2,7 +2,7 @@
 
 *Architect, 2026-11-21. Arc: from Jon alone in CloudKit Development to Jon and Wendy sharing one household in
 Production. Jon installs from TestFlight, the mini checks into Production, and Wendy reacts from her own iPhone.
-Decisions: [ADR-0007](../decisions/0007-production-and-wendy.md). Taste ranking leads M3. Its open questions are in
+Decisions: [ADR-0009](../decisions/0009-production-and-wendy.md). Taste ranking leads M3. Its open questions are in
 `open-questions.md`, and the taste record restarts at the cutover.*
 
 ## Slice ledger
@@ -16,11 +16,11 @@ Each slice is one dispatch. The architect expands a slice into a full brief, her
 ## S1 — Production and TestFlight
 
 **Goal:** Jon's three devices run Production builds over an empty Production database, seeded by the mini. No
-Development data comes along (ADR-0007 points 1 and 2).
+Development data comes along (ADR-0009 points 1 and 2).
 
 **Scope, to expand before dispatch:**
 
-- **Measure the Mac first** (ADR-0007 point 4). A development-signed Release build with the Production container
+- **Measure the Mac first** (ADR-0009 point 4). A development-signed Release build with the Production container
   environment and production pushes runs on the mini, and receives a push. If it doesn't, the slice stops and asks.
 - **`Household.registryVersion` and the version gate** (point 5), with tests for an older bundle that leaves fields
   alone and a newer one that writes them. The column joins the CloudKit Development schema before Production's
@@ -37,7 +37,7 @@ Development data comes along (ADR-0007 points 1 and 2).
 ## S2 — Inviting Wendy
 
 **Goal:** Wendy accepts the household on her iPhone through TestFlight, sees what's on, and her reactions show her
-name on Jon's devices (ADR-0007 points 6 and 7).
+name on Jon's devices (ADR-0009 points 6 and 7).
 
 **Scope, to expand before dispatch:**
 

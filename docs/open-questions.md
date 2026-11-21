@@ -4,7 +4,7 @@
 
 - **Editorial signal.** How does a critic's pick attach to a listing? And which editorial sources are usable at all
   (NYT paywall, usage rights)?
-- **The taste work (M3).** ADR-0006 keeps the evidence, and it restarts at the Production cutover (ADR-0007): a `TasteRecord` for every keep, clear, pass, booking and
+- **The taste work (M3).** ADR-0006 keeps the evidence, and it restarts at the Production cutover (ADR-0009): a `TasteRecord` for every keep, clear, pass, booking and
   visit, outliving its listing. Still open:
   - How the counts and the model rank New, and whether ranking means sorting, pre-selecting rows, or both.
   - Whether the model may ever clear a listing without Jon's tap. Jon decides, once he's seen its suggestions.

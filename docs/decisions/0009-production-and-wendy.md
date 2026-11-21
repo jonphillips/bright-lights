@@ -1,4 +1,4 @@
-# ADR-0007: Production starts empty, and Wendy joins through a share of the household
+# ADR-0009: Production starts empty, and Wendy joins through a share of the household
 
 *Status: proposed — 2026-11-21. Summary: Bright Lights moves to CloudKit Production with an empty database. The
 checking Mac seeds it first, and Jon re-enters his stays and source fixes. iPad and iPhone builds ship through
