@@ -1,0 +1,178 @@
+#!/usr/bin/env python3
+"""Summarize Bright Lights' append-only source check reports."""
+from __future__ import annotations
+
+import argparse
+import datetime as dt
+import json
+import statistics
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any
+
+
+def parse_date(value: str) -> dt.datetime:
+    parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=dt.timezone.utc)
+    return parsed.astimezone(dt.timezone.utc)
+
+
+def download(path: Path) -> None:
+    try:
+        subprocess.run(["brctl", "download", str(path)], check=False)
+    except OSError as error:
+        raise RuntimeError(f"cannot download {path}: {error}") from error
+
+
+def load_records(folder: Path) -> list[dict[str, Any]]:
+    records: list[dict[str, Any]] = []
+    for path in sorted(folder.glob("*.jsonl")):
+        status = subprocess.run(
+            ["mdls", "-raw", "-name", "kMDItemDownloadingStatus", str(path)],
+            check=False, capture_output=True, text=True,
+        )
+        if status.stdout.strip() in {"NotDownloaded", "Downloading"}:
+            download(path)
+        try:
+            raw = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            download(path)
+            try:
+                raw = path.read_text(encoding="utf-8")
+            except (OSError, UnicodeError) as error:
+                raise RuntimeError(f"cannot read {path}: {error}") from error
+        for line_number, line in enumerate(raw.splitlines(), 1):
+            if not line.strip():
+                continue
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError as error:
+                raise RuntimeError(f"invalid JSON in {path}:{line_number}: {error}") from error
+            if record.get("version") != 1:
+                raise RuntimeError(f"unsupported report version in {path}:{line_number}: {record.get('version')!r}")
+            try:
+                record["_checkedAt"] = parse_date(record["checkedAt"])
+            except (KeyError, TypeError, ValueError) as error:
+                raise RuntimeError(f"invalid checkedAt in {path}:{line_number}") from error
+            records.append(record)
+    return records
+
+
+def summarize(records: list[dict[str, Any]], now: dt.datetime, days: int) -> dict[str, Any]:
+    cutoff = now - dt.timedelta(days=days)
+    window = [record for record in records if cutoff <= record["_checkedAt"] <= now]
+    by_night: dict[str, list[dict[str, Any]]] = {}
+    by_source: dict[str, list[dict[str, Any]]] = {}
+    for record in window:
+        night = record["_checkedAt"].date().isoformat()
+        by_night.setdefault(night, []).append(record)
+        by_source.setdefault(record["registryID"], []).append(record)
+
+    nights = []
+    for night, entries in sorted(by_night.items()):
+        nights.append({
+            "date": night,
+            "build": entries[-1].get("build", "unknown"),
+            "sourcesChecked": len(entries),
+            "failed": sum(item.get("outcome") == "failed" for item in entries),
+            "unchanged": sum(item.get("outcome") == "unchanged" for item in entries),
+            "modelCalls": sum(item.get("modelCalls", 0) for item in entries),
+            "new": sum(item.get("new", 0) for item in entries),
+            "changed": sum(item.get("changed", 0) for item in entries),
+            "markedMissing": sum(item.get("markedMissing", 0) for item in entries),
+        })
+
+    failing = []
+    dropping = []
+    flagged = []
+    for source_records in by_source.values():
+        source_records.sort(key=lambda item: item["_checkedAt"])
+        latest = source_records[-1]
+        failures = [item for item in source_records if item.get("outcome") == "failed"]
+        if failures:
+            failing.append({
+                "registryID": latest["registryID"], "name": latest["name"],
+                "failures": len(failures), "latestNote": failures[-1].get("note"),
+                "failingNow": latest.get("outcome") == "failed",
+            })
+        successful = [item for item in source_records if item.get("outcome") in ("succeeded", "unchanged")]
+        if len(successful) >= 2:
+            earlier = [item.get("found", 0) for item in successful[:-1]]
+            baseline = statistics.median(earlier)
+            current = successful[-1].get("found", 0)
+            if current < baseline / 2:
+                dropping.append({
+                    "registryID": latest["registryID"], "name": latest["name"],
+                    "latestFound": current, "earlierMedian": baseline,
+                })
+        if latest.get("flagged"):
+            flagged.append({"registryID": latest["registryID"], "name": latest["name"], "note": latest.get("flagNote")})
+
+    return {
+        "nights": nights,
+        "failing": sorted(failing, key=lambda item: item["registryID"]),
+        "dropping": sorted(dropping, key=lambda item: item["registryID"]),
+        "flagged": sorted(flagged, key=lambda item: item["registryID"]),
+        "nightCount": len(nights),
+        "sourceChecks": len(window),
+        "failingCount": len(failing),
+        "droppingCount": len(dropping),
+        "flaggedCount": len(flagged),
+    }
+
+
+def render(summary: dict[str, Any]) -> str:
+    lines = []
+    for night in summary["nights"]:
+        lines.append(
+            f"{night['date']} · {night['build']} · checked {night['sourcesChecked']} · "
+            f"failed {night['failed']} · unchanged {night['unchanged']} · model calls {night['modelCalls']} · "
+            f"new {night['new']} · changed {night['changed']} · missing {night['markedMissing']}"
+        )
+    for section, title in (("failing", "Failing"), ("dropping", "Dropping"), ("flagged", "Flagged")):
+        if summary[section]:
+            lines.append(f"{title}:")
+            for item in summary[section]:
+                if section == "failing":
+                    state = "failing now" if item["failingNow"] else "not failing now"
+                    detail = f"{item['failures']} failures · latest: {item.get('latestNote') or 'no note'} · {state}"
+                elif section == "dropping":
+                    detail = f"latest {item['latestFound']} · earlier median {item['earlierMedian']:g}"
+                else:
+                    detail = item.get("note") or "no note"
+                lines.append(f"  {item['name']} · {detail}")
+    lines.append(
+        f"check-report: {summary['nightCount']} nights, {summary['sourceChecks']} sources, "
+        f"{summary['failingCount']} failing, {summary['droppingCount']} dropping, {summary['flaggedCount']} flagged"
+    )
+    return "\n".join(lines) + "\n"
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--dir", type=Path, help="report directory (defaults to the Bright Lights iCloud container)")
+    parser.add_argument("--days", type=int, default=7)
+    parser.add_argument("--json", action="store_true", help="print the summary as JSON")
+    parser.add_argument("--now", help=argparse.SUPPRESS)
+    args = parser.parse_args()
+    if args.days < 1:
+        parser.error("--days must be positive")
+    folder = args.dir or (Path.home() / "Library/Mobile Documents/iCloud~com~jonphillips~BrightLights/CheckReports")
+    now = parse_date(args.now) if args.now else dt.datetime.now(dt.timezone.utc)
+    try:
+        summary = summarize(load_records(folder), now, args.days)
+    except RuntimeError as error:
+        print(f"check-report: {error}", file=sys.stderr)
+        return 1
+    if args.json:
+        summary.pop("_checkedAt", None)
+        print(json.dumps(summary, indent=2, sort_keys=True))
+    else:
+        sys.stdout.write(render(summary))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

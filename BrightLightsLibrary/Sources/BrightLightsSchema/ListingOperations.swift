@@ -2,6 +2,17 @@ import BrightLightsExtraction
 import Foundation
 import SQLiteData
 
+public struct ListingReconcileCounts: Equatable, Sendable {
+  public var new: Int
+  public var changed: Int
+  public var markedMissing: Int
+  public var written: Int { new + changed + markedMissing }
+
+  public init(new: Int = 0, changed: Int = 0, markedMissing: Int = 0) {
+    self.new = new; self.changed = changed; self.markedMissing = markedMissing
+  }
+}
+
 public extension Listing {
   /// Applies one completed extraction inside its caller's write transaction.
   /// Duplicate rows converge before any content changes are written.
@@ -13,11 +24,11 @@ public extension Listing {
     now: Date,
     makeID: () -> UUID,
     in db: Database
-  ) throws -> Int {
+  ) throws -> ListingReconcileCounts {
     let existing = try Listing.where { $0.sourceID.eq(sourceID) }.fetchAll(db)
     let grouped = Dictionary(grouping: existing, by: \.stableKey)
     var returnedKeys = Set<String>()
-    var writes = 0
+    var counts = ListingReconcileCounts()
 
     for item in extracted {
       returnedKeys.insert(item.stableKey)
@@ -40,13 +51,13 @@ public extension Listing {
       case let .run(opens, closes): startsAt = opens; closesAt = closes
       }
       let status = ListingStatus(rawValue: item.status.rawValue) ?? .listed
-      let changed = current.map {
+      let contentChanged = current.map {
         $0.title != item.title || $0.performers != performers || $0.room != item.room
           || $0.ticketURL != item.ticketURL?.absoluteString || $0.onSaleAt != item.onSaleDate
           || $0.startsAt != startsAt || $0.closesAt != closesAt
           || ($0.status != status && $0.status != .missing) || $0.status == .missing
       } ?? true
-      guard changed else { continue }
+      guard contentChanged else { continue }
       let row = Listing(
         id: current?.id ?? makeID(), sourceID: sourceID, stableKey: item.stableKey,
         title: item.title, performers: performers, room: item.room,
@@ -57,7 +68,7 @@ public extension Listing {
       )
       if current == nil { try Listing.insert { Listing.Draft(row) }.execute(db) }
       else { try Listing.upsert { Listing.Draft(row) }.execute(db) }
-      writes += 1
+      if current == nil { counts.new += 1 } else { counts.changed += 1 }
     }
 
     if complete {
@@ -66,10 +77,10 @@ public extension Listing {
         try Listing.find(row.id).update {
           $0.status = #bind(ListingStatus.missing); $0.updatedAt = #bind(now)
         }.execute(db)
-        writes += 1
+        counts.markedMissing += 1
       }
     }
-    return writes
+    return counts
   }
 
   /// Removes listings 30 days after their end date. Taste records keep decisions alive.

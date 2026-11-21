@@ -1,0 +1,10 @@
+2026-11-18 · build-1 · checked 1 · failed 0 · unchanged 0 · model calls 0 · new 3 · changed 1 · missing 0
+2026-11-19 · build-1 · checked 2 · failed 1 · unchanged 0 · model calls 1 · new 1 · changed 0 · missing 0
+2026-11-20 · build-2 · checked 2 · failed 1 · unchanged 1 · model calls 0 · new 0 · changed 0 · missing 2
+Failing:
+  Room A · 2 failures · latest: still timing out · failing now
+Dropping:
+  Room B · latest 3 · earlier median 12
+Flagged:
+  Room B · Check dates
+check-report: 3 nights, 5 sources, 1 failing, 1 dropping, 1 flagged

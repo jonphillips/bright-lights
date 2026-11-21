@@ -69,7 +69,7 @@ public actor BrowserCapture {
     try Task.checkCancellation()
     let listingPage = SourcePageMatcher.isListingPage(pageURL, for: source)
     let writes = try await database.write { db in
-      let count = try Listing.reconcile(unique, sourceID: source.id, capturedBy: .browser,
+      let counts = try Listing.reconcile(unique, sourceID: source.id, capturedBy: .browser,
         complete: false, now: now, makeID: UUID.init, in: db)
       if listingPage && !unique.isEmpty {
         let note = (["Captured in the browser"] + result.warnings).joined(separator: "; ")
@@ -88,7 +88,7 @@ public actor BrowserCapture {
           $0.lastCheckNote = #bind("Covered by a browser capture")
         }.execute(db)
       }
-      return count
+      return counts.written
     }
     let usedModel = needsModel
     let rung = unique.compactMap { ExtractionRung(rawValue: $0.rung.rawValue) }

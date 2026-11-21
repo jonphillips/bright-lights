@@ -30,7 +30,7 @@ enum CheckerRuntime {
     activity.repeats = true
     activity.schedule { completion in
       Task { @MainActor in
-        _ = await check(all: false)
+        _ = await check(all: false, trigger: .scheduled)
         completion(.finished)
       }
     }
@@ -64,10 +64,10 @@ enum CheckerRuntime {
   }
 
   static func checkNow(all: Bool) async -> [SourceCheckReport] {
-    await check(all: all)
+    await check(all: all, trigger: .manual)
   }
 
-  private static func check(all: Bool) async -> [SourceCheckReport] {
+  private static func check(all: Bool, trigger: CheckReportTrigger) async -> [SourceCheckReport] {
     guard !isChecking else { return [] }
     isChecking = true
     defer { isChecking = false }
@@ -78,6 +78,7 @@ enum CheckerRuntime {
     @Shared(.checkerDeviceID) var deviceID
     guard let id = UUID(uuidString: deviceID) else { return [] }
     @Dependency(\.defaultDatabase) var db
+    @Dependency(\.checkReportClient) var checkReportClient
     let mayCheck = (try? await db.read {
       try CheckerLease.mayCheck(deviceID: id, checkerEnabled: checkerIsEnabled, syncEnabled: syncEnabled, in: $0)
     }) == true
@@ -85,7 +86,26 @@ enum CheckerRuntime {
     let activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiatedAllowingIdleSystemSleep], reason: "Checking Bright Lights sources")
     defer { ProcessInfo.processInfo.endActivity(activity) }
     let checker = SourceChecker()
-    return await checker.runPass(in: db, checkAll: all)
+    let checkedAt = Date.now
+    let reports = await checker.runPass(in: db, checkAll: all, now: checkedAt)
+    guard !reports.isEmpty else { return reports }
+    do {
+      let sources = try await db.read { try Source.canonical.fetchAll($0) }
+      let sourcesByID = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
+      let deviceName = Host.current().localizedName ?? ProcessInfo.processInfo.hostName
+      let build = BuildStamp.fromMainBundle().displayValue
+      let records = reports.compactMap { report in
+        sourcesByID[report.sourceID].map {
+          CheckReportRecord(checkedAt: checkedAt, trigger: trigger, build: build,
+            deviceName: deviceName, source: $0, report: report)
+        }
+      }
+      try await checkReportClient.append(records, checkedAt, id)
+    } catch {
+      Logger(subsystem: "com.jonphillips.BrightLights", category: "SourceChecks")
+        .error("Could not append check report: \(error.localizedDescription, privacy: .public)")
+    }
+    return reports
   }
 }
 #endif

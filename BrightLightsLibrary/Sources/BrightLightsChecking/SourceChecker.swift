@@ -62,11 +62,18 @@ public struct SourceCheckReport: Identifiable, Sendable, Equatable {
   public var modelCalls: Int
   public var note: String?
   public var rowsWritten: Int
+  public var newListings: Int
+  public var changedListings: Int
+  public var markedMissing: Int
+  public var complete: Bool
+  public var unchanged: Bool
+  public var durationSeconds: Double
 }
 
 public struct SourceChecker: Sendable {
   @Dependency(\.sourceCheckClient) private var client
   @Dependency(\.apiKeyStore) private var apiKeyStore
+  @Dependency(\.date.now) private var dateNow
 
   public init() {}
 
@@ -90,6 +97,7 @@ public struct SourceChecker: Sendable {
   }
 
   private func check(_ source: Source, in database: any DatabaseWriter, now: Date, pacer: PassPacer) async -> SourceCheckReport {
+    let startedAt = dateNow
     var pagesRead = 0
     var calls = 0
     var rungs: [ExtractionRung] = []
@@ -108,7 +116,9 @@ public struct SourceChecker: Sendable {
         return SourceCheckReport(sourceID: source.id, outcome: .succeeded,
           listingCount: source.lastListingCount ?? 0, pagesRead: pages.count,
           rungs: [.model], modelCalls: 0,
-          note: "unchanged; model not called", rowsWritten: 0)
+          note: "unchanged; model not called", rowsWritten: 0,
+          newListings: 0, changedListings: 0, markedMissing: 0,
+          complete: pageResult.complete, unchanged: true, durationSeconds: elapsedSeconds(since: startedAt))
       }
       let batch = try await extractDocuments(documents, source: source, descriptor: descriptor)
       calls = batch.modelCalls
@@ -122,13 +132,15 @@ public struct SourceChecker: Sendable {
       if pageResult.partialFailure { warnings.append("partial check; a later page failed") }
       let note = warnings.isEmpty ? nil : String(warnings.joined(separator: "; ").prefix(Source.checkNoteCharacterLimit))
       let usedModel = calls > 0
-      let rowsWritten = try await recordSuccess(
+      let counts = try await recordSuccess(
         unique, source: source, complete: pageResult.complete, database: database,
         now: now, usedModel: usedModel, hash: hash, note: note
       )
       return SourceCheckReport(sourceID: source.id, outcome: .succeeded, listingCount: unique.count,
         pagesRead: pages.count, rungs: rungs.sorted { $0.rawValue < $1.rawValue },
-        modelCalls: calls, note: note, rowsWritten: rowsWritten)
+        modelCalls: calls, note: note, rowsWritten: counts.written,
+        newListings: counts.new, changedListings: counts.changed, markedMissing: counts.markedMissing,
+        complete: pageResult.complete, unchanged: false, durationSeconds: elapsedSeconds(since: startedAt))
     } catch {
       let fetchFailure = error as? PaginatedFetchError
       let note = String((fetchFailure?.note ?? error.localizedDescription).prefix(Source.checkNoteCharacterLimit))
@@ -139,9 +151,15 @@ public struct SourceChecker: Sendable {
           $0.consecutiveFailures = #bind(source.consecutiveFailures + 1); $0.lastCheckNote = #bind(note)
         }.execute(db)
       }
-      return SourceCheckReport(sourceID: source.id, outcome: .failed, listingCount: source.lastListingCount ?? 0,
-        pagesRead: pagesRead, rungs: rungs, modelCalls: calls, note: note, rowsWritten: 0)
+      return SourceCheckReport(sourceID: source.id, outcome: .failed, listingCount: 0,
+        pagesRead: pagesRead, rungs: rungs, modelCalls: calls, note: note, rowsWritten: 0,
+        newListings: 0, changedListings: 0, markedMissing: 0,
+        complete: false, unchanged: false, durationSeconds: elapsedSeconds(since: startedAt))
     }
+  }
+
+  private func elapsedSeconds(since start: Date) -> Double {
+    max(0, dateNow.timeIntervalSince(start))
   }
 
   private func documents(from pages: [FetchedPage], source: Source) -> [(URL, PageDocument)] {
@@ -196,9 +214,9 @@ public struct SourceChecker: Sendable {
   private func recordSuccess(
     _ listings: [ExtractedListing], source: Source, complete: Bool, database: any DatabaseWriter,
     now: Date, usedModel: Bool, hash: String, note: String?
-  ) async throws -> Int {
+  ) async throws -> ListingReconcileCounts {
     try await database.write { db in
-      let count = try Listing.reconcile(
+      let counts = try Listing.reconcile(
         listings, sourceID: source.id, capturedBy: .mac, complete: complete, now: now, makeID: UUID.init, in: db
       )
       try Source.find(source.id).update {
@@ -206,7 +224,7 @@ public struct SourceChecker: Sendable {
         $0.lastListingCount = #bind(listings.count); $0.consecutiveFailures = #bind(0)
         $0.lastContentHash = #bind(usedModel ? hash : nil as String?); $0.lastCheckNote = #bind(note)
       }.execute(db)
-      return count
+      return counts
     }
   }
 
