@@ -1,4 +1,5 @@
 import Dependencies
+import Darwin
 import Foundation
 import BrightLightsSchema
 
@@ -127,12 +128,34 @@ enum CheckReportWriter {
     var coordinationError: NSError?
     var writeError: Error?
     let coordinator = NSFileCoordinator(filePresenter: nil)
-    coordinator.coordinate(writingItemAt: file, options: .forReplacing, error: &coordinationError) { coordinatedURL in
+    if !FileManager.default.fileExists(atPath: file.path) {
+      coordinator.coordinate(writingItemAt: file, options: .forReplacing, error: &coordinationError) { coordinatedURL in
+        do {
+          if !FileManager.default.fileExists(atPath: coordinatedURL.path) {
+            try Data().write(to: coordinatedURL, options: .atomic)
+          }
+        } catch { writeError = error }
+      }
+      if let coordinationError { throw coordinationError }
+      if let writeError { throw writeError }
+    }
+    coordinationError = nil
+    writeError = nil
+    coordinator.coordinate(
+      readingItemAt: file, options: [], writingItemAt: file, options: .forReplacing,
+      error: &coordinationError
+    ) { readURL, writeURL in
       do {
-        let existing = (try? Data(contentsOf: coordinatedURL)) ?? Data()
+        let existing: Data
+        do {
+          existing = try Data(contentsOf: readURL)
+        } catch {
+          guard isNoSuchFile(error) else { throw error }
+          existing = Data()
+        }
         var combined = existing
         combined.append(lines)
-        try combined.write(to: coordinatedURL, options: .atomic)
+        try combined.write(to: writeURL, options: .atomic)
       } catch { writeError = error }
     }
     if let coordinationError { throw coordinationError }
@@ -161,8 +184,26 @@ enum CheckReportWriter {
     for url in try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)
       where url.lastPathComponent.hasSuffix(prefix) {
       let month = String(url.lastPathComponent.dropLast(prefix.count))
-      if let date = formatter.date(from: month), date < cutoff { try FileManager.default.removeItem(at: url) }
+      if let date = formatter.date(from: month), date < cutoff { try coordinatedDelete(url) }
     }
+  }
+
+  private static func coordinatedDelete(_ url: URL) throws {
+    var coordinationError: NSError?
+    var deleteError: Error?
+    let coordinator = NSFileCoordinator(filePresenter: nil)
+    coordinator.coordinate(writingItemAt: url, options: .forDeleting, error: &coordinationError) { coordinatedURL in
+      do { try FileManager.default.removeItem(at: coordinatedURL) }
+      catch { if !isNoSuchFile(error) { deleteError = error } }
+    }
+    if let coordinationError, !isNoSuchFile(coordinationError) { throw coordinationError }
+    if let deleteError { throw deleteError }
+  }
+
+  private static func isNoSuchFile(_ error: Error) -> Bool {
+    let value = error as NSError
+    return (value.domain == NSCocoaErrorDomain && value.code == CocoaError.fileReadNoSuchFile.rawValue)
+      || (value.domain == NSPOSIXErrorDomain && value.code == Int(ENOENT))
   }
 }
 

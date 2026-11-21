@@ -74,7 +74,7 @@ struct SourceCheckingTests {
   }
 
   @Test func nightlyAndWeeklyCadenceBecomeNightlyDuringStay() {
-    let now = Date(timeIntervalSince1970: 1_795_219_200)
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
     let oldCheck = now.addingTimeInterval(-21 * 60 * 60)
     let source = Source(id: UUID(), householdID: UUID(), registryID: "nightly", name: "Club",
       type: "venue", priority: "core", area: "NYC", mode: .automated, method: "html",

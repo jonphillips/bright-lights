@@ -66,7 +66,7 @@ def summarize(records: list[dict[str, Any]], now: dt.datetime, days: int) -> dic
     by_night: dict[str, list[dict[str, Any]]] = {}
     by_source: dict[str, list[dict[str, Any]]] = {}
     for record in window:
-        night = record["_checkedAt"].date().isoformat()
+        night = record["_checkedAt"].astimezone().date().isoformat()
         by_night.setdefault(night, []).append(record)
         by_source.setdefault(record["registryID"], []).append(record)
 
@@ -116,6 +116,7 @@ def summarize(records: list[dict[str, Any]], now: dt.datetime, days: int) -> dic
         "dropping": sorted(dropping, key=lambda item: item["registryID"]),
         "flagged": sorted(flagged, key=lambda item: item["registryID"]),
         "nightCount": len(nights),
+        "sourceCount": len(by_source),
         "sourceChecks": len(window),
         "failingCount": len(failing),
         "droppingCount": len(dropping),
@@ -144,7 +145,7 @@ def render(summary: dict[str, Any]) -> str:
                     detail = item.get("note") or "no note"
                 lines.append(f"  {item['name']} · {detail}")
     lines.append(
-        f"check-report: {summary['nightCount']} nights, {summary['sourceChecks']} sources, "
+        f"check-report: {summary['nightCount']} nights, {summary['sourceCount']} sources, "
         f"{summary['failingCount']} failing, {summary['droppingCount']} dropping, {summary['flaggedCount']} flagged"
     )
     return "\n".join(lines) + "\n"
