@@ -60,7 +60,8 @@ Sources seeded from the survey; automated checks on the Mac; the extraction engi
 - **Calendar constraints** from the shared Apple Calendar (Galavant ADR-0034).
 - **Inviting Wendy**, TestFlight, and the CloudKit Production schema.
 - **Safari share extension** as a second way to capture.
-- **Places** (restaurants and bars near the apartment), only if wanted.
+- **Places:** a map and an ideas list of anything worth going to, with a shared check sheet (to try, tried, not
+  for us) and a food filter for lunch or dinner ([ADR-0007](decisions/0007-places-and-the-check-sheet.md)).
 
 ## Out of scope
 

@@ -13,8 +13,15 @@
     send whole.
   - Whether it runs on the checking Mac each night, so New arrives already sorted.
 - **Favorites list.** Opportunistic sources need one, so it needs a minimal home.
-- **Places.** Restaurants and bars near the apartment: in scope for v1 or not? If yes, lift Galavant's places parts
-  rather than copying them.
+- **Places, after ADR-0007.** Settled: anything can be a place, one shared standing, venues stay out, a food filter
+  by meal. Still open, none of it urgent:
+  - **Pinning a place to a stay:** "this stay we finally go to X." It would show on While we're here. Wait until
+    Jon finds himself wanting it.
+  - **Opening hours and "open tonight."** Galavant's `WeeklyHours` is the model. It's a permanent column, so it
+    waits until meals alone fall short.
+  - **Progress by neighborhood** ("tried 11 of 27 in Williamsburg"). Needs a neighborhood per place, maybe from the
+    Apple Maps address.
+  - **Getting home** from places as well as listings, and **places in chat access**.
 - **Stays.** Entered by hand at first. Calendar ingestion (Galavant ADR-0034) comes later. But suggesting when to
   go needs home commitments as a constraint, so it may pull calendar reading earlier.
 - **Window scoring.** Is it computed in the app from predicted scores per listing, or does a chat model reason over
