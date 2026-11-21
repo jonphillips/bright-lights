@@ -5,7 +5,7 @@ the app's iCloud Drive container and keeps about 60 days of them. `scripts/check
 Macs, so Jon can ask the architect "how are the checks doing?" and get an answer without opening Console on the
 mini. No schema change.
 
-**Implements:** a follow-up to [ADR-0003](../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface).
+**Implements:** a follow-up to [ADR-0003](../../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface).
 Jon asked for it on 2026-11-20. **Model:** the iCloud Documents entitlements in Galavant's `project.yml`
 (`icloud-services: [CloudKit, CloudDocuments]`, `ubiquity-container-identifiers`), and the coordinated write in
 jon-platform `packages/ChatAccessKit/Sources/ChatAccessKit/ChatAccessExportWriter.swift`.

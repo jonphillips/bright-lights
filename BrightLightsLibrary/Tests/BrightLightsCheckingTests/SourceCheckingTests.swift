@@ -190,9 +190,10 @@ struct SourceCheckingTests {
     let fullPagesClient = SourceCheckClient(fetch: { url, _ in
       Self.fixtureResponse(for: url, emptyBoweryPage: false, bowery: bowery, steel: steel, caveat: caveat, unionHall: unionHall)
     }, wait: { _ in })
-    let now = Date.now
+    let now = Date(timeIntervalSince1970: 1_795_219_200)
     let reports = await withDependencies {
       $0.sourceCheckClient = emptyPageClient
+      $0.date.now = now
       $0.uuid = .incrementing
       $0.apiKeyStore = APIKeyStore(read: { _ in "test-key" }, write: { _, _ in })
       $0.modelClient = StubModelClient.constant(#"{"listings":[]}"#)
@@ -225,6 +226,7 @@ struct SourceCheckingTests {
     }
     let repeated = await withDependencies {
       $0.sourceCheckClient = fullPagesClient
+      $0.date.now = now.addingTimeInterval(100)
       $0.uuid = .incrementing
       $0.apiKeyStore = APIKeyStore(read: { _ in "test-key" }, write: { _, _ in })
       $0.modelClient = StubModelClient.constant(#"{"listings":[]}"#)
@@ -236,6 +238,7 @@ struct SourceCheckingTests {
         .map { "\($0.id.recordPrimaryKey):\($0.userModificationTime)" }.sorted()
     }
     #expect(repeated.allSatisfy { $0.rowsWritten == 0 })
+    #expect(repeated.first { $0.sourceID == standID }?.unchanged == true)
     #expect(repeated.first { $0.sourceID == boweryID }?.pagesRead == 2)
     #expect(repeated.first { $0.sourceID == standID }?.modelCalls == 0)
     #expect(metadataAfter == metadataBefore)
@@ -259,6 +262,7 @@ struct SourceCheckingTests {
     let reports = await runPass(client: client, apiKey: nil, now: Date(timeIntervalSince1970: 1_900_000_000))
     #expect(reports.count == 1)
     #expect(reports[0].pagesRead == 3)
+    #expect(reports[0].complete == false)
     let pagePaths = await requests.urls().filter { $0.path.contains("/page/") }.map(\.path)
     #expect(pagePaths.count == 2)
     #expect(pagePaths.allSatisfy { $0.contains("/page/2") || $0.contains("/page/3") })
@@ -338,6 +342,7 @@ struct SourceCheckingTests {
     let reports = await runPass(client: client, apiKey: nil, now: Date(timeIntervalSince1970: 1_900_000_000))
     #expect(reports[0].outcome == .succeeded)
     #expect(reports[0].note?.contains("partial check") == true)
+    #expect(reports[0].complete == false)
     #expect(try await database.read { try Listing.find(unseen.id).fetchOne($0)?.status } == .listed)
   }
 
@@ -383,13 +388,15 @@ struct SourceCheckingTests {
       await modelCalls.increment()
       return ModelResponse(text: #"{"listings":[]}"#)
     }
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
     let first = await withDependencies {
       $0.sourceCheckClient = client
+      $0.date.now = now
       $0.uuid = .incrementing
       $0.apiKeyStore = APIKeyStore(read: { _ in "test-key" }, write: { _, _ in })
       $0.modelClient = model
     } operation: {
-      await SourceChecker().runPass(in: database, checkAll: true, now: .now)
+      await SourceChecker().runPass(in: database, checkAll: true, now: now)
     }
     #expect(first.first?.modelCalls == 1)
     let updatedClient = SourceCheckClient(fetch: { _, _ in
@@ -398,11 +405,12 @@ struct SourceCheckingTests {
     }, wait: { _ in })
     let second = await withDependencies {
       $0.sourceCheckClient = updatedClient
+      $0.date.now = now.addingTimeInterval(60)
       $0.uuid = .incrementing
       $0.apiKeyStore = APIKeyStore(read: { _ in "test-key" }, write: { _, _ in })
       $0.modelClient = model
     } operation: {
-      await SourceChecker().runPass(in: database, checkAll: true, now: .now.addingTimeInterval(60))
+      await SourceChecker().runPass(in: database, checkAll: true, now: now.addingTimeInterval(60))
     }
     #expect(second.first?.sourceID == source.id)
     #expect(second.first?.modelCalls == 1)
@@ -433,6 +441,7 @@ struct SourceCheckingTests {
   private func runPass(client: SourceCheckClient, apiKey: String?, now: Date) async -> [SourceCheckReport] {
     await withDependencies {
       $0.sourceCheckClient = client
+      $0.date.now = now
       $0.uuid = .incrementing
       $0.apiKeyStore = APIKeyStore(read: { _ in apiKey }, write: { _, _ in })
       $0.modelClient = StubModelClient.constant(#"{"listings":[]}"#)

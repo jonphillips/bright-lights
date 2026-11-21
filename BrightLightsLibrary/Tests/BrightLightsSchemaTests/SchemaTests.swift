@@ -242,11 +242,12 @@ struct SchemaTests {
     let now = Date(timeIntervalSince1970: 1_900_000_000)
     try await database.write { db in
       try Listing.insert { Listing.Draft(old) }.execute(db)
-      let writes = try Listing.reconcile(
+      let counts = try Listing.reconcile(
         [extracted("event", title: "New title")], sourceID: sourceID, complete: true,
         now: now, makeID: UUID.init, in: db
       )
-      #expect(writes == 1)
+      #expect(counts == ListingReconcileCounts(changed: 1))
+      #expect(counts.written == 1)
       let updated = try #require(try Listing.find(old.id).fetchOne(db))
       #expect(updated.id == old.id)
       #expect(updated.title == "New title")
@@ -260,11 +261,12 @@ struct SchemaTests {
     let old = try makeListing(sourceID: sourceID, key: "event", title: "Same", rung: .adapter)
     try await database.write { db in
       try Listing.insert { Listing.Draft(old) }.execute(db)
-      let writes = try Listing.reconcile(
+      let counts = try Listing.reconcile(
         [extracted("event", title: "Same", rung: .model)], sourceID: sourceID,
         complete: true, now: .now, makeID: UUID.init, in: db
       )
-      #expect(writes == 0)
+      #expect(counts == ListingReconcileCounts())
+      #expect(counts.written == 0)
       #expect(try Listing.find(old.id).fetchOne(db)?.rung == .adapter)
     }
   }
@@ -286,6 +288,33 @@ struct SchemaTests {
       _ = try Listing.reconcile([extracted("retained", title: "Retained"), extracted("absent", title: "Absent")],
         sourceID: sourceID, complete: true, now: now, makeID: UUID.init, in: db)
       #expect(try Listing.find(absent.id).fetchOne(db)?.status == .listed)
+    }
+  }
+
+  @Test func reconcileCountsNewChangedRestoredAndMarkedMissingListings() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
+    let changed = try makeListing(sourceID: sourceID, key: "changed", title: "Old title")
+    let restored = try makeListing(sourceID: sourceID, key: "restored", title: "Back again")
+    let restoredRow = Listing(id: restored.id, sourceID: restored.sourceID, stableKey: restored.stableKey,
+      title: restored.title, performers: restored.performers, room: restored.room, ticketURL: restored.ticketURL,
+      onSaleAt: restored.onSaleAt, startsAt: restored.startsAt, closesAt: restored.closesAt,
+      status: .missing, rung: restored.rung, capturedBy: restored.capturedBy,
+      firstSeenAt: restored.firstSeenAt, updatedAt: restored.updatedAt)
+    let absent = try makeListing(sourceID: sourceID, key: "absent", title: "No longer listed",
+      date: now.addingTimeInterval(86_400))
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(changed); Listing.Draft(restoredRow); Listing.Draft(absent) }.execute(db)
+      let counts = try Listing.reconcile([
+        extracted("changed", title: "New title"),
+        extracted("restored", title: "Back again"),
+        extracted("new", title: "Brand new")
+      ], sourceID: sourceID, complete: true, now: now, makeID: UUID.init, in: db)
+      #expect(counts.new == 1)
+      #expect(counts.changed == 2)
+      #expect(counts.markedMissing == 1)
+      #expect(counts.written == 4)
     }
   }
 

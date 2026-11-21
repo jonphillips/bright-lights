@@ -21,13 +21,14 @@ xcodegen generate
 scripts/install-bright-lights -n
 "${qr[@]}" swiftlint lint --strict
 env -u BRIGHT_LIGHTS_LIVE_MODEL_TEST "${qr[@]}" swift test --package-path BrightLightsLibrary
+scripts/tests/check-report.sh
 "${qr[@]}" xcodebuild -project BrightLights.xcodeproj -scheme BrightLights \
   -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build
 "${qr[@]}" xcodebuild -project BrightLights.xcodeproj -scheme BrightLights \
   -destination 'generic/platform=macOS' -onlyUsePackageVersionsFromResolvedFile \
   CODE_SIGNING_ALLOWED=NO build
 
-echo "check-drift.sh: registry, SwiftLint, BrightLightsLibrary tests and iOS/macOS builds passed."
+echo "check-drift.sh: registry, SwiftLint, BrightLightsLibrary tests, check-report fixture and iOS/macOS builds passed."
 
 check_handoff="${JON_PLATFORM:-$HOME/code/jon-platform}/scripts/check-handoff"
 if [[ -x "$check_handoff" ]]; then
