@@ -4,7 +4,7 @@
 
 - **Editorial signal.** How does a critic's pick attach to a listing? And which editorial sources are usable at all
   (NYT paywall, usage rights)?
-- **The taste work (M2).** ADR-0006 keeps the evidence: a `TasteRecord` for every keep, clear, pass, booking and
+- **The taste work (M3).** ADR-0006 keeps the evidence, and it restarts at the Production cutover (ADR-0007): a `TasteRecord` for every keep, clear, pass, booking and
   visit, outliving its listing. Still open:
   - How the counts and the model rank New, and whether ranking means sorting, pre-selecting rows, or both.
   - Whether the model may ever clear a listing without Jon's tap. Jon decides, once he's seen its suggestions.
@@ -25,18 +25,6 @@
   it needs anything beyond ordinary page JavaScript, keep UCB at first-page depth or make it manual. Don't work
   around the 403. ADR-0005 Amendment 1 (capture helpers) is the way to do this: a UCB reveal helper is its first
   case, and its stop reasons answer the question. Plan it as a dispatch once S3 has merged.
-- **The household survivor once Wendy joins (M2).** M1 converges duplicate households by the lowest `(createdAt, id)`
-  (S2 review, PR #6). That's safe while every device is Jon's and writes one private zone. With sharing, a
-  participant's device can create its own household and 44 sources before it accepts the share. The survivor must
-  then be the shared root, whatever its order: a participant's local household must never win, and must never pull
-  the shared rows into a private zone. Decide it in the M2 sharing slice, with a seeded-duplicate test. Galavant has
-  the same question about its party (galavant `docs/open-questions.md`).
-- **Registry writes across builds (S3 review, PR #8).** Each device runs `syncFromRegistry` against the registry
-  bundled in its own build, and the writes sync. A device on an older build therefore writes old field values, and
-  since S3 it also retires sources its registry doesn't have. A newer device then writes them back, so the two
-  flip-flop until both are updated. Proposal: store the applied `registry_version` on `Household`, and have a
-  device write registry fields only when its bundled version is the same or newer. Plan it before the registry
-  changes again, and certainly before Wendy's devices join (M2).
 - **Per-page hashes for the model ration (S3 review, PR #8).** The Stand reads 9 pages and New York Comedy Club 8,
   all model-rung, under one combined hash. Any change on any page re-extracts every page, so a normal night is
   about 17 model calls. A hash per page, with each unchanged page's listings carried forward, would cut that to
