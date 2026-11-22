@@ -52,8 +52,9 @@ Sources seeded from the survey; automated checks on the Mac; the extraction engi
 ## Later (M2 and beyond)
 
 - **Suggesting which week to come next**, weighted toward what's only on during that week (see BRAINSTORM).
-- **Taste:** New arrives ranked, from keep rates and a model that reads the taste record and Jon's own taste notes.
-  It suggests, and Jon still decides. Adapts Galavant ADR-0053 (ADR-0006).
+- **Taste (M3):** a screen lists likely keeps first by keep rates, and a model that reads the taste record and
+  Jon and Wendy's taste notes suggests keep or clear with a reason. It suggests, and a person still decides
+  ([ADR-0010](decisions/0010-taste-suggests-jon-decides.md)).
 - **Editorial picks** attached to listings (The New Yorker Goings On RSS first).
 - **Getting home:** travel-time estimates from the apartment.
 - **Chat access** through jon-platform's `MCPServerKit` / `ChatAccessKit`.

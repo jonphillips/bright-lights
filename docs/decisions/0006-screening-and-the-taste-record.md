@@ -1,6 +1,7 @@
 # ADR-0006: Screening — new listings are kept or cleared, and a taste record outlives them
 
-*Status: accepted — 2026-11-20 (merged with the screening plan). Summary: Every new listing waits in **New** until Jon screens it. A screen shows
+*Status: accepted — 2026-11-20 (merged with the screening plan). Point 3's order is amended by
+[ADR-0010](0010-taste-suggests-jon-decides.md) D2. Summary: Every new listing waits in **New** until Jon screens it. A screen shows
 a source's new listings with none selected. Jon taps the ones worth keeping, and **Done** clears the rest, so they
 never come back. What's on shows what was kept. Each decision is also written to a **taste record** that outlives
 its listing, so the later taste work has every keep, clear, pass and booking to learn from. Amends ADR-0002's

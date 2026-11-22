@@ -4,14 +4,9 @@
 
 - **Editorial signal.** How does a critic's pick attach to a listing? And which editorial sources are usable at all
   (NYT paywall, usage rights)?
-- **The taste work (M3).** ADR-0006 keeps the evidence, and it restarts at the Production cutover (ADR-0009): a `TasteRecord` for every keep, clear, pass, booking and
-  visit, outliving its listing. Still open:
-  - How the counts and the model rank New, and whether ranking means sorting, pre-selecting rows, or both.
-  - Whether the model may ever clear a listing without Jon's tap. Jon decides, once he's seen its suggestions.
-  - Where taste notes live (Galavant ADR-0053 D2 is the model).
-  - How long taste records last, and how many go into one prompt: a year of clears is thousands of rows, too many to
-    send whole.
-  - Whether it runs on the checking Mac each night, so New arrives already sorted.
+- **After M3: may the model pre-select or clear?** ADR-0010 D1 keeps every decision a person's tap. Once S3's
+  agreement numbers in Settings → Taste cover a few weeks, Jon decides whether likely keeps may start selected, and
+  whether likely clears may ever be cleared without Done. Revisit nightly ranking on the Mac (D8) at the same time.
 - **Favorites list.** Opportunistic sources need one, so it needs a minimal home.
 - **Places, after ADR-0007.** Settled: anything can be a place, one shared standing, venues stay out, a food filter
   by meal. Still open, none of it urgent:
