@@ -120,16 +120,22 @@ public extension Source {
     guard let bundledVersion = RegistryVersion(rawValue: registry.version) else {
       throw SourceRegistryError.invalidRegistryVersion(registry.version)
     }
-    if let rawStoredVersion = household.registryVersion {
-      guard let storedVersion = RegistryVersion(rawValue: rawStoredVersion) else {
-        throw SourceRegistryError.invalidRegistryVersion(rawStoredVersion)
-      }
-      if bundledVersion < storedVersion { return }
-    }
     let existing = try Source.fetchAll(db).sorted {
       $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
     }
     let grouped = Dictionary(grouping: existing, by: \.registryID)
+    if let rawStoredVersion = household.registryVersion {
+      guard let storedVersion = RegistryVersion(rawValue: rawStoredVersion) else {
+        throw SourceRegistryError.invalidRegistryVersion(rawStoredVersion)
+      }
+      if bundledVersion < storedVersion {
+        // An older build writes no registry fields, but converging duplicates isn't a registry write (ADR-0009 point 5).
+        for matches in grouped.values {
+          if let survivor = matches.first { try converge(matches, onto: survivor, in: db) }
+        }
+        return
+      }
+    }
     let incoming = registry.sources.filter(\.isSeedable)
     let incomingIDs = Set(incoming.map(\.id))
 

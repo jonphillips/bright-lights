@@ -542,6 +542,39 @@ struct SchemaTests {
     }
   }
 
+  @Test func olderRegistryStillConvergesDuplicatesButInsertsAndRetiresNothing() async throws {
+    try await database.write { db in
+      try Source.syncFromRegistry(data: registryData(
+        id: "bowery", name: "Original", listingURL: "https://example.com/old", version: "1.3"
+      ), in: db)
+      let original = try #require(Source.fetchAll(db).first { $0.registryID == "bowery" })
+      let duplicate = Source(
+        id: UUID(), householdID: original.householdID, registryID: original.registryID,
+        name: "offline duplicate", type: original.type, priority: original.priority,
+        area: original.area, mode: original.mode, method: original.method,
+        listingURL: original.listingURL, registeredHosts: original.registeredHosts,
+        cadence: original.cadence, createdAt: Date(timeIntervalSince1970: 1)
+      )
+      try Source.insert { Source.Draft(duplicate) }.execute(db)
+      let listing = Listing(
+        id: UUID(), sourceID: original.id, stableKey: "source-test:event", title: "Test",
+        startsAt: Date(timeIntervalSince1970: 1_800_000_000), rung: .adapter, capturedBy: .mac
+      )
+      try Listing.insert { Listing.Draft(listing) }.execute(db)
+
+      try Source.syncFromRegistry(data: registryData(
+        id: "townhall", name: "Older build only", listingURL: "https://example.com/townhall", version: "1.2"
+      ), in: db)
+
+      let remaining = try Source.where { $0.registryID.eq("bowery") }.fetchAll(db)
+      #expect(remaining.map(\.id) == [duplicate.id])
+      #expect(remaining.first?.retiredAt == nil)
+      #expect(try Listing.find(listing.id).fetchOne(db)?.sourceID == duplicate.id)
+      #expect(try Source.where { $0.registryID.eq("townhall") }.fetchAll(db).isEmpty)
+      #expect(try Household.find(original.householdID).fetchOne(db)?.registryVersion == "1.3")
+    }
+  }
+
   private func makeListing(
     sourceID: UUID, key: String, title: String, date: Date = Date(timeIntervalSince1970: 1_900_000_000),
     rung: ExtractionRung = .adapter, firstSeenAt: Date = Date(timeIntervalSince1970: 1_700_000_000)
