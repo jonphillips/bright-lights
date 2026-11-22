@@ -9,15 +9,18 @@ public struct Household: Identifiable, Equatable, Sendable {
   public var checkerDeviceID: UUID?
   public var checkerDeviceName: String?
   public var checkerClaimedAt: Date?
+  public var registryVersion: String?
 
   public init(id: UUID, name: String = "Our Household", createdAt: Date = .now,
-    checkerDeviceID: UUID? = nil, checkerDeviceName: String? = nil, checkerClaimedAt: Date? = nil) {
+    checkerDeviceID: UUID? = nil, checkerDeviceName: String? = nil, checkerClaimedAt: Date? = nil,
+    registryVersion: String? = nil) {
     self.id = id
     self.name = name
     self.createdAt = createdAt
     self.checkerDeviceID = checkerDeviceID
     self.checkerDeviceName = checkerDeviceName
     self.checkerClaimedAt = checkerClaimedAt
+    self.registryVersion = registryVersion
   }
 
   public static func ensureDefault(in db: Database) throws -> Household {

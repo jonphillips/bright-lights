@@ -41,7 +41,9 @@ enum CheckerRuntime {
     @Shared(.checkerEnabled) var checkerEnabled
     @Shared(.checkerDeviceID) var deviceID
     @Shared(.checkerRegistrationError) var checkerRegistrationError
-    guard checkerEnabled, UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled"),
+    guard checkerEnabled, BrightLightsSyncPolicy.isEnabled(
+      debugOptIn: UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled")
+    ),
       let id = UUID(uuidString: deviceID), SMAppService.mainApp.status != .enabled
     else { return }
     @Dependency(\.defaultDatabase) var db
@@ -71,13 +73,16 @@ enum CheckerRuntime {
     guard !isChecking else { return [] }
     isChecking = true
     defer { isChecking = false }
-    let syncEnabled = UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled")
+    let syncEnabled = BrightLightsSyncPolicy.isEnabled(
+      debugOptIn: UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled")
+    )
     @Shared(.checkerEnabled) var checkerEnabled
     let checkerIsEnabled = checkerEnabled
     guard syncEnabled, checkerIsEnabled else { return [] }
     @Shared(.checkerDeviceID) var deviceID
     guard let id = UUID(uuidString: deviceID) else { return [] }
     @Dependency(\.defaultDatabase) var db
+    @Dependency(\.defaultSyncEngine) var syncEngine
     @Dependency(\.checkReportClient) var checkReportClient
     let mayCheck = (try? await db.read {
       try CheckerLease.mayCheck(deviceID: id, checkerEnabled: checkerIsEnabled, syncEnabled: syncEnabled, in: $0)
@@ -85,9 +90,21 @@ enum CheckerRuntime {
     guard mayCheck else { return [] }
     let activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiatedAllowingIdleSystemSleep], reason: "Checking Bright Lights sources")
     defer { ProcessInfo.processInfo.endActivity(activity) }
+    do {
+      try await syncEngine.syncChanges()
+    } catch {
+      Logger(subsystem: "com.jonphillips.BrightLights", category: "SourceChecks")
+        .error("CloudKit sync before source check failed: \(error.localizedDescription, privacy: .public)")
+    }
     let checker = SourceChecker()
     let checkedAt = Date.now
     let reports = await checker.runPass(in: db, checkAll: all, now: checkedAt)
+    do {
+      try await syncEngine.syncChanges()
+    } catch {
+      Logger(subsystem: "com.jonphillips.BrightLights", category: "SourceChecks")
+        .error("CloudKit sync after source check failed: \(error.localizedDescription, privacy: .public)")
+    }
     guard !reports.isEmpty else { return reports }
     do {
       let sources = try await db.read { try Source.canonical.fetchAll($0) }

@@ -7,7 +7,7 @@ open questions are in `open-questions.md`, and the taste record restarts at the 
 
 ## Slice ledger
 
-- [ ] **S1** — Production and TestFlight
+- [x] **S1** — Production and TestFlight
 - [ ] **S2** — Inviting Wendy
 
 Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. Both are

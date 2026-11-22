@@ -1,0 +1,16 @@
+name: CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  ci:
+    uses: jonphillips/ci-workflows/.github/workflows/ios-ci.yml@main
+    with:
+      package-path: BrightLightsLibrary
+      platform-relative-root: "../.."
+    secrets: inherit

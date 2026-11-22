@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-21 — Production and TestFlight (`m2/s1-production-testflight`)
+
+- **Result:** Release builds sync to Production with a separate store, registry writes are gated by version, checker passes sync before and after checking, and the TestFlight release configuration is ready. Jon runs the Production cutover after merge.
+- **Verification:** scripts/check-drift.sh passed (99 package tests, SwiftLint, check-report fixture, iOS and macOS builds); signed macOS Debug and Release builds and entitlement checks passed; git diff --check passed.
+- **Owed:** M2 S1's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-21 — Nightly check report (`codex/check-report`)
 
 - **Result:** Added reconcile counts, per-source check records, coordinated iCloud report storage, and the check-report summary command.

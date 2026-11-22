@@ -2,7 +2,13 @@ import Foundation
 import SQLiteData
 
 private struct SourceRegistryFile: Decodable {
+  var version: String
   var sources: [RegistrySource]
+
+  enum CodingKeys: String, CodingKey {
+    case sources
+    case version = "registry_version"
+  }
 }
 
 private struct RegistrySource: Decodable {
@@ -64,6 +70,38 @@ private struct RegistryPagination: Codable {
 public enum SourceRegistryError: Error {
   case resourceMissing
   case invalidMode(String)
+  case invalidRegistryVersion(String)
+}
+
+public struct RegistryVersion: RawRepresentable, Comparable, Sendable, Equatable {
+  public var components: [Int]
+
+  public init?(rawValue: String) {
+    let pieces = rawValue.split(separator: ".", omittingEmptySubsequences: false)
+    guard !pieces.isEmpty, pieces.allSatisfy({ !$0.isEmpty && $0.allSatisfy(\.isNumber) }) else { return nil }
+    var values: [Int] = []
+    for piece in pieces {
+      guard let value = Int(piece) else { return nil }
+      values.append(value)
+    }
+    self.components = values
+  }
+
+  public var rawValue: String { components.map(String.init).joined(separator: ".") }
+
+  public static func < (lhs: Self, rhs: Self) -> Bool {
+    let count = max(lhs.components.count, rhs.components.count)
+    for index in 0..<count {
+      let left = index < lhs.components.count ? lhs.components[index] : 0
+      let right = index < rhs.components.count ? rhs.components[index] : 0
+      if left != right { return left < right }
+    }
+    return false
+  }
+
+  public static func == (lhs: Self, rhs: Self) -> Bool {
+    !(lhs < rhs) && !(rhs < lhs)
+  }
 }
 
 public extension Source {
@@ -79,10 +117,25 @@ public extension Source {
   static func syncFromRegistry(data: Data, in db: Database) throws {
     let registry = try JSONDecoder().decode(SourceRegistryFile.self, from: data)
     let household = try Household.ensureDefault(in: db)
+    guard let bundledVersion = RegistryVersion(rawValue: registry.version) else {
+      throw SourceRegistryError.invalidRegistryVersion(registry.version)
+    }
     let existing = try Source.fetchAll(db).sorted {
       $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
     }
     let grouped = Dictionary(grouping: existing, by: \.registryID)
+    if let rawStoredVersion = household.registryVersion {
+      guard let storedVersion = RegistryVersion(rawValue: rawStoredVersion) else {
+        throw SourceRegistryError.invalidRegistryVersion(rawStoredVersion)
+      }
+      if bundledVersion < storedVersion {
+        // An older build writes no registry fields, but converging duplicates isn't a registry write (ADR-0009 point 5).
+        for matches in grouped.values {
+          if let survivor = matches.first { try converge(matches, onto: survivor, in: db) }
+        }
+        return
+      }
+    }
     let incoming = registry.sources.filter(\.isSeedable)
     let incomingIDs = Set(incoming.map(\.id))
 
@@ -101,6 +154,9 @@ public extension Source {
       } else {
         try insert(item, mode: sourceMode, householdID: household.id, in: db)
       }
+    }
+    if household.registryVersion != bundledVersion.rawValue {
+      try Household.find(household.id).update { $0.registryVersion = #bind(bundledVersion.rawValue) }.execute(db)
     }
   }
 
