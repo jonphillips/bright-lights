@@ -47,7 +47,9 @@ struct BrightLightsApp: App {
 }
 
 private func startSyncIfEnabled() async {
-  guard UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled") else { return }
+  guard BrightLightsSyncPolicy.isEnabled(
+    debugOptIn: UserDefaults.standard.bool(forKey: "BrightLightsCloudKitSyncEnabled")
+  ) else { return }
   do {
     guard try await CKContainer(identifier: "iCloud.com.jonphillips.BrightLights").accountStatus() == .available else { return }
     @Dependency(\.defaultSyncEngine) var engine

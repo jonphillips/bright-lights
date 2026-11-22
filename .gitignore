@@ -32,7 +32,8 @@ BrightLights.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/*
 # BrightLights/Info.plist
 # BrightLights/BrightLights.entitlements
 BrightLights/Info.plist
-BrightLights/BrightLights.entitlements
+!BrightLights/BrightLights.entitlements
+!BrightLights/BrightLights-Production.entitlements
 
 # Machine-local build credentials. The tracked Config/Secrets.example.xcconfig shows the keys.
 Config/Secrets.xcconfig

@@ -33,14 +33,6 @@ targets:
     deploymentTarget: "27.0"
     sources:
       - BrightLights
-    entitlements:
-      path: BrightLights/BrightLights.entitlements
-      properties:
-        aps-environment: development
-        com.apple.developer.icloud-container-identifiers:
-          - iCloud.com.jonphillips.BrightLights
-        com.apple.developer.icloud-services:
-          - CloudKit
     postBuildScripts:
       - name: Write build stamp
         basedOnDependencyAnalysis: false
@@ -93,9 +85,14 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.jonphillips.BrightLights
         TARGETED_DEVICE_FAMILY: "1,2"
-        CODE_SIGN_ENTITLEMENTS: BrightLights/BrightLights.entitlements
-        CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: BrightLights/BrightLights-macOS.entitlements
         SDKROOT: auto
+      configs:
+        Debug:
+          CODE_SIGN_ENTITLEMENTS: BrightLights/BrightLights.entitlements
+          CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: BrightLights/BrightLights-macOS.entitlements
+        Release:
+          CODE_SIGN_ENTITLEMENTS: BrightLights/BrightLights-Production.entitlements
+          CODE_SIGN_ENTITLEMENTS[sdk=macosx*]: BrightLights/BrightLights-macOS-Production.entitlements
     supportedDestinations: [iOS, macOS]
     scheme:
       testTargets: []

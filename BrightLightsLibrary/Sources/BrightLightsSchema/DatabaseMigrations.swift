@@ -58,6 +58,9 @@ public enum BrightLightsDatabaseMigrations {
     }
     registerSourceFixesV3(on: &migrator)
     registerTasteRecordsV4(on: &migrator)
+    migrator.registerMigration("Add registry version v5") { db in
+      try db.execute(sql: "ALTER TABLE \"households\" ADD COLUMN \"registryVersion\" TEXT")
+    }
     return migrator
   }
 

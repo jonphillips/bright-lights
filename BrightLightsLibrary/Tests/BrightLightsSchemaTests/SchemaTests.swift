@@ -10,6 +10,49 @@ import Testing
 struct SchemaTests {
   @Dependency(\.defaultDatabase) var database
 
+  @Test func registryVersionComparesDottedComponents() {
+    #expect(RegistryVersion(rawValue: "1.10")! > RegistryVersion(rawValue: "1.9")!)
+    #expect(RegistryVersion(rawValue: "1.3")! == RegistryVersion(rawValue: "1.3.0")!)
+    #expect(RegistryVersion(rawValue: "2.0")! > RegistryVersion(rawValue: "1.99")!)
+    #expect(RegistryVersion(rawValue: "one.two") == nil)
+  }
+
+  @Test func productionStorePathIsSeparateAndLivesBesideDefaultStore() {
+    let directory = URL(fileURLWithPath: "/tmp/bright-lights-support")
+    #expect(BrightLightsStorage.releaseDatabaseURL(applicationSupportDirectory: directory).path
+      == directory.appendingPathComponent("BrightLights-Production.sqlite").path)
+    #expect(BrightLightsStorage.releaseDatabaseURL(applicationSupportDirectory: directory).lastPathComponent
+      != "SQLiteData.db")
+  }
+
+  @Test func expectedCloudKitFieldsCoverTheMigratedSchema() async throws {
+    let root = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent().deletingLastPathComponent()
+      .deletingLastPathComponent().deletingLastPathComponent()
+    let rows = try String(contentsOf: root.appendingPathComponent("cloudkit-expected-fields.txt"), encoding: .utf8)
+      .split(whereSeparator: \.isNewline)
+    let fields = rows.compactMap { row -> (String, String)? in
+      let pieces = row.split(separator: " ")
+      guard pieces.count == 2 else { return nil }
+      return (String(pieces[0]), String(pieces[1]))
+    }
+    #expect(fields.count == rows.count)
+    let tables = Set(fields.map(\.0))
+    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords"])
+    try await database.read { db in
+      for table in tables {
+        let listed = Set(fields.filter { $0.0 == table }.map(\.1))
+        let columns = Set(try db.columns(in: table).map(\.name))
+        let metadataPrefix = "sqlitedata_icloud_userModificationTime_"
+        #expect(columns.isSubset(of: listed))
+        #expect(listed.subtracting(columns).allSatisfy {
+          $0 == "sqlitedata_icloud_userModificationTime"
+            || ($0.hasPrefix(metadataPrefix) && columns.contains(String($0.dropFirst(metadataPrefix.count))))
+        })
+      }
+    }
+  }
+
   @Test func listingTimeRoundTripsThroughColumns() {
     let opens = Date(timeIntervalSince1970: 1_800_000_000)
     let closes = Date(timeIntervalSince1970: 1_800_100_000)
@@ -464,8 +507,8 @@ struct SchemaTests {
   }
 
   @Test func registryRetirementAndReturnAreReconciled() async throws {
-    let original = Data(#"{"sources":[{"id":"bowery-ballroom","name":"Bowery Ballroom","source_type":"venue","priority":"core","listing_url":"https://example.com/bowery","registered_hosts":["example.com"],"mode":"automated","method":"structured_html","cadence":"weekly"}]}"#.utf8)
-    let retired = Data(#"{"sources":[]}"#.utf8)
+    let original = Data(#"{"registry_version":"1.3","sources":[{"id":"bowery-ballroom","name":"Bowery Ballroom","source_type":"venue","priority":"core","listing_url":"https://example.com/bowery","registered_hosts":["example.com"],"mode":"automated","method":"structured_html","cadence":"weekly"}]}"#.utf8)
+    let retired = Data(#"{"registry_version":"1.3","sources":[]}"#.utf8)
     try await database.write { db in
       try Source.syncFromRegistry(data: original, in: db)
       let source = try #require(Source.fetchAll(db).first { $0.registryID == "bowery-ballroom" })
@@ -473,6 +516,29 @@ struct SchemaTests {
       #expect(try Source.find(source.id).fetchOne(db)?.retiredAt != nil)
       try Source.syncFromRegistry(data: original, in: db)
       #expect(try Source.find(source.id).fetchOne(db)?.retiredAt == nil)
+    }
+  }
+
+  @Test func olderRegistryCannotWriteOrRetireAndNewerRegistryCan() async throws {
+    try await database.write { db in
+      try Source.syncFromRegistry(data: registryData(
+        id: "bowery", name: "Original", listingURL: "https://example.com/old", version: "1.3"
+      ), in: db)
+      let source = try #require(Source.fetchAll(db).first { $0.registryID == "bowery" })
+      try Source.syncFromRegistry(data: registryData(
+        id: "bowery", name: "Older build", listingURL: "https://example.com/older", version: "1.2"
+      ), in: db)
+      let afterOlder = try #require(try Source.find(source.id).fetchOne(db))
+      #expect(afterOlder.name == "Original")
+      #expect(afterOlder.listingURL == "https://example.com/old")
+      #expect(afterOlder.retiredAt == nil)
+      #expect(try Household.find(source.householdID).fetchOne(db)?.registryVersion == "1.3")
+
+      try Source.syncFromRegistry(data: registryData(
+        id: "bowery", name: "Updated", listingURL: "https://example.com/new", version: "1.4"
+      ), in: db)
+      #expect(try Source.find(source.id).fetchOne(db)?.name == "Updated")
+      #expect(try Household.find(source.householdID).fetchOne(db)?.registryVersion == "1.4")
     }
   }
 
@@ -523,12 +589,14 @@ struct SchemaTests {
         INSERT INTO migration_assertion
         SELECT count(*) = 1 AND sum(startPageURL IS NULL AND flaggedAt IS NULL AND flagNote IS NULL) = 1
         FROM sources WHERE id = 'source';
+        INSERT INTO migration_assertion
+        SELECT count(*) = 1 AND registryVersion IS NULL FROM households WHERE id = 'household';
         """)
     }
   }
 
-  private func registryData(id: String, name: String, listingURL: String) -> Data {
-    let registry: [String: Any] = ["sources": [[
+  private func registryData(id: String, name: String, listingURL: String, version: String = "1.3") -> Data {
+    let registry: [String: Any] = ["registry_version": version, "sources": [[
       "id": id, "name": name, "source_type": "venue", "area": "NYC", "priority": "core",
       "listing_url": listingURL, "registered_hosts": ["thetownhall.org"], "mode": "manual",
       "method": "manual", "cadence": "weekly"

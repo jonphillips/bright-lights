@@ -30,11 +30,20 @@ struct SettingsView: View {
 
   private var household: Household? { households.first }
   private var deviceID: UUID? { UUID(uuidString: deviceIDString) }
+  private var syncIsEnabled: Bool {
+    BrightLightsSyncPolicy.isEnabled(debugOptIn: syncEnabled)
+  }
 
   var body: some View {
     Form {
       Section("Sync") {
-        Toggle("iCloud sync", isOn: Binding(get: { syncEnabled }, set: { setSync($0) }))
+        LabeledContent("Environment", value: BrightLightsSyncPolicy.environmentName)
+        #if DEBUG
+          Toggle("iCloud sync", isOn: Binding(get: { syncEnabled }, set: { setSync($0) }))
+        #else
+          LabeledContent("iCloud sync", value: "On")
+        #endif
+        LabeledContent("Build", value: BuildStamp.fromMainBundle().displayValue)
       }
       #if os(macOS)
       Section("Source checking") {
@@ -58,7 +67,7 @@ struct SettingsView: View {
           Text("Could not register Bright Lights as a login item: \(checkerRegistrationError)")
             .font(.caption).foregroundStyle(.secondary)
         }
-        if syncEnabled, household?.checkerDeviceID == deviceID {
+        if syncIsEnabled, household?.checkerDeviceID == deviceID {
           Button("Check all now") {
             Task {
               let startedAt = Date.now
@@ -92,7 +101,7 @@ struct SettingsView: View {
       }
       #endif
       Section("About") {
-        LabeledContent("Build", value: BuildStamp.fromMainBundle().displayValue)
+        LabeledContent("App", value: "Bright Lights")
       }
       Section("Model") {
         Picker("Provider", selection: $modelProvider) {
@@ -147,7 +156,7 @@ struct SettingsView: View {
 
 #if os(macOS)
   private func enableChecker() {
-    guard syncEnabled else {
+    guard syncIsEnabled else {
       statusNote = "Turn on CloudKit sync before enabling source checks."; return
     }
     guard household != nil else { statusNote = "Household is not available yet."; return }

@@ -17,6 +17,31 @@ if ! cmp -s docs/sources/registry.json BrightLightsLibrary/Sources/BrightLightsS
   exit 1
 fi
 
+if git cat-file -e origin/main:docs/sources/registry.json 2>/dev/null; then
+  if ! git diff --quiet origin/main -- docs/sources/registry.json; then
+    python3 - docs/sources/registry.json <(git show origin/main:docs/sources/registry.json) <<'PY'
+import json
+import sys
+
+def version(path):
+    with open(path, encoding="utf-8") as file:
+        parts = json.load(file)["registry_version"].split(".")
+    if not parts or any(not part.isdigit() for part in parts):
+        raise SystemExit(f"invalid registry_version in {path}")
+    return tuple(map(int, parts))
+
+current, baseline = map(version, sys.argv[1:])
+width = max(len(current), len(baseline))
+current += (0,) * (width - len(current))
+baseline += (0,) * (width - len(baseline))
+if current <= baseline:
+    raise SystemExit("check-drift.sh: registry changed without a higher registry_version")
+PY
+  fi
+else
+  echo "check-drift.sh: skipped registry version comparison; origin/main is unavailable."
+fi
+
 xcodegen generate
 scripts/install-bright-lights -n
 "${qr[@]}" swiftlint lint --strict

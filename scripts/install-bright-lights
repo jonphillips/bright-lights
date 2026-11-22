@@ -3,7 +3,7 @@ set -euo pipefail
 
 repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 platform_root="$repo_root/../jon-platform"
-configuration="Debug"
+configuration="Release"
 dry_run=false
 while (($#)); do
   case "$1" in
@@ -17,7 +17,7 @@ while (($#)); do
       shift
       ;;
     -h|--help)
-      echo "Usage: scripts/install-bright-lights [--configuration Debug|Release] [-n]"
+      echo "Usage: scripts/install-bright-lights [--configuration Debug|Release] [-n] (default: Release)"
       exit 0
       ;;
     *) echo "error: unknown argument: $1" >&2; exit 2 ;;
@@ -45,7 +45,7 @@ cd $repo_root
 xcodegen generate
 xcodebuild -project BrightLights.xcodeproj -scheme BrightLights -configuration $configuration -destination 'platform=macOS' -derivedDataPath $derived_data -clonedSourcePackagesDirPath $cloned_packages -onlyUsePackageVersionsFromResolvedFile build (through jon-platform/scripts/quiet-run, CLANG_MODULE_CACHE_PATH=$module_cache)
 Verify BLBuild matches git rev-parse --short HEAD; warn if BLDirty is true
-Verify codesign and Development APS/CloudKit entitlements
+Verify codesign, the $configuration CloudKit environment, and development APS entitlement
 Verify embedded provisioning profile includes this Mac's Provisioning UDID
 If Bright Lights is running, ask before quitting every process with its bundle ID
 Stage the verified app beside $installed_app, swap it in while retaining the previous copy
@@ -86,8 +86,20 @@ codesign --verify --deep --strict "$build_app"
 codesign -d --entitlements :- "$build_app" > "$repo_root/.build/bright-lights-entitlements.plist" 2>/dev/null
 entitlements="$repo_root/.build/bright-lights-entitlements.plist"
 aps_environment="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.aps-environment' "$entitlements" 2>/dev/null || true)"
+cloud_environment="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.icloud-container-environment' "$entitlements" 2>/dev/null || true)"
+if [[ "$configuration" == Release ]]; then
+  [[ "$cloud_environment" == Production ]] || {
+    echo "error: signed CloudKit environment is '${cloud_environment:-missing}', expected Production" >&2
+    exit 1
+  }
+else
+  [[ -z "$cloud_environment" ]] || {
+    echo "error: Debug unexpectedly signs for CloudKit environment '$cloud_environment'" >&2
+    exit 1
+  }
+fi
 [[ "$aps_environment" == development ]] || {
-  echo "error: signed APS environment is '${aps_environment:-missing}', expected development; Production is held for M2" >&2
+  echo "error: signed APS environment is '${aps_environment:-missing}', expected development" >&2
   exit 1
 }
 cloud_containers="$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.icloud-container-identifiers' "$entitlements" 2>/dev/null || true)"
@@ -180,7 +192,7 @@ else
 fi
 printf '\n%-24s %s\n' "Check" "Result"
 printf '%-24s %s\n' "Build and signature" "passed — $built_build ($built_dirty)"
-printf '%-24s %s\n' "Entitlements" "passed — APS development; Bright Lights CloudKit container"
+printf '%-24s %s\n' "Entitlements" "passed — CloudKit ${cloud_environment:-Development}; APS $aps_environment"
 printf '%-24s %s\n' "Provisioning" "passed — this Mac is included"
 printf '%-24s %s\n' "Installed path" "$installed_app"
 printf '%-24s %s\n' "Reopened" "$reopened"
