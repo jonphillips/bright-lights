@@ -179,6 +179,8 @@ private struct WhatsOnScreen: View {
   @FetchAll(Source.active.order(by: \.name)) private var sources
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
   @FetchAll private var reactions: [Reaction]
+  @FetchAll(Person.order(by: \.createdAt)) private var people: [Person]
+  @Shared(.currentPersonID) private var currentPersonIDString
   @State private var showEverything = false
   @State private var showingPassed = false
   @State private var showingReactionError = false
@@ -313,7 +315,13 @@ private struct WhatsOnScreen: View {
 
   private func itemRows(_ items: [WhatsOnItem]) -> some View {
     ForEach(projection.filtered(items, by: filter)) { item in
-      NavigationLink { ListingDetailView(item: item) } label: { ListingRow(item: item) }
+      NavigationLink { ListingDetailView(item: item) } label: {
+        ListingRow(
+          item: item,
+          authorName: item.reaction.flatMap { reaction in people.first { $0.id == reaction.authorID }?.displayName },
+          isCurrentPerson: item.reaction?.authorID == UUID(uuidString: currentPersonIDString)
+        )
+      }
         .contextMenu { reactionActions(for: item) }
         .swipeActions(edge: .trailing) {
           Button { setReaction(.booked, for: item) } label: { Label("Booked", systemImage: "ticket") }.tint(.green)
@@ -336,7 +344,10 @@ private struct WhatsOnScreen: View {
 
   private func setReaction(_ kind: ReactionKind, for item: WhatsOnItem) {
     @Dependency(\.defaultDatabase) var database
-    let reaction = Reaction(id: UUID(), listingID: item.listing.id, kind: kind, note: item.reaction?.note, updatedAt: .now)
+    let reaction = Reaction(
+      id: UUID(), listingID: item.listing.id, kind: kind, note: item.reaction?.note,
+      authorID: UUID(uuidString: currentPersonIDString), updatedAt: .now
+    )
     Task {
       do { try await database.write { db in try Reaction.upsertForListing(reaction, in: db) } }
       catch { reactionError = error.localizedDescription; showingReactionError = true }
@@ -360,9 +371,9 @@ private struct WhatsOnScreen: View {
 }
 
 private struct ListingRow: View {
-  @FetchAll private var people: [Person]
-  @Shared(.currentPersonID) private var currentPersonIDString
   let item: WhatsOnItem
+  let authorName: String?
+  let isCurrentPerson: Bool
   var body: some View {
     VStack(alignment: .leading, spacing: 3) {
       HStack {
@@ -372,8 +383,8 @@ private struct ListingRow: View {
           Image(systemName: reactionSymbol(reaction.kind))
           Text(Reaction.attributedTitle(
             kind: reaction.kind,
-            authorName: people.first(where: { $0.id == reaction.authorID })?.displayName,
-            isCurrentPerson: UUID(uuidString: currentPersonIDString) == reaction.authorID
+            authorName: authorName,
+            isCurrentPerson: isCurrentPerson
           )).font(.caption).foregroundStyle(.secondary)
         }
       }
@@ -465,9 +476,19 @@ private struct ListingDetailView: View {
 }
 
 private struct PassedListingsView: View {
+  @FetchAll(Person.order(by: \.createdAt)) private var people: [Person]
+  @Shared(.currentPersonID) private var currentPersonIDString
   let items: [WhatsOnItem]
   var body: some View {
-    List(items) { item in NavigationLink { ListingDetailView(item: item) } label: { ListingRow(item: item) } }
+    List(items) { item in
+      NavigationLink { ListingDetailView(item: item) } label: {
+        ListingRow(
+          item: item,
+          authorName: item.reaction.flatMap { reaction in people.first { $0.id == reaction.authorID }?.displayName },
+          isCurrentPerson: item.reaction?.authorID == UUID(uuidString: currentPersonIDString)
+        )
+      }
+    }
       .navigationTitle("Passed")
   }
 }

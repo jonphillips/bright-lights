@@ -32,6 +32,9 @@ struct SchemaTests {
     #expect(id == Person.id(householdID: household.id, recordName: recordName))
     try await database.write { db in
       try Household.insert { Household.Draft(household) }.execute(db)
+      try Person.insert { Person.Draft(Person(
+        id: id, householdID: household.id, iCloudUserRecordName: recordName
+      )) }.execute(db)
       #expect(try Person.bind(recordName: recordName, participantGivenName: "Wendy", in: household, db: db) == id)
       #expect(try Person.bind(recordName: recordName, participantGivenName: "Changed", in: household, db: db) == id)
       #expect(try Person.find(id).fetchOne(db)?.displayName == "Wendy")
@@ -62,6 +65,28 @@ struct SchemaTests {
       #expect(tiedWinner.id == expected)
     }
     #expect(HouseholdSharing.allCases == [.private, .sharedByMe, .sharedWithMe])
+
+    let pair = [
+      Household(id: UUID(uuidString: "00000000-0000-0000-0000-000000000010")!, createdAt: Date(timeIntervalSince1970: 1)),
+      Household(id: UUID(uuidString: "00000000-0000-0000-0000-000000000020")!, createdAt: Date(timeIntervalSince1970: 2))
+    ]
+    let rank: (HouseholdSharing) -> Int = {
+      switch $0 {
+      case .private: 0
+      case .sharedByMe: 1
+      case .sharedWithMe: 2
+      }
+    }
+    for leftState in HouseholdSharing.allCases {
+      for rightState in HouseholdSharing.allCases {
+        let states = [pair[0].id: leftState, pair[1].id: rightState]
+        let winner = Household.survivor(in: pair) { states[$0.id, default: .private] }
+        let expected = rank(leftState) == rank(rightState)
+          ? pair[0].id
+          : (rank(leftState) > rank(rightState) ? pair[0].id : pair[1].id)
+        #expect(winner.id == expected)
+      }
+    }
   }
 
   @Test func reactionAttributionIsShownOnlyForNamedOtherPeople() {
@@ -121,7 +146,7 @@ struct SchemaTests {
 
   @Test func registrySeeds44ActiveSourcesAndPreservesCheckHistory() async throws {
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let seeded = try Source.fetchAll(db)
       #expect(seeded.count == 44)
       #expect(seeded.filter { $0.mode == .automated }.count == 29)
@@ -133,7 +158,7 @@ struct SchemaTests {
         $0.lastListingCount = #bind(7)
         $0.consecutiveFailures = #bind(3)
       }.execute(db)
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let updated = try Source.find(source.id).fetchOne(db)
       #expect(updated?.lastCheckOutcome == .failed)
       #expect(updated?.lastListingCount == 7)
@@ -159,7 +184,7 @@ struct SchemaTests {
 
   @Test func registrySyncPreservesSourceFixesAndClearsStartPageWhenRegistryCatchesUp() async throws {
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let source = try #require(Source.fetchAll(db).first { $0.registryID == "town-hall" })
       try Source.find(source.id).update {
         $0.startPageURL = #bind("https://thetownhall.org/calendar")
@@ -169,7 +194,7 @@ struct SchemaTests {
 
       try Source.syncFromRegistry(data: registryData(
         id: source.registryID, name: source.name, listingURL: "https://thetownhall.org/calendar"
-      ), in: db)
+      ), in: db, sharing: { _ in .private })
       let updated = try #require(try Source.find(source.id).fetchOne(db))
       #expect(updated.startPageURL == nil)
       #expect(updated.flaggedAt == Date(timeIntervalSince1970: 1_800_000_000))
@@ -179,7 +204,7 @@ struct SchemaTests {
 
   @Test func registrySyncPreservesSourceFixesWhenOtherRegistryFieldsChange() async throws {
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let source = try #require(Source.fetchAll(db).first { $0.registryID == "town-hall" })
       let startPage = "https://thetownhall.org/calendar"
       let flaggedAt = Date(timeIntervalSince1970: 1_800_000_000)
@@ -191,7 +216,7 @@ struct SchemaTests {
 
       try Source.syncFromRegistry(data: registryData(
         id: source.registryID, name: "Town Hall Updated", listingURL: source.listingURL
-      ), in: db)
+      ), in: db, sharing: { _ in .private })
       let updated = try #require(try Source.find(source.id).fetchOne(db))
       #expect(updated.name == "Town Hall Updated")
       #expect(updated.startPageURL == startPage)
@@ -202,7 +227,7 @@ struct SchemaTests {
 
   @Test func unchangedRegistrySyncDoesNotTouchSourceSyncMetadata() async throws {
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       guard let source = try Source.fetchAll(db).first else { return }
       try Source.find(source.id).update {
         $0.startPageURL = #bind("https://example.com/app-page")
@@ -217,7 +242,7 @@ struct SchemaTests {
         .sorted()
     }
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
     }
     let after = try await database.read { db in
       try SyncMetadata.where { $0.recordType.eq("sources") }
@@ -231,7 +256,7 @@ struct SchemaTests {
 
   @Test func offlineRegistryDuplicatesConvergeAndKeepListings() async throws {
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let sources = try Source.fetchAll(db)
       let original = try #require(sources.first)
       let duplicate = Source(
@@ -250,7 +275,7 @@ struct SchemaTests {
         startsAt: Date(timeIntervalSince1970: 1_800_000_000), rung: .adapter, capturedBy: .mac
       )
       try Listing.insert { Listing.Draft(listing) }.execute(db)
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let remaining = try Source.where { $0.registryID.eq(original.registryID) }.fetchAll(db)
       let repointed = try Listing.find(listing.id).fetchOne(db)
       #expect(remaining.count == 1)
@@ -263,8 +288,8 @@ struct SchemaTests {
     let loserHouseholdID = UUID()
     let loserSourceID = UUID()
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
-      let household = try Household.ensureDefault(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
+      let household = try Household.ensureDefault(in: db, sharing: { _ in .private })
       let source = try #require(Source.fetchAll(db).first)
       let loserHousehold = Household(id: loserHouseholdID, createdAt: household.createdAt.addingTimeInterval(1))
       let loserSource = Source(
@@ -280,8 +305,8 @@ struct SchemaTests {
     }
 
     try await database.write { db in
-      _ = try Household.ensureDefault(in: db)
-      try Source.syncFromRegistry(in: db)
+      _ = try Household.ensureDefault(in: db, sharing: { _ in .private })
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
     }
 
     let deletedRecordIDs = try await database.read { db in
@@ -295,7 +320,7 @@ struct SchemaTests {
 
   @Test func defaultHouseholdChoosesOldestAndRepointsSources() async throws {
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let oldest = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 1))
       let newer = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 2))
       try Household.insert {
@@ -327,7 +352,18 @@ struct SchemaTests {
         authorID: newPerson.id, firstDecidedAt: Date(timeIntervalSince1970: 2),
         updatedAt: Date(timeIntervalSince1970: 20)
       )
-      try TasteRecord.insert { TasteRecord.Draft(olderTaste); TasteRecord.Draft(newerTaste) }.execute(db)
+      let nonCollidingTaste = TasteRecord(
+        id: TasteRecord.id(householdID: newer.id, sourceRegistryID: "venue", stableKey: "other"),
+        householdID: newer.id, sourceRegistryID: "venue", sourceName: "Venue", stableKey: "other",
+        title: "Other", performers: "", startsAt: Date(timeIntervalSince1970: 1), kind: .kept,
+        authorID: newPerson.id, firstDecidedAt: Date(timeIntervalSince1970: 3),
+        updatedAt: Date(timeIntervalSince1970: 30)
+      )
+      try TasteRecord.insert {
+        TasteRecord.Draft(olderTaste)
+        TasteRecord.Draft(newerTaste)
+        TasteRecord.Draft(nonCollidingTaste)
+      }.execute(db)
       let listing = Listing(
         id: UUID(), sourceID: source.id, stableKey: "attributed", title: "Show",
         startsAt: Date(timeIntervalSince1970: 100), rung: .adapter, capturedBy: .mac
@@ -338,7 +374,7 @@ struct SchemaTests {
         updatedAt: Date(timeIntervalSince1970: 20)
       )
       try Reaction.insert { Reaction.Draft(reaction) }.execute(db)
-      let defaultHousehold = try Household.ensureDefault(in: db)
+      let defaultHousehold = try Household.ensureDefault(in: db, sharing: { _ in .private })
       #expect(defaultHousehold.id == oldest.id)
       #expect(try Household.fetchAll(db).count == 1)
       #expect(try Source.where { $0.householdID.neq(oldest.id) }.fetchCount(db) == 0)
@@ -346,14 +382,105 @@ struct SchemaTests {
       #expect(try TasteRecord.fetchAll(db).filter { $0.stableKey == "show" }.count == 1)
       #expect(try TasteRecord.find(rekeyedTasteID).fetchOne(db)?.title == "Newer")
       let rekeyedPersonID = Person.id(householdID: oldest.id, recordName: "jon-record")
+      let rekeyedOtherTasteID = TasteRecord.id(householdID: oldest.id, sourceRegistryID: "venue", stableKey: "other")
+      #expect(try TasteRecord.find(rekeyedOtherTasteID).fetchOne(db)?.authorID == rekeyedPersonID)
       #expect(try Person.fetchAll(db).filter { $0.iCloudUserRecordName == "jon-record" }.count == 1)
       #expect(try Reaction.find(reaction.id).fetchOne(db)?.authorID == rekeyedPersonID)
     }
   }
 
+  @Test func participantKeepsTheSharedSeedAndDeletesItsPrivateDuplicate() async throws {
+    let privateHousehold = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 1))
+    let sharedHousehold = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 2))
+    try await database.write { db in
+      try Household.insert { Household.Draft(privateHousehold) }.execute(db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
+      let privateSources = try Source.fetchAll(db)
+      #expect(privateSources.count == 44)
+
+      try Household.insert { Household.Draft(sharedHousehold) }.execute(db)
+      let sharedSources = privateSources.map { copy($0, to: sharedHousehold.id) }
+      for source in sharedSources { try Source.insert { Source.Draft(source) }.execute(db) }
+
+      let privateListing = try makeListing(sourceID: privateSources[0].id, key: "private", title: "Private")
+      let sharedListing = try makeListing(sourceID: sharedSources[0].id, key: "shared", title: "Shared")
+      try Listing.insert { Listing.Draft(privateListing); Listing.Draft(sharedListing) }.execute(db)
+      let privateReaction = Reaction(id: UUID(), listingID: privateListing.id, kind: .kept)
+      let sharedReaction = Reaction(id: UUID(), listingID: sharedListing.id, kind: .interested)
+      try Reaction.insert { Reaction.Draft(privateReaction); Reaction.Draft(sharedReaction) }.execute(db)
+
+      let states: [UUID: HouseholdSharing] = [
+        privateHousehold.id: .private, sharedHousehold.id: .sharedWithMe
+      ]
+      let sharing: (Household) -> HouseholdSharing = { states[$0.id, default: .private] }
+      let survivor = try Household.ensureDefault(in: db, sharing: sharing)
+      try Source.syncFromRegistry(in: db, sharing: sharing)
+
+      #expect(survivor.id == sharedHousehold.id)
+      #expect(try Household.fetchAll(db).map(\.id) == [sharedHousehold.id])
+      let remainingSources = try Source.fetchAll(db)
+      #expect(remainingSources.count == 44)
+      #expect(Set(remainingSources.map(\.id)) == Set(sharedSources.map(\.id)))
+      #expect(Set(remainingSources.map(\.id)).isDisjoint(with: Set(privateSources.map(\.id))))
+      #expect(try Listing.find(privateListing.id).fetchOne(db) == nil)
+      #expect(try Reaction.find(privateReaction.id).fetchOne(db) == nil)
+      let survivingSharedListing = try #require(try Listing.find(sharedListing.id).fetchOne(db))
+      #expect(survivingSharedListing.sourceID == sharedListing.sourceID)
+      #expect(survivingSharedListing.title == sharedListing.title)
+      let survivingSharedReaction = try #require(try Reaction.find(sharedReaction.id).fetchOne(db))
+      #expect(survivingSharedReaction.listingID == sharedReaction.listingID)
+      #expect(survivingSharedReaction.kind == sharedReaction.kind)
+      #expect(try Household.find(sharedHousehold.id).fetchOne(db)?.registryVersion == nil)
+    }
+  }
+
+  @Test func participantDoesNotSeedOrAdvanceRegistryVersion() async throws {
+    let household = Household(
+      id: UUID(), createdAt: Date(timeIntervalSince1970: 1), registryVersion: "1.3"
+    )
+    try await database.write { db in
+      try Household.insert { Household.Draft(household) }.execute(db)
+      let participant: (Household) -> HouseholdSharing = { _ in .sharedWithMe }
+      try Source.syncFromRegistry(
+        data: registryData(id: "new-source", name: "New", listingURL: "https://example.com", version: "1.4"),
+        in: db, sharing: participant
+      )
+      #expect(try Source.fetchAll(db).isEmpty)
+      #expect(try Household.find(household.id).fetchOne(db)?.registryVersion == "1.3")
+    }
+  }
+
+  @Test func sharedOwnerDeletesLoserChildrenWithoutReparenting() async throws {
+    let privateHousehold = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 1))
+    let sharedHousehold = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 2))
+    let stay = Stay(
+      id: UUID(), householdID: privateHousehold.id, arrivesOn: Date(timeIntervalSince1970: 10), departure: .open
+    )
+    let taste = TasteRecord(
+      id: TasteRecord.id(householdID: privateHousehold.id, sourceRegistryID: "venue", stableKey: "show"),
+      householdID: privateHousehold.id, sourceRegistryID: "venue", sourceName: "Venue", stableKey: "show",
+      title: "Show", performers: "", startsAt: Date(timeIntervalSince1970: 100), kind: .kept,
+      firstDecidedAt: Date(timeIntervalSince1970: 1), updatedAt: Date(timeIntervalSince1970: 2)
+    )
+    try await database.write { db in
+      try Household.insert { Household.Draft(privateHousehold); Household.Draft(sharedHousehold) }.execute(db)
+      try Stay.insert { Stay.Draft(stay) }.execute(db)
+      try TasteRecord.insert { TasteRecord.Draft(taste) }.execute(db)
+      let states: [UUID: HouseholdSharing] = [
+        privateHousehold.id: .private, sharedHousehold.id: .sharedByMe
+      ]
+      let sharing: (Household) -> HouseholdSharing = { states[$0.id, default: .private] }
+      let survivor = try Household.ensureDefault(in: db, sharing: sharing)
+      #expect(survivor.id == sharedHousehold.id)
+      #expect(try Household.fetchAll(db).map(\.id) == [sharedHousehold.id])
+      #expect(try Stay.fetchAll(db).isEmpty)
+      #expect(try TasteRecord.fetchAll(db).isEmpty)
+    }
+  }
+
   @Test func registryAddsTheDeclaredPaginationRules() async throws {
     try await database.write { db in
-      try Source.syncFromRegistry(in: db)
+      try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let sources = try Source.fetchAll(db)
       #expect(sources.first { $0.registryID == "bowery-ballroom" }?.pagination?.contains("mercuryeastpresents.com") == true)
       #expect(sources.first { $0.registryID == "the-stand" }?.pagination?.contains("months_ahead") == true)
@@ -595,11 +722,11 @@ struct SchemaTests {
     let original = Data(#"{"registry_version":"1.3","sources":[{"id":"bowery-ballroom","name":"Bowery Ballroom","source_type":"venue","priority":"core","listing_url":"https://example.com/bowery","registered_hosts":["example.com"],"mode":"automated","method":"structured_html","cadence":"weekly"}]}"#.utf8)
     let retired = Data(#"{"registry_version":"1.3","sources":[]}"#.utf8)
     try await database.write { db in
-      try Source.syncFromRegistry(data: original, in: db)
+      try Source.syncFromRegistry(data: original, in: db, sharing: { _ in .private })
       let source = try #require(Source.fetchAll(db).first { $0.registryID == "bowery-ballroom" })
-      try Source.syncFromRegistry(data: retired, in: db)
+      try Source.syncFromRegistry(data: retired, in: db, sharing: { _ in .private })
       #expect(try Source.find(source.id).fetchOne(db)?.retiredAt != nil)
-      try Source.syncFromRegistry(data: original, in: db)
+      try Source.syncFromRegistry(data: original, in: db, sharing: { _ in .private })
       #expect(try Source.find(source.id).fetchOne(db)?.retiredAt == nil)
     }
   }
@@ -608,11 +735,11 @@ struct SchemaTests {
     try await database.write { db in
       try Source.syncFromRegistry(data: registryData(
         id: "bowery", name: "Original", listingURL: "https://example.com/old", version: "1.3"
-      ), in: db)
+      ), in: db, sharing: { _ in .private })
       let source = try #require(Source.fetchAll(db).first { $0.registryID == "bowery" })
       try Source.syncFromRegistry(data: registryData(
         id: "bowery", name: "Older build", listingURL: "https://example.com/older", version: "1.2"
-      ), in: db)
+      ), in: db, sharing: { _ in .private })
       let afterOlder = try #require(try Source.find(source.id).fetchOne(db))
       #expect(afterOlder.name == "Original")
       #expect(afterOlder.listingURL == "https://example.com/old")
@@ -621,7 +748,7 @@ struct SchemaTests {
 
       try Source.syncFromRegistry(data: registryData(
         id: "bowery", name: "Updated", listingURL: "https://example.com/new", version: "1.4"
-      ), in: db)
+      ), in: db, sharing: { _ in .private })
       #expect(try Source.find(source.id).fetchOne(db)?.name == "Updated")
       #expect(try Household.find(source.householdID).fetchOne(db)?.registryVersion == "1.4")
     }
@@ -631,7 +758,7 @@ struct SchemaTests {
     try await database.write { db in
       try Source.syncFromRegistry(data: registryData(
         id: "bowery", name: "Original", listingURL: "https://example.com/old", version: "1.3"
-      ), in: db)
+      ), in: db, sharing: { _ in .private })
       let original = try #require(Source.fetchAll(db).first { $0.registryID == "bowery" })
       let duplicate = Source(
         id: UUID(), householdID: original.householdID, registryID: original.registryID,
@@ -649,7 +776,7 @@ struct SchemaTests {
 
       try Source.syncFromRegistry(data: registryData(
         id: "townhall", name: "Older build only", listingURL: "https://example.com/townhall", version: "1.2"
-      ), in: db)
+      ), in: db, sharing: { _ in .private })
 
       let remaining = try Source.where { $0.registryID.eq("bowery") }.fetchAll(db)
       #expect(remaining.map(\.id) == [duplicate.id])
@@ -668,9 +795,24 @@ struct SchemaTests {
       rung: rung, capturedBy: .mac, firstSeenAt: firstSeenAt)
   }
 
+  private func copy(_ source: Source, to householdID: UUID) -> Source {
+    Source(
+      id: UUID(), householdID: householdID, registryID: source.registryID, name: source.name,
+      type: source.type, priority: source.priority, area: source.area, mode: source.mode,
+      method: source.method, adapter: source.adapter, adapterVenue: source.adapterVenue,
+      listingURL: source.listingURL, startPageURL: source.startPageURL, feedURL: source.feedURL,
+      flaggedAt: source.flaggedAt, flagNote: source.flagNote, registeredHosts: source.registeredHosts,
+      excludedHosts: source.excludedHosts, cadence: source.cadence, lastCheckedAt: source.lastCheckedAt,
+      lastCheckOutcome: source.lastCheckOutcome, lastListingCount: source.lastListingCount,
+      consecutiveFailures: source.consecutiveFailures, pagination: source.pagination,
+      retiredAt: source.retiredAt, lastContentHash: source.lastContentHash,
+      lastCheckNote: source.lastCheckNote, createdAt: source.createdAt
+    )
+  }
+
   private func createSource(id: UUID) async throws {
     try await database.write { db in
-      let household = try Household.ensureDefault(in: db)
+      let household = try Household.ensureDefault(in: db, sharing: { _ in .private })
       let source = Source(id: id, householdID: household.id, registryID: id.uuidString, name: "Test source",
         type: "venue", priority: "core", area: "NYC", mode: .automated, method: "structured_html",
         listingURL: "https://example.com/events", registeredHosts: "[\"example.com\"]", cadence: "weekly")

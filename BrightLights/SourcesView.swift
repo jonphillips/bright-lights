@@ -79,8 +79,6 @@ private struct SourceDetailView: View {
   @FetchAll private var reactions: [Reaction]
   @State private var showingFlagPrompt = false
   @State private var flagNote = ""
-  @Shared(.currentPersonID) private var currentPersonIDString
-
   init(source: Source) {
     self.source = source
     self._currentSources = FetchAll(Source.where { $0.id.eq(source.id) })

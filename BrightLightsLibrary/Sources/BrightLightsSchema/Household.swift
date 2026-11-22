@@ -24,21 +24,22 @@ public struct Household: Identifiable, Equatable, Sendable {
     self.registryVersion = registryVersion
   }
 
-  public static func ensureDefault(in db: Database) throws -> Household {
+  public static func ensureDefault(
+    in db: Database, sharing: (Household) -> HouseholdSharing
+  ) throws -> Household {
     let households = try Household.fetchAll(db)
     if households.isEmpty {
       let created = Household(id: UUID())
       try Household.insert { Household.Draft(created) }.execute(db)
       return created
     }
-    let metadata = (try? SyncMetadata.fetchAll(db)) ?? []
-    let survivor = Household.survivor(in: households, metadata: metadata)
+    let survivor = Household.survivor(in: households, sharing: sharing)
     let losers = households.filter { $0.id != survivor.id }
     if losers.isEmpty { return survivor }
 
-    let sharing = Household.sharingState(of: survivor, metadata: metadata)
+    let survivorSharing = sharing(survivor)
     for loser in losers {
-      if sharing == .sharedWithMe || sharing == .sharedByMe {
+      if survivorSharing == .sharedWithMe || survivorSharing == .sharedByMe {
         // Children of a shared root stay in its CloudKit zone. Re-parenting would
         // move local data across a share boundary and leak it to the other person.
       } else {
@@ -49,16 +50,29 @@ public struct Household: Identifiable, Equatable, Sendable {
     return survivor
   }
 
-  public static func canonical(in db: Database) throws -> Household? {
+  public static func canonical(
+    in db: Database, sharing: (Household) -> HouseholdSharing
+  ) throws -> Household? {
     let households = try Household.fetchAll(db)
     guard !households.isEmpty else { return nil }
-    return survivor(in: households, metadata: (try? SyncMetadata.fetchAll(db)) ?? [])
+    return survivor(in: households, sharing: sharing)
   }
 
-  public static func survivor(
-    in households: [Household], metadata: [SyncMetadata]
-  ) -> Household {
-    survivor(in: households) { sharingState(of: $0, metadata: metadata) }
+  public static func sharingLookup(in db: Database) throws -> (Household) -> HouseholdSharing {
+    let metadata = try SyncMetadata.where { $0.recordType.eq("households") }.fetchAll(db)
+    var states: [UUID: HouseholdSharing] = [:]
+    for item in metadata {
+      guard let id = UUID(uuidString: item.recordPrimaryKey) else { continue }
+      if item.ownerName != CKCurrentUserDefaultName { states[id] = .sharedWithMe }
+      else { states[id] = item.isShared ? .sharedByMe : .private }
+    }
+    return { household in states[household.id, default: .private] }
+  }
+
+  public static func syncMetadata(for household: Household, in db: Database) throws -> SyncMetadata? {
+    try SyncMetadata.where {
+      $0.recordType.eq("households") && $0.recordPrimaryKey.eq(household.id.uuidString.lowercased())
+    }.fetchOne(db)
   }
 
   public static func survivor(
@@ -75,7 +89,7 @@ public struct Household: Identifiable, Equatable, Sendable {
 
   public static func sharingState(of household: Household, metadata: [SyncMetadata]) -> HouseholdSharing {
     guard let item = metadata.first(where: {
-      $0.recordType == "households" && $0.recordPrimaryKey == household.id.uuidString
+      $0.recordType == "households" && UUID(uuidString: $0.recordPrimaryKey) == household.id
     }) else { return .private }
     if item.ownerName != CKCurrentUserDefaultName { return .sharedWithMe }
     return item.isShared ? .sharedByMe : .private

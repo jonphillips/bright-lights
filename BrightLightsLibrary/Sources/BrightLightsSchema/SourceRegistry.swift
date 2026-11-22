@@ -107,17 +107,18 @@ public struct RegistryVersion: RawRepresentable, Comparable, Sendable, Equatable
 public extension Source {
   /// Reconcile registry-owned configuration without changing check history.
   /// Offline duplicate seeds converge on their oldest `(createdAt, id)` row.
-  static func syncFromRegistry(in db: Database) throws {
+  static func syncFromRegistry(in db: Database, sharing: (Household) -> HouseholdSharing) throws {
     guard let url = Bundle.module.url(forResource: "registry", withExtension: "json") else {
       throw SourceRegistryError.resourceMissing
     }
-    try syncFromRegistry(data: Data(contentsOf: url), in: db)
+    try syncFromRegistry(data: Data(contentsOf: url), in: db, sharing: sharing)
   }
 
-  static func syncFromRegistry(data: Data, in db: Database) throws {
+  static func syncFromRegistry(
+    data: Data, in db: Database, sharing: (Household) -> HouseholdSharing
+  ) throws {
     let registry = try JSONDecoder().decode(SourceRegistryFile.self, from: data)
-    let household = try Household.ensureDefault(in: db)
-    let sharing = Household.sharingState(of: household, metadata: (try? SyncMetadata.fetchAll(db)) ?? [])
+    let household = try Household.ensureDefault(in: db, sharing: sharing)
     guard let bundledVersion = RegistryVersion(rawValue: registry.version) else {
       throw SourceRegistryError.invalidRegistryVersion(registry.version)
     }
@@ -125,7 +126,7 @@ public extension Source {
       $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
     }
     let grouped = Dictionary(grouping: existing, by: \.registryID)
-    if sharing == .sharedWithMe {
+    if sharing(household) == .sharedWithMe {
       for matches in grouped.values {
         if let survivor = matches.first { try converge(matches, onto: survivor, in: db) }
       }

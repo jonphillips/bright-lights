@@ -121,25 +121,25 @@ struct SourceCheckingTests {
   @Test func leaseRejectsANonHolderAndClaimWritesAllLeaseFields() async throws {
     let holderID = UUID(); let deviceID = UUID(); let claimedAt = Date(timeIntervalSince1970: 1_900_000_000)
     try await database.write { db in
-      let household = try Household.ensureDefault(in: db)
+      let household = try Household.ensureDefault(in: db, sharing: { _ in .private })
       try Household.find(household.id).update { $0.checkerDeviceID = #bind(holderID) }.execute(db)
-      #expect(try !CheckerLease.mayCheck(deviceID: deviceID, checkerEnabled: true, syncEnabled: true, in: db))
-      try CheckerLease.claim(deviceID: deviceID, name: "Jon's Mac", at: claimedAt, in: db)
-      let claimed = try #require(try Household.canonical(in: db))
+      #expect(try !CheckerLease.mayCheck(deviceID: deviceID, checkerEnabled: true, syncEnabled: true, sharing: { _ in .private }, in: db))
+      try CheckerLease.claim(deviceID: deviceID, name: "Jon's Mac", at: claimedAt, sharing: { _ in .private }, in: db)
+      let claimed = try #require(try Household.canonical(in: db, sharing: { _ in .private }))
       #expect(claimed.checkerDeviceID == deviceID)
       #expect(claimed.checkerDeviceName == "Jon's Mac")
       #expect(claimed.checkerClaimedAt == claimedAt)
-      #expect(try CheckerLease.mayCheck(deviceID: deviceID, checkerEnabled: true, syncEnabled: true, in: db))
+      #expect(try CheckerLease.mayCheck(deviceID: deviceID, checkerEnabled: true, syncEnabled: true, sharing: { _ in .private }, in: db))
     }
   }
 
   @Test func disablingCheckerStopsChecksButLeavesHouseholdLease() async throws {
     let deviceID = UUID(); let claimedAt = Date(timeIntervalSince1970: 1_900_000_000)
     try await database.write { db in
-      let household = try Household.ensureDefault(in: db)
-      try CheckerLease.claim(deviceID: deviceID, name: "Jon's Mac", at: claimedAt, in: db)
-      #expect(try CheckerLease.holds(deviceID: deviceID, in: db))
-      #expect(try !CheckerLease.mayCheck(deviceID: deviceID, checkerEnabled: false, syncEnabled: true, in: db))
+      let household = try Household.ensureDefault(in: db, sharing: { _ in .private })
+      try CheckerLease.claim(deviceID: deviceID, name: "Jon's Mac", at: claimedAt, sharing: { _ in .private }, in: db)
+      #expect(try CheckerLease.holds(deviceID: deviceID, sharing: { _ in .private }, in: db))
+      #expect(try !CheckerLease.mayCheck(deviceID: deviceID, checkerEnabled: false, syncEnabled: true, sharing: { _ in .private }, in: db))
       let unchanged = try #require(try Household.find(household.id).fetchOne(db))
       #expect(unchanged.checkerDeviceID == deviceID)
       #expect(unchanged.checkerClaimedAt == claimedAt)
@@ -153,7 +153,7 @@ struct SourceCheckingTests {
     let caveat = try fixtureText("caveat.json")
     let unionHall = #"<html><script type="application/ld+json">{"@type":"Event","name":"Union Hall Show","startDate":"2030-03-12T20:00:00-04:00","url":"https://unionhallny.com/event/1"}</script></html>"#
     try await database.write { db in
-      let household = try Household.ensureDefault(in: db)
+      let household = try Household.ensureDefault(in: db, sharing: { _ in .private })
       let sources = [
         Source(id: boweryID, householdID: household.id, registryID: "bowery-ballroom",
         name: "Bowery Ballroom", type: "venue", priority: "core", area: "Lower East Side",
@@ -427,7 +427,7 @@ struct SourceCheckingTests {
     pagination: String? = nil, lastListingCount: Int? = nil
   ) async throws -> Source {
     try await database.write { db in
-      let household = try Household.ensureDefault(in: db)
+      let household = try Household.ensureDefault(in: db, sharing: { _ in .private })
       let registeredHosts = URL(string: listingURL)?.host.map { "[\"\($0)\"]" } ?? "[]"
       let source = Source(id: UUID(), householdID: household.id, registryID: registryID, name: registryID,
         type: "venue", priority: "core", area: "NYC", mode: .automated, method: method,

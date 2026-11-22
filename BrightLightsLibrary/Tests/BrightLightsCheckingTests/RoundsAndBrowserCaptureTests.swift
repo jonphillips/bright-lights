@@ -125,7 +125,7 @@ struct RoundsAndBrowserCaptureTests {
   @Test func browserCaptureWritesBrowserRowsAndRecordsOnlyNonemptyListingPage() async throws {
     let fixtureURL = try #require(Bundle.module.url(forResource: "bowery-ballroom", withExtension: "html", subdirectory: "Fixtures"))
     let html = try String(contentsOf: fixtureURL, encoding: .utf8)
-    let householdID = try await database.write { try Household.ensureDefault(in: $0).id }
+    let householdID = try await database.write { try Household.ensureDefault(in: $0, sharing: { _ in .private }).id }
     let venue = Source(id: UUID(), householdID: householdID, registryID: "bowery-ballroom", name: "Bowery Ballroom",
       type: "venue", priority: "core", area: "NYC", mode: .manual, method: "structured_html",
       adapter: "mercuryEast", adapterVenue: "Bowery Ballroom", listingURL: "https://mercuryeastpresents.com/bowery-ballroom/",
@@ -175,7 +175,7 @@ struct RoundsAndBrowserCaptureTests {
   @Test func browserCaptureOnAnotherPageAndWithNoListingsDoesNotRecordACheck() async throws {
     let fixtureURL = try #require(Bundle.module.url(forResource: "bowery-ballroom", withExtension: "html", subdirectory: "Fixtures"))
     let html = try String(contentsOf: fixtureURL, encoding: .utf8)
-    let householdID = try await database.write { try Household.ensureDefault(in: $0).id }
+    let householdID = try await database.write { try Household.ensureDefault(in: $0, sharing: { _ in .private }).id }
     let priorCheck = Date(timeIntervalSince1970: 1_899_000_000)
     let venue = Source(id: UUID(), householdID: householdID, registryID: "bowery-other-page", name: "Bowery Ballroom",
       type: "venue", priority: "core", area: "NYC", mode: .automated, method: "structured_html",
@@ -234,7 +234,7 @@ struct RoundsAndBrowserCaptureTests {
     let presenter = Source(id: UUID(), householdID: UUID(), registryID: "presenter", name: "Presenter",
       type: "presenter", priority: "core", area: "NYC", mode: .manual, method: "structured_html",
       listingURL: "https://example.com/events", registeredHosts: "[\"example.com\"]", cadence: "weekly")
-    let householdID = try await database.write { try Household.ensureDefault(in: $0).id }
+    let householdID = try await database.write { try Household.ensureDefault(in: $0, sharing: { _ in .private }).id }
     let aggregator = Source(id: UUID(), householdID: householdID, registryID: "aggregator", name: "Aggregator",
       type: "aggregator", priority: "core", area: "NYC", mode: .manual, method: "structured_html",
       adapter: "mercuryEast", adapterVenue: "Bowery Ballroom",
@@ -252,7 +252,7 @@ struct RoundsAndBrowserCaptureTests {
   @Test func feedSourceCapturesItsHTMLListingPageAsHTML() async throws {
     let fixtureURL = try #require(Bundle.module.url(forResource: "bowery-ballroom", withExtension: "html", subdirectory: "Fixtures"))
     let html = try String(contentsOf: fixtureURL, encoding: .utf8)
-    let householdID = try await database.write { try Household.ensureDefault(in: $0).id }
+    let householdID = try await database.write { try Household.ensureDefault(in: $0, sharing: { _ in .private }).id }
     let webSource = Source(id: UUID(), householdID: householdID, registryID: "html-with-feed", name: "Venue with feed",
       type: "venue", priority: "core", area: "NYC", mode: .manual, method: "platform_feed",
       adapter: "mercuryEast", adapterVenue: "Bowery Ballroom",

@@ -47,7 +47,10 @@ enum CheckerRuntime {
       let id = UUID(uuidString: deviceID), SMAppService.mainApp.status != .enabled
     else { return }
     @Dependency(\.defaultDatabase) var db
-    let holdsLease = (try? await db.read { try CheckerLease.holds(deviceID: id, in: $0) }) == true
+    let holdsLease = (try? await db.read {
+      let sharing = try Household.sharingLookup(in: $0)
+      return try CheckerLease.holds(deviceID: id, sharing: sharing, in: $0)
+    }) == true
     guard holdsLease else { return }
     do {
       try SMAppService.mainApp.register()
@@ -85,7 +88,11 @@ enum CheckerRuntime {
     @Dependency(\.defaultSyncEngine) var syncEngine
     @Dependency(\.checkReportClient) var checkReportClient
     let mayCheck = (try? await db.read {
-      try CheckerLease.mayCheck(deviceID: id, checkerEnabled: checkerIsEnabled, syncEnabled: syncEnabled, in: $0)
+      let sharing = try Household.sharingLookup(in: $0)
+      return try CheckerLease.mayCheck(
+        deviceID: id, checkerEnabled: checkerIsEnabled, syncEnabled: syncEnabled,
+        sharing: sharing, in: $0
+      )
     }) == true
     guard mayCheck else { return [] }
     let activity = ProcessInfo.processInfo.beginActivity(options: [.userInitiatedAllowingIdleSystemSleep], reason: "Checking Bright Lights sources")
