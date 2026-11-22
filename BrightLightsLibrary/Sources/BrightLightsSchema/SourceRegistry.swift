@@ -117,6 +117,7 @@ public extension Source {
   static func syncFromRegistry(data: Data, in db: Database) throws {
     let registry = try JSONDecoder().decode(SourceRegistryFile.self, from: data)
     let household = try Household.ensureDefault(in: db)
+    let sharing = Household.sharingState(of: household, metadata: (try? SyncMetadata.fetchAll(db)) ?? [])
     guard let bundledVersion = RegistryVersion(rawValue: registry.version) else {
       throw SourceRegistryError.invalidRegistryVersion(registry.version)
     }
@@ -124,6 +125,12 @@ public extension Source {
       $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
     }
     let grouped = Dictionary(grouping: existing, by: \.registryID)
+    if sharing == .sharedWithMe {
+      for matches in grouped.values {
+        if let survivor = matches.first { try converge(matches, onto: survivor, in: db) }
+      }
+      return
+    }
     if let rawStoredVersion = household.registryVersion {
       guard let storedVersion = RegistryVersion(rawValue: rawStoredVersion) else {
         throw SourceRegistryError.invalidRegistryVersion(rawStoredVersion)

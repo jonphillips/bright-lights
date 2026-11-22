@@ -25,6 +25,51 @@ struct SchemaTests {
       != "SQLiteData.db")
   }
 
+  @Test func personIdentityIsStableAndBindingOnlyFillsAnEmptyName() async throws {
+    let recordName = "cloudkit-record-name"
+    let household = Household(id: UUID())
+    let id = Person.id(householdID: household.id, recordName: recordName)
+    #expect(id == Person.id(householdID: household.id, recordName: recordName))
+    try await database.write { db in
+      try Household.insert { Household.Draft(household) }.execute(db)
+      #expect(try Person.bind(recordName: recordName, participantGivenName: "Wendy", in: household, db: db) == id)
+      #expect(try Person.bind(recordName: recordName, participantGivenName: "Changed", in: household, db: db) == id)
+      #expect(try Person.find(id).fetchOne(db)?.displayName == "Wendy")
+    }
+  }
+
+  @Test func sharedHouseholdSurvivorIsIndependentOfInputOrder() {
+    let households = [
+      Household(id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!, createdAt: Date(timeIntervalSince1970: 1)),
+      Household(id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!, createdAt: Date(timeIntervalSince1970: 2)),
+      Household(id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!, createdAt: Date(timeIntervalSince1970: 3))
+    ]
+    let states: [UUID: HouseholdSharing] = [
+      households[0].id: .private, households[1].id: .sharedByMe, households[2].id: .sharedWithMe
+    ]
+    let forward = Household.survivor(in: households) { states[$0.id, default: .private] }
+    let reverse = Household.survivor(in: Array(households.reversed())) { states[$0.id, default: .private] }
+    #expect(forward.id == households[2].id)
+    #expect(reverse.id == forward.id)
+
+    let tied = [
+      Household(id: UUID(uuidString: "00000000-0000-0000-0000-000000000004")!, createdAt: Date(timeIntervalSince1970: 4)),
+      Household(id: UUID(uuidString: "00000000-0000-0000-0000-000000000005")!, createdAt: Date(timeIntervalSince1970: 4))
+    ]
+    for state in HouseholdSharing.allCases {
+      let expected = tied.map(\.id).min { $0.uuidString < $1.uuidString }!
+      let tiedWinner = Household.survivor(in: tied) { _ in state }
+      #expect(tiedWinner.id == expected)
+    }
+    #expect(HouseholdSharing.allCases == [.private, .sharedByMe, .sharedWithMe])
+  }
+
+  @Test func reactionAttributionIsShownOnlyForNamedOtherPeople() {
+    #expect(Reaction.attributedTitle(kind: .interested, authorName: "Wendy", isCurrentPerson: false) == "Interested · Wendy")
+    #expect(Reaction.attributedTitle(kind: .interested, authorName: "Jon", isCurrentPerson: true) == "Interested")
+    #expect(Reaction.attributedTitle(kind: .interested, authorName: "", isCurrentPerson: false) == "Interested")
+  }
+
   @Test func expectedCloudKitFieldsCoverTheMigratedSchema() async throws {
     let root = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent().deletingLastPathComponent()
@@ -38,7 +83,7 @@ struct SchemaTests {
     }
     #expect(fields.count == rows.count)
     let tables = Set(fields.map(\.0))
-    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords"])
+    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords", "people"])
     try await database.read { db in
       for table in tables {
         let listed = Set(fields.filter { $0.0 == table }.map(\.1))
@@ -259,10 +304,50 @@ struct SchemaTests {
       }.execute(db)
       let source = try #require(Source.fetchAll(db).first)
       try Source.find(source.id).update { $0.householdID = #bind(newer.id) }.execute(db)
+      let oldPerson = Person(
+        id: Person.id(householdID: oldest.id, recordName: "jon-record"), householdID: oldest.id,
+        iCloudUserRecordName: "jon-record", displayName: "Jon"
+      )
+      let newPerson = Person(
+        id: Person.id(householdID: newer.id, recordName: "jon-record"), householdID: newer.id,
+        iCloudUserRecordName: "jon-record", displayName: ""
+      )
+      try Person.insert { Person.Draft(oldPerson); Person.Draft(newPerson) }.execute(db)
+      let olderTaste = TasteRecord(
+        id: TasteRecord.id(householdID: oldest.id, sourceRegistryID: "venue", stableKey: "show"),
+        householdID: oldest.id, sourceRegistryID: "venue", sourceName: "Venue", stableKey: "show",
+        title: "Older", performers: "", startsAt: Date(timeIntervalSince1970: 1), kind: .kept,
+        authorID: oldPerson.id, firstDecidedAt: Date(timeIntervalSince1970: 1),
+        updatedAt: Date(timeIntervalSince1970: 10)
+      )
+      let newerTaste = TasteRecord(
+        id: TasteRecord.id(householdID: newer.id, sourceRegistryID: "venue", stableKey: "show"),
+        householdID: newer.id, sourceRegistryID: "venue", sourceName: "Venue", stableKey: "show",
+        title: "Newer", performers: "", startsAt: Date(timeIntervalSince1970: 1), kind: .interested,
+        authorID: newPerson.id, firstDecidedAt: Date(timeIntervalSince1970: 2),
+        updatedAt: Date(timeIntervalSince1970: 20)
+      )
+      try TasteRecord.insert { TasteRecord.Draft(olderTaste); TasteRecord.Draft(newerTaste) }.execute(db)
+      let listing = Listing(
+        id: UUID(), sourceID: source.id, stableKey: "attributed", title: "Show",
+        startsAt: Date(timeIntervalSince1970: 100), rung: .adapter, capturedBy: .mac
+      )
+      try Listing.insert { Listing.Draft(listing) }.execute(db)
+      let reaction = Reaction(
+        id: UUID(), listingID: listing.id, kind: .kept, authorID: newPerson.id,
+        updatedAt: Date(timeIntervalSince1970: 20)
+      )
+      try Reaction.insert { Reaction.Draft(reaction) }.execute(db)
       let defaultHousehold = try Household.ensureDefault(in: db)
       #expect(defaultHousehold.id == oldest.id)
       #expect(try Household.fetchAll(db).count == 1)
       #expect(try Source.where { $0.householdID.neq(oldest.id) }.fetchCount(db) == 0)
+      let rekeyedTasteID = TasteRecord.id(householdID: oldest.id, sourceRegistryID: "venue", stableKey: "show")
+      #expect(try TasteRecord.fetchAll(db).filter { $0.stableKey == "show" }.count == 1)
+      #expect(try TasteRecord.find(rekeyedTasteID).fetchOne(db)?.title == "Newer")
+      let rekeyedPersonID = Person.id(householdID: oldest.id, recordName: "jon-record")
+      #expect(try Person.fetchAll(db).filter { $0.iCloudUserRecordName == "jon-record" }.count == 1)
+      #expect(try Reaction.find(reaction.id).fetchOne(db)?.authorID == rekeyedPersonID)
     }
   }
 

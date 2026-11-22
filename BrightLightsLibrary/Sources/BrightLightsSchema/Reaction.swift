@@ -31,6 +31,11 @@ public struct Reaction: Identifiable, Equatable, Sendable {
 }
 
 public extension Reaction {
+  static func attributedTitle(kind: ReactionKind, authorName: String?, isCurrentPerson: Bool) -> String {
+    guard !isCurrentPerson, let authorName, !authorName.isEmpty else { return kind.title }
+    return "\(kind.title) · \(authorName)"
+  }
+
   /// Reactions are household state: edits replace the one row for a listing.
   /// Converges any offline duplicates before writing the replacement.
   static func upsertForListing(_ reaction: Reaction, in db: Database) throws {

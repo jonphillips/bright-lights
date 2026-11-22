@@ -1,4 +1,5 @@
 import Foundation
+import CloudKit
 import SQLiteData
 
 @Table
@@ -24,37 +25,132 @@ public struct Household: Identifiable, Equatable, Sendable {
   }
 
   public static func ensureDefault(in db: Database) throws -> Household {
-    let households = try Household.fetchAll(db).sorted {
-      $0.createdAt == $1.createdAt ? $0.id.uuidString < $1.id.uuidString : $0.createdAt < $1.createdAt
+    let households = try Household.fetchAll(db)
+    if households.isEmpty {
+      let created = Household(id: UUID())
+      try Household.insert { Household.Draft(created) }.execute(db)
+      return created
     }
-    if households.count == 1 { return households[0] }
-    if let survivor = households.first {
-      let losers = households.filter { $0.id != survivor.id }
-      for loser in losers {
-        try Source.where { $0.householdID.eq(loser.id) }
-          .update { $0.householdID = #bind(survivor.id) }.execute(db)
-        try Stay.where { $0.householdID.eq(loser.id) }
-          .update { $0.householdID = #bind(survivor.id) }.execute(db)
-        try Household.find(loser.id).delete().execute(db)
+    let metadata = (try? SyncMetadata.fetchAll(db)) ?? []
+    let survivor = Household.survivor(in: households, metadata: metadata)
+    let losers = households.filter { $0.id != survivor.id }
+    if losers.isEmpty { return survivor }
+
+    let sharing = Household.sharingState(of: survivor, metadata: metadata)
+    for loser in losers {
+      if sharing == .sharedWithMe || sharing == .sharedByMe {
+        // Children of a shared root stay in its CloudKit zone. Re-parenting would
+        // move local data across a share boundary and leak it to the other person.
+      } else {
+        try repoint(loser, to: survivor, in: db)
       }
-      return survivor
+      try Household.find(loser.id).delete().execute(db)
     }
-    let created = Household(id: UUID())
-    try Household.insert { Household.Draft(created) }.execute(db)
-    return created
+    return survivor
   }
 
-}
+  public static func canonical(in db: Database) throws -> Household? {
+    let households = try Household.fetchAll(db)
+    guard !households.isEmpty else { return nil }
+    return survivor(in: households, metadata: (try? SyncMetadata.fetchAll(db)) ?? [])
+  }
 
-public extension Household {
-  static var canonical: Where<Household> {
-    Household.where { household in
-      !Household.as(EarlierHousehold.self).where { candidate in
-        candidate.createdAt.lt(household.createdAt)
-          || (candidate.createdAt.eq(household.createdAt) && candidate.id.lt(household.id))
-      }.exists()
+  public static func survivor(
+    in households: [Household], metadata: [SyncMetadata]
+  ) -> Household {
+    survivor(in: households) { sharingState(of: $0, metadata: metadata) }
+  }
+
+  public static func survivor(
+    in households: [Household], sharing: (Household) -> HouseholdSharing
+  ) -> Household {
+    households.sorted { lhs, rhs in
+      let left = sharing(lhs).priority
+      let right = sharing(rhs).priority
+      if left != right { return left > right }
+      if lhs.createdAt != rhs.createdAt { return lhs.createdAt < rhs.createdAt }
+      return lhs.id.uuidString < rhs.id.uuidString
+    }[0]
+  }
+
+  public static func sharingState(of household: Household, metadata: [SyncMetadata]) -> HouseholdSharing {
+    guard let item = metadata.first(where: {
+      $0.recordType == "households" && $0.recordPrimaryKey == household.id.uuidString
+    }) else { return .private }
+    if item.ownerName != CKCurrentUserDefaultName { return .sharedWithMe }
+    return item.isShared ? .sharedByMe : .private
+  }
+
+  private static func repoint(_ loser: Household, to survivor: Household, in db: Database) throws {
+    try Source.where { $0.householdID.eq(loser.id) }
+      .update { $0.householdID = #bind(survivor.id) }.execute(db)
+    try Stay.where { $0.householdID.eq(loser.id) }
+      .update { $0.householdID = #bind(survivor.id) }.execute(db)
+
+    for record in try TasteRecord.where({ $0.householdID.eq(loser.id) }).fetchAll(db) {
+      let id = TasteRecord.id(
+        householdID: survivor.id, sourceRegistryID: record.sourceRegistryID, stableKey: record.stableKey
+      )
+      if let existing = try TasteRecord.find(id).fetchOne(db) {
+        if record.updatedAt > existing.updatedAt {
+          let replacement = copy(record, id: id, householdID: survivor.id)
+          try TasteRecord.upsert { TasteRecord.Draft(replacement) }.execute(db)
+        }
+        try TasteRecord.find(record.id).delete().execute(db)
+      } else {
+        let replacement = copy(record, id: id, householdID: survivor.id)
+        try TasteRecord.upsert { TasteRecord.Draft(replacement) }.execute(db)
+      }
     }
+
+    for person in try Person.where({ $0.householdID.eq(loser.id) }).fetchAll(db) {
+      let newID = Person.id(householdID: survivor.id, recordName: person.iCloudUserRecordName)
+      if let existing = try Person.find(newID).fetchOne(db) {
+        if existing.displayName.isEmpty, !person.displayName.isEmpty {
+          var replacement = existing
+          replacement.displayName = person.displayName
+          try Person.upsert { Person.Draft(replacement) }.execute(db)
+        }
+        try Reaction.where { $0.authorID.eq(person.id) }
+          .update { $0.authorID = #bind(newID) }.execute(db)
+        try TasteRecord.where { $0.authorID.eq(person.id) }
+          .update { $0.authorID = #bind(newID) }.execute(db)
+        try Person.find(person.id).delete().execute(db)
+      } else {
+        let replacement = Person(
+          id: newID, householdID: survivor.id, iCloudUserRecordName: person.iCloudUserRecordName,
+          displayName: person.displayName, createdAt: person.createdAt
+        )
+        try Person.upsert { Person.Draft(replacement) }.execute(db)
+        try Reaction.where { $0.authorID.eq(person.id) }
+          .update { $0.authorID = #bind(newID) }.execute(db)
+        try TasteRecord.where { $0.authorID.eq(person.id) }
+          .update { $0.authorID = #bind(newID) }.execute(db)
+      }
+    }
+  }
+
+  private static func copy(_ record: TasteRecord, id: UUID, householdID: UUID) -> TasteRecord {
+    TasteRecord(
+      id: id, householdID: householdID, sourceRegistryID: record.sourceRegistryID,
+      sourceName: record.sourceName, stableKey: record.stableKey, title: record.title,
+      performers: record.performers, room: record.room, startsAt: record.startsAt,
+      closesAt: record.closesAt, kind: record.kind, note: record.note, authorID: record.authorID,
+      firstDecidedAt: record.firstDecidedAt, updatedAt: record.updatedAt
+    )
   }
 }
 
-private enum EarlierHousehold: AliasName {}
+public enum HouseholdSharing: Equatable, CaseIterable, Sendable {
+  case `private`
+  case sharedByMe
+  case sharedWithMe
+
+  fileprivate var priority: Int {
+    switch self {
+    case .private: 0
+    case .sharedByMe: 1
+    case .sharedWithMe: 2
+    }
+  }
+}

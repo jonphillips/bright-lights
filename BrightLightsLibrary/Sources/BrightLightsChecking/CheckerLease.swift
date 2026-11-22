@@ -4,7 +4,7 @@ import SQLiteData
 
 public enum CheckerLease {
   public static func holds(deviceID: UUID, in db: Database) throws -> Bool {
-    try Household.canonical.fetchOne(db)?.checkerDeviceID == deviceID
+    try Household.canonical(in: db)?.checkerDeviceID == deviceID
   }
 
   public static func mayCheck(

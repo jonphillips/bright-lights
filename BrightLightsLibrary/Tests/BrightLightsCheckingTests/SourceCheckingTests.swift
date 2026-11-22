@@ -125,7 +125,7 @@ struct SourceCheckingTests {
       try Household.find(household.id).update { $0.checkerDeviceID = #bind(holderID) }.execute(db)
       #expect(try !CheckerLease.mayCheck(deviceID: deviceID, checkerEnabled: true, syncEnabled: true, in: db))
       try CheckerLease.claim(deviceID: deviceID, name: "Jon's Mac", at: claimedAt, in: db)
-      let claimed = try #require(try Household.canonical.fetchOne(db))
+      let claimed = try #require(try Household.canonical(in: db))
       #expect(claimed.checkerDeviceID == deviceID)
       #expect(claimed.checkerDeviceName == "Jon's Mac")
       #expect(claimed.checkerClaimedAt == claimedAt)

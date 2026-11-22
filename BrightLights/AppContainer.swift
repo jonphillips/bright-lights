@@ -3,6 +3,7 @@ import BrightLightsChecking
 import SQLiteData
 import SwiftUI
 import BrightLightsSchema
+import Sharing
 
 enum AppScreen: String, CaseIterable, Identifiable {
   case whileHere
@@ -359,6 +360,8 @@ private struct WhatsOnScreen: View {
 }
 
 private struct ListingRow: View {
+  @FetchAll private var people: [Person]
+  @Shared(.currentPersonID) private var currentPersonIDString
   let item: WhatsOnItem
   var body: some View {
     VStack(alignment: .leading, spacing: 3) {
@@ -367,6 +370,11 @@ private struct ListingRow: View {
         Spacer()
         if let reaction = item.reaction {
           Image(systemName: reactionSymbol(reaction.kind))
+          Text(Reaction.attributedTitle(
+            kind: reaction.kind,
+            authorName: people.first(where: { $0.id == reaction.authorID })?.displayName,
+            isCurrentPerson: UUID(uuidString: currentPersonIDString) == reaction.authorID
+          )).font(.caption).foregroundStyle(.secondary)
         }
       }
       Text("\(nyTime(item.listing.startsAt))\(TimeZone.current.identifier == "America/New_York" ? "" : " ET") · \(item.sourceName)\(item.listing.room.map { " · \($0)" } ?? "")")
@@ -384,6 +392,7 @@ private struct ListingDetailView: View {
   @State private var note: String
   @State private var showingError = false
   @State private var errorMessage = ""
+  @Shared(.currentPersonID) private var currentPersonIDString
 
   init(item: WhatsOnItem) {
     self.item = item
@@ -436,7 +445,12 @@ private struct ListingDetailView: View {
 
   private func save(_ kind: ReactionKind) {
     @Dependency(\.defaultDatabase) var database
-    let reaction = Reaction(id: currentReaction?.id ?? UUID(), listingID: item.listing.id, kind: kind, note: note.isEmpty ? nil : note, updatedAt: .now)
+    let reaction = Reaction(
+      id: currentReaction?.id ?? UUID(), listingID: item.listing.id, kind: kind,
+      note: note.isEmpty ? nil : note,
+      authorID: UUID(uuidString: currentPersonIDString),
+      updatedAt: .now
+    )
     Task {
       do { try await database.write { db in try Reaction.upsertForListing(reaction, in: db) } }
       catch { errorMessage = error.localizedDescription; showingError = true }
