@@ -23,6 +23,8 @@ packages:
     from: 1.0.0
   LLMClientKit:
     path: ../jon-platform/packages/LLMClientKit
+  CloudSyncKit:
+    path: ../jon-platform/packages/CloudSyncKit
   swift-sharing:
     url: https://github.com/pointfreeco/swift-sharing
     from: 2.0.0
@@ -59,6 +61,7 @@ targets:
         CFBundleDisplayName: Bright Lights
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        CKSharingSupported: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
@@ -79,6 +82,8 @@ targets:
         product: Dependencies
       - package: LLMClientKit
         product: LLMClientKit
+      - package: CloudSyncKit
+        product: CloudSyncKit
       - package: swift-sharing
         product: Sharing
     settings:

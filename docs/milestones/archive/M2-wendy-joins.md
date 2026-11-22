@@ -2,16 +2,16 @@
 
 *Architect, 2026-11-21. Arc: from Jon alone in CloudKit Development to Jon and Wendy sharing one household in
 Production. Jon installs from TestFlight, the mini checks into Production, and Wendy reacts from her own iPhone.
-Decisions: [ADR-0009](../decisions/0009-production-and-wendy.md) and its Amendment 1. Taste ranking leads M3. Its
+Decisions: [ADR-0009](../../decisions/0009-production-and-wendy.md) and its Amendment 1. Taste ranking leads M3. Its
 open questions are in `open-questions.md`, and the taste record restarts at the cutover.*
 
 ## Slice ledger
 
 - [x] **S1** — Production and TestFlight
-- [ ] **S2** — Inviting Wendy
+- [x] **S2** — Inviting Wendy
 
 Each slice is one dispatch. The architect expands a slice into a full brief, here, before dispatching it. Both are
-expanded below. S1 follows [check-report](../efforts/archive/check-report.md), whose report is how the first
+expanded below. S1 follows [check-report](../../efforts/archive/check-report.md), whose report is how the first
 Production nights get read. S2's code doesn't need Production, but its device pass runs after the S1 cutover.
 
 ## Schema read before Production (architect, 2026-11-21)

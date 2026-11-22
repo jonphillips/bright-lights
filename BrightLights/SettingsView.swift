@@ -1,6 +1,7 @@
 import BrightLightsChecking
 import BrightLightsSchema
 import CloudKit
+import CloudSyncKit
 import Dependencies
 import LLMClientKit
 import SQLiteData
@@ -11,7 +12,9 @@ import ServiceManagement
 #endif
 
 struct SettingsView: View {
-  @FetchAll(Household.canonical) private var households: [Household]
+  @FetchAll private var households: [Household]
+  @FetchAll private var people: [Person]
+  @FetchAll(SyncMetadata.where { $0.recordType.eq("households") }) private var syncMetadata: [SyncMetadata]
   @FetchAll private var sources: [Source]
   @Dependency(\.defaultDatabase) private var db
   @Dependency(\.defaultSyncEngine) private var syncEngine
@@ -23,12 +26,23 @@ struct SettingsView: View {
   @State private var statusNote: String?
   @State private var lastPassReports: [SourceCheckReport] = []
   @State private var lastPassDuration: TimeInterval?
+  @State private var syncStatusSummary = "Checking sync status…"
+  @State private var sharedRecord: SharedRecord?
+  @State private var currentPersonNameDraft = ""
+  @State private var savedPersonName: String?
   @Shared(.checkerDeviceID) private var deviceIDString
   @Shared(.checkerEnabled) private var checkerEnabled
   @Shared(.checkerRegistrationError) private var checkerRegistrationError
   @Shared(.appStorage("BrightLightsCloudKitSyncEnabled")) private var syncEnabled = false
 
-  private var household: Household? { households.first }
+  private var household: Household? {
+    households.isEmpty ? nil : Household.survivor(in: households) {
+      Household.sharingState(of: $0, metadata: syncMetadata)
+    }
+  }
+  private var sharing: HouseholdSharing {
+    household.map { Household.sharingState(of: $0, metadata: syncMetadata) } ?? .private
+  }
   private var deviceID: UUID? { UUID(uuidString: deviceIDString) }
   private var syncIsEnabled: Bool {
     BrightLightsSyncPolicy.isEnabled(debugOptIn: syncEnabled)
@@ -37,13 +51,45 @@ struct SettingsView: View {
   var body: some View {
     Form {
       Section("Sync") {
-        LabeledContent("Environment", value: BrightLightsSyncPolicy.environmentName)
+        LabeledContent("Build", value: "\(BuildStamp.fromMainBundle().displayValue) · \(BrightLightsSyncPolicy.environmentName)")
+        LabeledContent("Status", value: syncStatusSummary)
         #if DEBUG
           Toggle("iCloud sync", isOn: Binding(get: { syncEnabled }, set: { setSync($0) }))
         #else
           LabeledContent("iCloud sync", value: "On")
         #endif
-        LabeledContent("Build", value: BuildStamp.fromMainBundle().displayValue)
+      }
+      Section("Household") {
+        switch sharing {
+        case .sharedWithMe:
+          LabeledContent("Sharing", value: "Shared by \(householdOwnerName)")
+        case .private, .sharedByMe:
+          LabeledContent("Sharing", value: sharing == .sharedByMe ? "Shared by you" : "Private")
+          #if os(iOS)
+          Button("Share household") { shareHousehold() }
+          #endif
+        }
+      }
+      Section("People") {
+        if currentPerson != nil {
+          VStack(alignment: .leading, spacing: 6) {
+            Text("Your name")
+            TextField("Your name", text: $currentPersonNameDraft)
+              .onSubmit(saveCurrentPersonName)
+          }
+        }
+        ForEach(people.sorted { $0.createdAt < $1.createdAt }) { person in
+          LabeledContent(person.displayName.isEmpty ? "Unnamed person" : person.displayName,
+            value: person.id == currentPersonID ? "You" : "")
+        }
+      }
+      .onAppear(perform: loadCurrentPersonName)
+      .onDisappear(perform: saveCurrentPersonName)
+      .onChange(of: currentPerson?.id) { _, _ in loadCurrentPersonName() }
+      .onChange(of: currentPerson?.displayName) { _, value in
+        guard let value, savedPersonName == currentPersonNameDraft else { return }
+        currentPersonNameDraft = value
+        savedPersonName = value
       }
       #if os(macOS)
       Section("Source checking") {
@@ -119,6 +165,13 @@ struct SettingsView: View {
     }
     .navigationTitle("Settings")
     .onAppear { refreshSavedModelKeyStatus() }
+#if os(iOS)
+    .sheet(item: $sharedRecord) { CloudSharingView(sharedRecord: $0) }
+#endif
+    .task { await refreshSyncStatus() }
+    .onChange(of: syncEngine.isSynchronizing) { _, _ in
+      Task { await refreshSyncStatus() }
+    }
     .onChange(of: modelProvider) { refreshSavedModelKeyStatus() }
 #if os(macOS)
     .confirmationDialog(
@@ -132,8 +185,72 @@ struct SettingsView: View {
 #endif
   }
 
+  @Shared(.currentPersonID) private var currentPersonIDString
+  private var currentPersonID: UUID? { UUID(uuidString: currentPersonIDString) }
+  private var currentPerson: Person? { people.first { $0.id == currentPersonID } }
+  private var householdOwnerName: String { syncMetadata.first(where: {
+    $0.recordType == "households" && UUID(uuidString: $0.recordPrimaryKey) == household?.id
+  })?.share?.owner.userIdentity.nameComponents?.givenName ?? "the owner" }
+
+  private func shareHousehold() {
+    guard let household else { return }
+    Task {
+      do {
+        let record = try await syncEngine.share(record: household) {
+          $0[CKShare.SystemFieldKey.title] = "Bright Lights"
+        }
+        await MainActor.run { sharedRecord = record }
+      } catch { statusNote = error.localizedDescription }
+    }
+  }
+
+  private func loadCurrentPersonName() {
+    guard let currentPerson else { return }
+    currentPersonNameDraft = currentPerson.displayName
+    savedPersonName = currentPerson.displayName
+  }
+
+  private func saveCurrentPersonName() {
+    guard let person = currentPerson, let savedPersonName,
+      currentPersonNameDraft != savedPersonName
+    else { return }
+    let previousName = savedPersonName
+    let updatedName = currentPersonNameDraft
+    self.savedPersonName = updatedName
+    Task {
+      do {
+        try await db.write { db in
+          try Person.find(person.id).update { $0.displayName = #bind(updatedName) }.execute(db)
+        }
+        statusNote = nil
+      } catch {
+        if self.savedPersonName == updatedName { self.savedPersonName = previousName }
+        statusNote = error.localizedDescription
+      }
+    }
+  }
+
   private func refreshSavedModelKeyStatus() {
     savedModelKeyStatus = apiKeyStore.maskedKey(modelProvider)
+  }
+
+  private func refreshSyncStatus() async {
+    let accountStatus = (try? await CKContainer(identifier: "iCloud.com.jonphillips.BrightLights").accountStatus()) ?? .couldNotDetermine
+    let account: SyncAccountStatus = switch accountStatus {
+    case .available: .available
+    case .noAccount: .noAccount
+    case .restricted: .restricted
+    case .couldNotDetermine: .couldNotDetermine
+    case .temporarilyUnavailable: .temporarilyUnavailable
+    @unknown default: .unknown
+    }
+    let pending = (try? await CloudSync.pendingRecordZoneChangeCount(in: db)) ?? 0
+    let health = SyncHealth(
+      isManuallyEnabled: syncIsEnabled, account: account,
+      isEngineRunning: syncEngine.isRunning, pendingChangeCount: pending,
+      isFetchingChanges: syncEngine.isFetchingChanges
+    )
+    syncStatusSummary = health.displayStatus.summary
   }
 
   private func saveModelKey() {
@@ -165,7 +282,12 @@ struct SettingsView: View {
     do {
       try SMAppService.mainApp.register()
       $checkerRegistrationError.withLock { $0 = "" }
-      try db.write { transactionDB in try CheckerLease.claim(deviceID: deviceID, name: name, at: .now, in: transactionDB) }
+      try db.write { transactionDB in
+        let sharing = try Household.sharingLookup(in: transactionDB)
+        try CheckerLease.claim(
+          deviceID: deviceID, name: name, at: .now, sharing: sharing, in: transactionDB
+        )
+      }
       $checkerEnabled.withLock { $0 = true }
       statusNote = nil
       CheckerRuntime.startIfEnabled()

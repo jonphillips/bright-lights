@@ -3,6 +3,7 @@ import BrightLightsChecking
 import SQLiteData
 import SwiftUI
 import BrightLightsSchema
+import Sharing
 
 enum AppScreen: String, CaseIterable, Identifiable {
   case whileHere
@@ -178,6 +179,8 @@ private struct WhatsOnScreen: View {
   @FetchAll(Source.active.order(by: \.name)) private var sources
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
   @FetchAll private var reactions: [Reaction]
+  @FetchAll(Person.order(by: \.createdAt)) private var people: [Person]
+  @Shared(.currentPersonID) private var currentPersonIDString
   @State private var showEverything = false
   @State private var showingPassed = false
   @State private var showingReactionError = false
@@ -312,7 +315,13 @@ private struct WhatsOnScreen: View {
 
   private func itemRows(_ items: [WhatsOnItem]) -> some View {
     ForEach(projection.filtered(items, by: filter)) { item in
-      NavigationLink { ListingDetailView(item: item) } label: { ListingRow(item: item) }
+      NavigationLink { ListingDetailView(item: item) } label: {
+        ListingRow(
+          item: item,
+          authorName: item.reaction.flatMap { reaction in people.first { $0.id == reaction.authorID }?.displayName },
+          isCurrentPerson: item.reaction?.authorID == UUID(uuidString: currentPersonIDString)
+        )
+      }
         .contextMenu { reactionActions(for: item) }
         .swipeActions(edge: .trailing) {
           Button { setReaction(.booked, for: item) } label: { Label("Booked", systemImage: "ticket") }.tint(.green)
@@ -335,7 +344,10 @@ private struct WhatsOnScreen: View {
 
   private func setReaction(_ kind: ReactionKind, for item: WhatsOnItem) {
     @Dependency(\.defaultDatabase) var database
-    let reaction = Reaction(id: UUID(), listingID: item.listing.id, kind: kind, note: item.reaction?.note, updatedAt: .now)
+    let reaction = Reaction(
+      id: UUID(), listingID: item.listing.id, kind: kind, note: item.reaction?.note,
+      authorID: UUID(uuidString: currentPersonIDString), updatedAt: .now
+    )
     Task {
       do { try await database.write { db in try Reaction.upsertForListing(reaction, in: db) } }
       catch { reactionError = error.localizedDescription; showingReactionError = true }
@@ -360,6 +372,8 @@ private struct WhatsOnScreen: View {
 
 private struct ListingRow: View {
   let item: WhatsOnItem
+  let authorName: String?
+  let isCurrentPerson: Bool
   var body: some View {
     VStack(alignment: .leading, spacing: 3) {
       HStack {
@@ -367,6 +381,11 @@ private struct ListingRow: View {
         Spacer()
         if let reaction = item.reaction {
           Image(systemName: reactionSymbol(reaction.kind))
+          Text(Reaction.attributedTitle(
+            kind: reaction.kind,
+            authorName: authorName,
+            isCurrentPerson: isCurrentPerson
+          )).font(.caption).foregroundStyle(.secondary)
         }
       }
       Text("\(nyTime(item.listing.startsAt))\(TimeZone.current.identifier == "America/New_York" ? "" : " ET") · \(item.sourceName)\(item.listing.room.map { " · \($0)" } ?? "")")
@@ -384,6 +403,7 @@ private struct ListingDetailView: View {
   @State private var note: String
   @State private var showingError = false
   @State private var errorMessage = ""
+  @Shared(.currentPersonID) private var currentPersonIDString
 
   init(item: WhatsOnItem) {
     self.item = item
@@ -436,7 +456,12 @@ private struct ListingDetailView: View {
 
   private func save(_ kind: ReactionKind) {
     @Dependency(\.defaultDatabase) var database
-    let reaction = Reaction(id: currentReaction?.id ?? UUID(), listingID: item.listing.id, kind: kind, note: note.isEmpty ? nil : note, updatedAt: .now)
+    let reaction = Reaction(
+      id: currentReaction?.id ?? UUID(), listingID: item.listing.id, kind: kind,
+      note: note.isEmpty ? nil : note,
+      authorID: UUID(uuidString: currentPersonIDString),
+      updatedAt: .now
+    )
     Task {
       do { try await database.write { db in try Reaction.upsertForListing(reaction, in: db) } }
       catch { errorMessage = error.localizedDescription; showingError = true }
@@ -451,9 +476,19 @@ private struct ListingDetailView: View {
 }
 
 private struct PassedListingsView: View {
+  @FetchAll(Person.order(by: \.createdAt)) private var people: [Person]
+  @Shared(.currentPersonID) private var currentPersonIDString
   let items: [WhatsOnItem]
   var body: some View {
-    List(items) { item in NavigationLink { ListingDetailView(item: item) } label: { ListingRow(item: item) } }
+    List(items) { item in
+      NavigationLink { ListingDetailView(item: item) } label: {
+        ListingRow(
+          item: item,
+          authorName: item.reaction.flatMap { reaction in people.first { $0.id == reaction.authorID }?.displayName },
+          isCurrentPerson: item.reaction?.authorID == UUID(uuidString: currentPersonIDString)
+        )
+      }
+    }
       .navigationTitle("Passed")
   }
 }

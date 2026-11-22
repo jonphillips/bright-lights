@@ -58,10 +58,30 @@ public enum BrightLightsDatabaseMigrations {
     }
     registerSourceFixesV3(on: &migrator)
     registerTasteRecordsV4(on: &migrator)
+    registerRegistryVersionV5(on: &migrator)
+    registerPeopleV6(on: &migrator)
+    return migrator
+  }
+
+  private static func registerRegistryVersionV5(on migrator: inout DatabaseMigrator) {
     migrator.registerMigration("Add registry version v5") { db in
       try db.execute(sql: "ALTER TABLE \"households\" ADD COLUMN \"registryVersion\" TEXT")
     }
-    return migrator
+  }
+
+  private static func registerPeopleV6(on migrator: inout DatabaseMigrator) {
+    migrator.registerMigration("Add people v6") { db in
+      try db.execute(sql: """
+        CREATE TABLE "people" (
+          "id" TEXT PRIMARY KEY NOT NULL,
+          "householdID" TEXT NOT NULL REFERENCES "households"("id") ON DELETE CASCADE,
+          "iCloudUserRecordName" TEXT NOT NULL,
+          "displayName" TEXT NOT NULL DEFAULT '',
+          "createdAt" TEXT NOT NULL
+        ) STRICT;
+        CREATE INDEX "index_people_on_householdID" ON "people"("householdID");
+        """)
+    }
   }
 
   private static func registerTasteRecordsV4(on migrator: inout DatabaseMigrator) {

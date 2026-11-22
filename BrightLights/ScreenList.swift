@@ -2,6 +2,7 @@ import BrightLightsSchema
 import Dependencies
 import SQLiteData
 import SwiftUI
+import Sharing
 
 struct ScreenList: View {
   let source: Source
@@ -12,6 +13,7 @@ struct ScreenList: View {
   @State private var kept = Set<Listing.ID>()
   @State private var showingError = false
   @State private var errorMessage = ""
+  @Shared(.currentPersonID) private var currentPersonIDString
 
   private var visibleIDs: Set<Listing.ID> { Set(listings.map(\.id)) }
   private var selectedIDs: Set<Listing.ID> { kept.intersection(visibleIDs) }
@@ -67,10 +69,14 @@ struct ScreenList: View {
     let visibleIDs = self.visibleIDs
     let selectedIDs = self.selectedIDs
     let clearedIDs = visibleIDs.subtracting(selectedIDs)
+    let authorID = UUID(uuidString: currentPersonIDString)
     Task {
       do {
         try await database.write { db in
-          _ = try Reaction.screen(kept: selectedIDs, cleared: clearedIDs, authorID: nil, now: .now, in: db)
+          _ = try Reaction.screen(
+            kept: selectedIDs, cleared: clearedIDs,
+            authorID: authorID, now: .now, in: db
+          )
         }
         onDone()
       } catch {

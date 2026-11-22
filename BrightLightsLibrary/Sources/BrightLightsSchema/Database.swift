@@ -30,7 +30,7 @@ extension DependencyValues {
     defaultDatabase = database
     defaultSyncEngine = try SyncEngine(
       for: database,
-      tables: Household.self, Source.self, Listing.self, Stay.self, Reaction.self, TasteRecord.self,
+      tables: Household.self, Source.self, Listing.self, Stay.self, Reaction.self, TasteRecord.self, Person.self,
       containerIdentifier: "iCloud.com.jonphillips.BrightLights",
       startImmediately: false
     )

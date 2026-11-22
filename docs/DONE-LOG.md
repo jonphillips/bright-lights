@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-22 — Invited Wendy through household sharing (`m2/s2-inviting-wendy`)
+
+- **Result:** Added CloudKit household sharing, participant acceptance, per-person attribution and sync health. Private household convergence preserves and re-keys taste records and people; participants do not seed the registry.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint, 103 BrightLightsLibrary tests, check-report fixture, iOS build and macOS build.
+- **Owed:** M2 S2's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-21 — Production and TestFlight (`m2/s1-production-testflight`)
 
 - **Result:** Release builds sync to Production with a separate store, registry writes are gated by version, checker passes sync before and after checking, and the TestFlight release configuration is ready. Jon runs the Production cutover after merge.

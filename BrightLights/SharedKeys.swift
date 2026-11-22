@@ -1,6 +1,12 @@
 import Sharing
 
 extension SharedKey where Self == AppStorageKey<String>.Default {
+  static var currentPersonID: Self {
+    Self[.appStorage("brightLightsCurrentPersonID"), default: ""]
+  }
+}
+
+extension SharedKey where Self == AppStorageKey<String>.Default {
   static var checkerDeviceID: Self {
     Self[.appStorage("brightLightsCheckerDeviceID"), default: ""]
   }

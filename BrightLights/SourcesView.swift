@@ -2,6 +2,7 @@ import BrightLightsSchema
 import Dependencies
 import SQLiteData
 import SwiftUI
+import Sharing
 
 struct SourcesView: View {
   @FetchAll(Source.active.order(by: \.name)) private var sources
@@ -78,7 +79,6 @@ private struct SourceDetailView: View {
   @FetchAll private var reactions: [Reaction]
   @State private var showingFlagPrompt = false
   @State private var flagNote = ""
-
   init(source: Source) {
     self.source = source
     self._currentSources = FetchAll(Source.where { $0.id.eq(source.id) })
@@ -181,6 +181,7 @@ private struct ClearedListingsView: View {
   @FetchAll private var listings: [Listing]
   @FetchAll private var reactions: [Reaction]
   @State private var errorMessage: String?
+  @Shared(.currentPersonID) private var currentPersonIDString
 
   init(source: Source) {
     self.source = source
@@ -221,7 +222,7 @@ private struct ClearedListingsView: View {
     let current = ClearedListingRows.latestReaction(for: listing.id, in: reactions)
     let reaction = Reaction(
       id: current?.id ?? UUID(), listingID: listing.id, kind: .kept,
-      note: current?.note, authorID: current?.authorID, updatedAt: .now
+      note: current?.note, authorID: UUID(uuidString: currentPersonIDString), updatedAt: .now
     )
     Task {
       do { try await database.write { db in try Reaction.upsertForListing(reaction, in: db) } }

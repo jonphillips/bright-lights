@@ -172,7 +172,8 @@ private struct StayEditorView: View {
       do {
         let id = stay?.id ?? UUID()
         try await database.write { db in
-          let household = try Household.ensureDefault(in: db)
+          let sharing = try Household.sharingLookup(in: db)
+          let household = try Household.ensureDefault(in: db, sharing: sharing)
           let updated = Stay(id: id, householdID: stay?.householdID ?? household.id, arrivesOn: arrival, departure: value)
           try Stay.upsert { Stay.Draft(updated) }.execute(db)
         }
