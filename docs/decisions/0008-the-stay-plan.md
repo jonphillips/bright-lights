@@ -1,6 +1,6 @@
 # ADR-0008: The stay plan — a list and the days, with errands from Reminders
 
-*Status: proposed — 2026-11-21. Summary: Each stay gets a **plan** view with two parts. **The days** hold what's
+*Status: accepted — 2026-11-21 (PR #28). Summary: Each stay gets a **plan** view with two parts. **The days** hold what's
 fixed: booked listings, places put on a day, and errands with a due date. **This stay** is a list of what we mean
 to do sometime during the stay: places pinned to it, and errands. Seasonal places that are on during the stay are
 offered there, and one tap pins them. Errands stay in a shared Apple **Reminders** list, which Bright Lights reads
