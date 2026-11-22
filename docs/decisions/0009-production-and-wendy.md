@@ -1,6 +1,6 @@
 # ADR-0009: Production starts empty, and Wendy joins through a share of the household
 
-*Status: proposed — 2026-11-21. Summary: Bright Lights moves to CloudKit Production with an empty database. The
+*Status: accepted — 2026-11-21. Amended 2026-11-21 (Amendment 1). Summary: Bright Lights moves to CloudKit Production with an empty database. The
 checking Mac seeds it first, and Jon re-enters his stays and source fixes. iPad and iPhone builds ship through
 TestFlight. The Mac's installed build points at Production. Before Wendy joins, registry writes are gated by
 version, and a shared household always survives a duplicate. Wendy then accepts a share of the household, and her
@@ -72,3 +72,33 @@ each other's registry fields (S3 review, PR #8), and the oldest household wins a
 - The taste record restarts in Production, so the M3 taste work learns from what's screened after the cutover.
 - Every later synced column is a Development import followed by a Production deploy, through `testflight`'s schema
   gate.
+
+## Amendment 1 — the Mac measurement, and one store per environment (2026-11-21)
+
+### Context
+
+Point 4 asked whether a development-signed Mac build can reach Production with pushes. The architect read the
+answer from the Mac build installed on 2026-11-20 before expanding S1. Its embedded profile, "Mac Team Provisioning
+Profile: com.jonphillips.BrightLights", lists `com.apple.developer.icloud-container-environment` as `Production`
+and `Development`, and `com.apple.developer.aps-environment` as `development` only.
+
+The S1 brief also found that Debug and Release would share one store. SQLiteData names the sync metadatabase after
+the database file, so a single file is the cause of the problem point 2 deletes apps to avoid.
+
+### Decision
+
+1. **The Mac reaches Production with a development push environment.** The checking Mac's Release build signs
+   with `icloud-container-environment: Production` and keeps `aps-environment: development`, because its profile
+   allows nothing else. The cutover measures whether Production's pushes reach it. Either way, every checker pass
+   starts by fetching and sending changes, so a missed push delays what the Mac sees until its next pass. It never
+   stops a check. Point 4's "stops and asks" is replaced by this. A Developer ID build is needed only if the fetch
+   at pass time proves not to be enough.
+2. **Release means Production, on every platform.** Release builds carry
+   `icloud-container-environment: Production`, and Debug builds carry none, so they use Development. A local
+   Release build can't write to Development by accident.
+3. **Debug and Release open different database files.** So their metadatabases are separate too. A Debug run on a
+   device that holds the Production store can't touch it, and Xcode builds keep their Development data. Point 2's
+   order stands, with the Mac first, but deleting the app or its store is no longer needed.
+4. **A participant's devices never seed the registry.** When this device's household is shared with it (it lives
+   in another person's zone), `syncFromRegistry` inserts, updates and retires nothing. It still converges
+   duplicates. The owner's devices keep the registry, as the checker role already does (point 8).

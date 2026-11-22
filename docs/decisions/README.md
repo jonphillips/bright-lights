@@ -13,6 +13,6 @@ jon-platform `docs/adr/`.
 | [0006](0006-screening-and-the-taste-record.md) | Screening: new listings are kept or cleared, and a taste record outlives them | accepted |
 | [0007](0007-places-and-the-check-sheet.md) | Places: a map and an ideas list, with one shared standing per place (the check sheet) and an optional season | accepted |
 | [0008](0008-the-stay-plan.md) | The stay plan: a list and the days, with errands from a shared Reminders list | accepted |
-| [0009](0009-production-and-wendy.md) | Production starts empty; registry writes gated by version; a shared household survives; Wendy joins through a share | proposed |
+| [0009](0009-production-and-wendy.md) | Production starts empty; registry writes gated by version; a shared household survives; Wendy joins through a share; one store per environment (Amendment 1) | accepted |
 
 Status changes to **accepted** when Jon merges the plan PR that proposes it.
