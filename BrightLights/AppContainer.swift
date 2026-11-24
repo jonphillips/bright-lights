@@ -163,7 +163,7 @@ private struct NewScreen: View {
     .navigationDestination(for: Source.ID.self) { sourceID in
       if let source = sources.first(where: { $0.id == sourceID }) {
         let rows = projection.groups.first(where: { $0.source.id == sourceID })?.listings ?? []
-        ScreenList(source: source, listings: rows, onDone: { path.removeAll() })
+        ScreenList(source: source, listings: rows, tasteRecords: tasteRecords, onDone: { path.removeAll() })
       } else {
         ContentUnavailableView("Source unavailable", systemImage: "building.2")
       }

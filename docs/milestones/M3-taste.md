@@ -7,7 +7,7 @@ M2's people. The repo is public, so every fixture uses invented venues, performe
 
 ## Slice ledger
 
-- [ ] **S1** — Counts sort a screen
+- [x] **S1** — Counts sort a screen
 - [ ] **S2** — Taste notes
 - [ ] **S3** — The model suggests
 

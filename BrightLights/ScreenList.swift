@@ -1,4 +1,5 @@
 import BrightLightsSchema
+import BrightLightsTaste
 import Dependencies
 import SQLiteData
 import SwiftUI
@@ -7,25 +8,47 @@ import Sharing
 struct ScreenList: View {
   let source: Source
   let listings: [Listing]
+  let tasteRecords: [TasteRecord]
   let onDone: () -> Void
   var onCancel: (() -> Void)? = nil
 
   @State private var kept = Set<Listing.ID>()
+  @State private var tasteCounts: TasteCounts
   @State private var showingError = false
   @State private var errorMessage = ""
   @Shared(.currentPersonID) private var currentPersonIDString
+  @Shared(.appStorage("brightLightsScreenSort")) private var sortModeRaw = ScreenSortMode.likelyFirst.rawValue
+
+  init(
+    source: Source, listings: [Listing], tasteRecords: [TasteRecord], onDone: @escaping () -> Void,
+    onCancel: (() -> Void)? = nil
+  ) {
+    self.source = source
+    self.listings = listings
+    self.tasteRecords = tasteRecords
+    self.onDone = onDone
+    self.onCancel = onCancel
+    _tasteCounts = State(initialValue: TasteCounts(records: tasteRecords))
+  }
 
   private var visibleIDs: Set<Listing.ID> { Set(listings.map(\.id)) }
   private var selectedIDs: Set<Listing.ID> { kept.intersection(visibleIDs) }
   private var selectedCount: Int { selectedIDs.count }
   private var visibleClearedCount: Int { visibleIDs.count - selectedCount }
+  private var sortedListings: [Listing] {
+    tasteCounts.sorted(listings, sourceRegistryID: source.registryID, likelyFirst: sortMode == .likelyFirst)
+  }
+  private var sortMode: ScreenSortMode {
+    get { ScreenSortMode(rawValue: sortModeRaw) ?? .likelyFirst }
+    nonmutating set { $sortModeRaw.withLock { $0 = newValue.rawValue } }
+  }
   private var doneTitle: String {
     selectedCount == 0 ? "Clear all \(visibleIDs.count)" : "Keep \(selectedCount) · Clear \(visibleClearedCount)"
   }
 
   var body: some View {
     List {
-      ForEach(listings) { listing in
+      ForEach(sortedListings) { listing in
         Button { toggle(listing.id) } label: {
           HStack(spacing: 12) {
             Image(systemName: kept.contains(listing.id) ? "checkmark.circle.fill" : "circle")
@@ -35,6 +58,9 @@ struct ScreenList: View {
               Text(metadata(for: listing)).font(.subheadline).foregroundStyle(.secondary)
               let performers = ListingDisplay.performerNames(listing.performers)
               if !performers.isEmpty { Text(performers).font(.subheadline).foregroundStyle(.secondary) }
+              if let evidence = tasteCounts.result(for: listing, sourceRegistryID: source.registryID).evidence {
+                Text(evidence.line).font(.caption).foregroundStyle(.secondary)
+              }
             }
             Spacer(minLength: 0)
           }
@@ -54,7 +80,24 @@ struct ScreenList: View {
       ToolbarItem(placement: .confirmationAction) {
         Button(doneTitle) { saveScreen() }
       }
+      ToolbarItem(placement: .primaryAction) {
+        Menu {
+          Picker("Sort", selection: Binding(
+            get: { sortMode }, set: { sortMode = $0 }
+          )) {
+            Text("Likely first").tag(ScreenSortMode.likelyFirst)
+            Text("By date").tag(ScreenSortMode.byDate)
+          }
+        } label: {
+          Label {
+            HStack { Text("Sort"); Image(systemName: "chevron.down") }
+          } icon: {
+            Image(systemName: "arrow.up.arrow.down")
+          }
+        }
+      }
     }
+    .onChange(of: tasteRecords) { _, records in tasteCounts = TasteCounts(records: records) }
     .alert("Couldn't save screen", isPresented: $showingError) {
       Button("OK", role: .cancel) {}
     } message: { Text(errorMessage) }
@@ -92,4 +135,9 @@ struct ScreenList: View {
     return parts.joined(separator: " · ")
   }
 
+}
+
+private enum ScreenSortMode: String, Hashable {
+  case likelyFirst
+  case byDate
 }

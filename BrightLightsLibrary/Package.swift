@@ -7,6 +7,7 @@ let package = Package(
   products: [
     .library(name: "BrightLightsExtraction", targets: ["BrightLightsExtraction"]),
     .library(name: "BrightLightsSchema", targets: ["BrightLightsSchema"]),
+    .library(name: "BrightLightsTaste", targets: ["BrightLightsTaste"]),
     .library(name: "BrightLightsChecking", targets: ["BrightLightsChecking"])
   ],
   dependencies: [
@@ -33,6 +34,7 @@ let package = Package(
         .product(name: "LLMClientKit", package: "LLMClientKit")
       ]
     ),
+    .target(name: "BrightLightsTaste", dependencies: ["BrightLightsSchema"]),
     .target(
       name: "BrightLightsSchema",
       dependencies: [
@@ -69,6 +71,10 @@ let package = Package(
         .product(name: "SQLiteData", package: "sqlite-data"),
         .product(name: "DependenciesTestSupport", package: "swift-dependencies")
       ]
+    ),
+    .testTarget(
+      name: "BrightLightsTasteTests",
+      dependencies: ["BrightLightsTaste", "BrightLightsSchema"]
     )
   ]
 )

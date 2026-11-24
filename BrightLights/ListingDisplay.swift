@@ -1,4 +1,5 @@
 import Foundation
+import BrightLightsTaste
 
 enum ListingDisplay {
   private static let newYorkTimeZone = TimeZone(identifier: "America/New_York")!
@@ -12,8 +13,6 @@ enum ListingDisplay {
   }
 
   static func performerNames(_ json: String) -> String {
-    guard let data = json.data(using: .utf8),
-      let performers = try? JSONDecoder().decode([String].self, from: data) else { return json }
-    return performers.joined(separator: ", ")
+    TasteCounts.performerNames(json).joined(separator: ", ")
   }
 }
