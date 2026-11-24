@@ -4,6 +4,7 @@ import SQLiteData
 import SwiftUI
 import BrightLightsSchema
 import Sharing
+import BrightLightsTaste
 
 enum AppScreen: String, CaseIterable, Identifiable {
   case whileHere
@@ -160,6 +161,13 @@ private struct NewScreen: View {
       }
     }
     .navigationTitle("New")
+    .toolbar {
+      ToolbarItem(placement: .primaryAction) {
+        NavigationLink { TasteNotesView() } label: {
+          Label("Taste notes", systemImage: "text.quote")
+        }
+      }
+    }
     .navigationDestination(for: Source.ID.self) { sourceID in
       if let source = sources.first(where: { $0.id == sourceID }) {
         let rows = projection.groups.first(where: { $0.source.id == sourceID })?.listings ?? []
@@ -400,7 +408,9 @@ private struct ListingDetailView: View {
   @Environment(AppRouter.self) private var router
   let item: WhatsOnItem
   @FetchAll private var reactions: [Reaction]
+  @FetchAll private var listingSources: [Source]
   @State private var note: String
+  @State private var tasteNoteDestination: TasteNoteDestination?
   @State private var showingError = false
   @State private var errorMessage = ""
   @Shared(.currentPersonID) private var currentPersonIDString
@@ -408,6 +418,7 @@ private struct ListingDetailView: View {
   init(item: WhatsOnItem) {
     self.item = item
     _reactions = FetchAll(Reaction.where { $0.listingID.eq(item.listing.id) })
+    _listingSources = FetchAll(Source.where { $0.id.eq(item.listing.sourceID) })
     _note = State(initialValue: item.reaction?.note ?? "")
   }
 
@@ -448,8 +459,20 @@ private struct ListingDetailView: View {
           Button("Clear") { save(.cleared) }
         }
       }
+      Section("Taste") {
+        if let source = listingSources.first {
+          Button("Add taste note") {
+            let performers = TasteCounts.performerNames(item.listing.performers)
+            let subject = TasteNote.defaultSubject(for: item.listing, performerNames: performers)
+            tasteNoteDestination = .create(householdID: source.householdID, subject: subject)
+          }
+        }
+      }
     }
     .navigationTitle(item.listing.title)
+    .sheet(item: $tasteNoteDestination) { destination in
+      NavigationStack { TasteNoteEditorView(destination: destination) }
+    }
     .alert("Couldn't save reaction", isPresented: $showingError) { Button("OK", role: .cancel) {} } message: { Text(errorMessage) }
     .onChange(of: currentReaction?.note) { _, value in note = value ?? "" }
   }

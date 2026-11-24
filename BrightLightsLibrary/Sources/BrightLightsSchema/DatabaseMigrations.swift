@@ -60,6 +60,7 @@ public enum BrightLightsDatabaseMigrations {
     registerTasteRecordsV4(on: &migrator)
     registerRegistryVersionV5(on: &migrator)
     registerPeopleV6(on: &migrator)
+    registerTasteNotesV7(on: &migrator)
     return migrator
   }
 
@@ -80,6 +81,20 @@ public enum BrightLightsDatabaseMigrations {
           "createdAt" TEXT NOT NULL
         ) STRICT;
         CREATE INDEX "index_people_on_householdID" ON "people"("householdID");
+        """)
+    }
+  }
+
+  private static func registerTasteNotesV7(on migrator: inout DatabaseMigrator) {
+    migrator.registerMigration("Add taste notes v7") { db in
+      try db.execute(sql: """
+        CREATE TABLE "tasteNotes" (
+          "id" TEXT PRIMARY KEY NOT NULL,
+          "householdID" TEXT NOT NULL REFERENCES "households"("id") ON DELETE CASCADE,
+          "authorID" TEXT, "subject" TEXT, "body" TEXT NOT NULL,
+          "createdAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL
+        ) STRICT;
+        CREATE INDEX "index_tasteNotes_on_householdID" ON "tasteNotes"("householdID");
         """)
     }
   }

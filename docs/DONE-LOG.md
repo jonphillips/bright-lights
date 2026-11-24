@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-24 — Taste notes (`m3/s2-taste-notes`)
+
+- **Result:** Added shared household taste notes with author-based editing, listing prefill, and entry points from New and Settings.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint had 0 violations, 115 package tests passed, the check-report fixture passed, and the iOS simulator and macOS builds succeeded.
+- **Owed:** M3 S2's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-24 — Counts sort a screen (`m3/s1-counts-sort`)
 
 - **Result:** New and capture review sort listings by the household taste counts and show the evidence behind each matched score.
