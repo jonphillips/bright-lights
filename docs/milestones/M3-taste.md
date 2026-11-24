@@ -9,7 +9,7 @@ M2's people. The repo is public, so every fixture uses invented venues, performe
 
 - [x] **S1** — Counts sort a screen
 - [x] **S2** — Taste notes
-- [ ] **S3** — The model suggests
+- [x] **S3** — The model suggests
 
 Each slice is one dispatch, in this order. S3 reads S1's counts and S2's notes. All three are expanded below.
 

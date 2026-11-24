@@ -38,7 +38,7 @@ public extension Reaction {
 
   /// Reactions are household state: edits replace the one row for a listing.
   /// Converges any offline duplicates before writing the replacement.
-  static func upsertForListing(_ reaction: Reaction, in db: Database) throws {
+  static func upsertForListing(_ reaction: Reaction, suggestion: TasteSuggestion? = nil, in db: Database) throws {
     let matches = try Reaction.where { $0.listingID.eq(reaction.listingID) }.fetchAll(db)
     let existing = matches.sorted { lhs, rhs in
       if lhs.updatedAt != rhs.updatedAt { return lhs.updatedAt < rhs.updatedAt }
@@ -56,11 +56,14 @@ public extension Reaction {
     } else {
       try Reaction.insert { Reaction.Draft(reaction) }.execute(db)
     }
-    try TasteRecord.upsertForReaction(reaction, in: db)
+    try TasteRecord.upsertForReaction(reaction, suggestion: suggestion, in: db)
   }
 
   @discardableResult
-  static func screen(kept: Set<Listing.ID>, cleared: Set<Listing.ID>, authorID: UUID?, now: Date, in db: Database) throws -> Int {
+  static func screen(
+    kept: Set<Listing.ID>, cleared: Set<Listing.ID>, suggestions: [Listing.ID: TasteSuggestion] = [:],
+    authorID: UUID?, now: Date, in db: Database
+  ) throws -> Int {
     var writes = 0
     for (ids, kind) in [(kept, ReactionKind.kept), (cleared, .cleared)] {
       for listingID in ids.sorted(by: { $0.uuidString < $1.uuidString }) {
@@ -72,7 +75,7 @@ public extension Reaction {
         )
         guard try TasteRecord.find(tasteRecordID).fetchOne(db) == nil else { continue }
         let reaction = Reaction(id: UUID(), listingID: listingID, kind: kind, authorID: authorID, updatedAt: now)
-        try upsertForListing(reaction, in: db)
+        try upsertForListing(reaction, suggestion: suggestions[listingID], in: db)
         writes += 1
       }
     }

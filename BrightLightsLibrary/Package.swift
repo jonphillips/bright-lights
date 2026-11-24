@@ -34,7 +34,13 @@ let package = Package(
         .product(name: "LLMClientKit", package: "LLMClientKit")
       ]
     ),
-    .target(name: "BrightLightsTaste", dependencies: ["BrightLightsSchema"]),
+    .target(
+      name: "BrightLightsTaste",
+      dependencies: [
+        "BrightLightsSchema",
+        .product(name: "LLMClientKit", package: "LLMClientKit")
+      ]
+    ),
     .target(
       name: "BrightLightsSchema",
       dependencies: [

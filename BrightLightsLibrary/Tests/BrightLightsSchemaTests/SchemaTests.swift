@@ -149,6 +149,14 @@ struct SchemaTests {
     }
   }
 
+  @Test func migrationV8AddsNullableTasteSuggestion() async throws {
+    try await database.read { db in
+      let columns = try db.columns(in: "tasteRecords")
+      let suggestion = try #require(columns.first { $0.name == "suggestion" })
+      #expect(suggestion.isNotNull == false)
+    }
+  }
+
   @Test func listingTimeRoundTripsThroughColumns() {
     let opens = Date(timeIntervalSince1970: 1_800_000_000)
     let closes = Date(timeIntervalSince1970: 1_800_100_000)
@@ -666,7 +674,7 @@ struct SchemaTests {
     let later = first.addingTimeInterval(300)
     try await database.write { db in
       try Listing.insert { Listing.Draft(listing) }.execute(db)
-      try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .kept, note: "first", updatedAt: first), in: db)
+      try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .kept, note: "first", updatedAt: first), suggestion: .keep, in: db)
       try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .booked, note: "later", updatedAt: later), in: db)
       let household = try #require(try Source.find(sourceID).fetchOne(db)?.householdID)
       let id = TasteRecord.id(householdID: household, sourceRegistryID: sourceID.uuidString, stableKey: listing.stableKey)
@@ -676,6 +684,7 @@ struct SchemaTests {
       #expect(record.firstDecidedAt == first)
       #expect(record.updatedAt == later)
       #expect(record.title == listing.title)
+      #expect(record.suggestion == .keep)
     }
   }
 
@@ -689,12 +698,17 @@ struct SchemaTests {
     try await database.write { db in
       try Listing.insert { Listing.Draft(existing); Listing.Draft(kept); Listing.Draft(cleared) }.execute(db)
       try Reaction.insert { Reaction.Draft(Reaction(id: UUID(), listingID: existing.id, kind: .booked)) }.execute(db)
-      let written = try Reaction.screen(kept: [existing.id, kept.id], cleared: [cleared.id], authorID: nil, now: time, in: db)
+      let written = try Reaction.screen(
+        kept: [existing.id, kept.id], cleared: [cleared.id],
+        suggestions: [kept.id: .keep, cleared.id: .clear], authorID: nil, now: time, in: db
+      )
       #expect(written == 2)
       #expect(try Reaction.where { $0.listingID.eq(existing.id) }.fetchOne(db)?.kind == .booked)
       #expect(try Reaction.where { $0.listingID.eq(kept.id) }.fetchOne(db)?.kind == .kept)
       #expect(try Reaction.where { $0.listingID.eq(cleared.id) }.fetchOne(db)?.kind == .cleared)
       #expect(try TasteRecord.fetchCount(db) == 2)
+      #expect(try TasteRecord.where { $0.stableKey.eq("kept") }.fetchOne(db)?.suggestion == .keep)
+      #expect(try TasteRecord.where { $0.stableKey.eq("cleared") }.fetchOne(db)?.suggestion == .clear)
     }
   }
 
