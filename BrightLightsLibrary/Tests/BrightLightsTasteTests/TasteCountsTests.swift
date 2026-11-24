@@ -90,6 +90,33 @@ struct TasteCountsTests {
     #expect(evidence?.line == "Kept 2 of 3 · Blue Room")
   }
 
+  @Test func evidenceIncludesEveryMatchedKeyInPromptOrder() {
+    let records = [
+      record("show-1", source: "alpha", title: "The Play", performers: "[\"Performer\"]", room: "Main Room", kind: .kept),
+      record("show-2", source: "alpha", title: "The Play", performers: "[\"Performer\"]", room: "Main Room", kind: .cleared),
+      record("show-3", source: "alpha", title: "The Play", performers: "[\"Performer\"]", room: "Main Room", kind: .kept),
+      record("few-1", source: "alpha", title: "Sparse", performers: "[\"Sparse Performer\"]", kind: .kept),
+      record("few-2", source: "alpha", title: "Sparse", performers: "[\"Sparse Performer\"]", kind: .cleared)
+    ]
+    let target = listing("target", title: "The Play", performers: "[\"Performer\",\"Sparse Performer\"]", room: "Main Room", start: 100)
+    let evidence = TasteCounts(records: records).evidence(for: target, sourceRegistryID: "alpha")
+
+    #expect(evidence.map(\.key) == [.show, .performer("Performer"), .room])
+    #expect(evidence.map(\.line) == [
+      "Kept 2 of 3 · The Play", "Kept 2 of 3 · Performer", "Kept 2 of 3 · Main Room"
+    ])
+  }
+
+  @Test func evidenceExcludesTheListingBeingSuggested() {
+    let records = [
+      record("same", source: "alpha", title: "Solo", performers: "[\"Performer\"]", room: "Main Room", kind: .kept),
+      record("other-1", source: "alpha", title: "Solo", performers: "[\"Performer\"]", room: "Main Room", kind: .kept),
+      record("other-2", source: "alpha", title: "Solo", performers: "[\"Performer\"]", room: "Main Room", kind: .cleared)
+    ]
+    let target = listing("same", title: "Solo", performers: "[\"Performer\"]", room: "Main Room", start: 100)
+    #expect(TasteCounts(records: records).evidence(for: target, sourceRegistryID: "alpha").isEmpty)
+  }
+
   @Test func sortingBreaksScoreTiesByDateThenIDAndDateModeUsesDate() {
     let records = [
       record("pick-1", source: "alpha", title: "Liked", kind: .kept),
@@ -105,6 +132,34 @@ struct TasteCountsTests {
     #expect(counts.sorted([later, sameDateB, sameDateA, liked], sourceRegistryID: "alpha").map(\.id) == [liked.id, sameDateA.id, sameDateB.id, later.id])
     #expect(counts.sorted([later, sameDateB, sameDateA, liked], sourceRegistryID: "alpha", likelyFirst: false).map(\.id) == [sameDateA.id, sameDateB.id, later.id, liked.id])
     #expect(TasteCounts(records: []).sorted([later, sameDateB, sameDateA], sourceRegistryID: "alpha").map(\.id) == [sameDateA.id, sameDateB.id, later.id])
+  }
+
+  @Test func verdictsOnlyChangeLikelyFirstOrder() {
+    let records = [
+      record("liked-1", source: "alpha", title: "Liked", kind: .kept),
+      record("liked-2", source: "alpha", title: "Liked", kind: .kept),
+      record("liked-3", source: "alpha", title: "Liked", kind: .kept),
+      record("cleared-1", source: "alpha", title: "Poor", kind: .cleared),
+      record("cleared-2", source: "alpha", title: "Poor", kind: .cleared),
+      record("cleared-3", source: "alpha", title: "Poor", kind: .cleared)
+    ]
+    let highScore = listing("high-score", title: "Liked", start: 200)
+    let suggestedKeep = listing("suggested-keep", title: "Unseen", start: 300)
+    let lowScore = listing("low-score", title: "Poor", start: 100)
+    let suggestedClear = listing("suggested-clear", title: "Liked", start: 400)
+    let counts = TasteCounts(records: records)
+    let verdicts: [Listing.ID: TasteSuggestion] = [suggestedKeep.id: .keep, suggestedClear.id: .clear]
+
+    #expect(counts.sorted(
+      [highScore, lowScore, suggestedKeep, suggestedClear], sourceRegistryID: "alpha", verdicts: verdicts
+    ).map(\.id) == [suggestedKeep.id, highScore.id, lowScore.id, suggestedClear.id])
+    #expect(counts.sorted(
+      [highScore, lowScore, suggestedKeep, suggestedClear], sourceRegistryID: "alpha", likelyFirst: false,
+      verdicts: verdicts
+    ).map(\.id) == [lowScore.id, highScore.id, suggestedKeep.id, suggestedClear.id])
+    #expect(counts.sorted(
+      [highScore, lowScore, suggestedKeep, suggestedClear], sourceRegistryID: "alpha"
+    ) == counts.sorted([highScore, lowScore, suggestedKeep, suggestedClear], sourceRegistryID: "alpha", verdicts: [:]))
   }
 
   private func record(

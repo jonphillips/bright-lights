@@ -16,9 +16,28 @@ import Testing
       listings: [listing], source: source, records: [], notes: [], people: [], counts: TasteCounts(records: [])
     )[0].request
     #expect(request.system?.contains("Never decide for the people") == true)
+    #expect(request.system?.contains("notesOmitted") == false)
     #expect(request.messages[0].text.contains("Fictional Moonlight Parade"))
     #expect(request.messages[0].text.contains("The Harbor Lights"))
     #expect(request.messages[0].text.contains("The Moon Room"))
+  }
+
+  @Test func dateUsesNewYorkTimeAndIncludesWeekday() {
+    #expect(TastePrompt.formattedDate(Date(timeIntervalSince1970: 1_800_000_000)) == "Fri, Jan 15, 2027 at 3:00 AM")
+  }
+
+  @Test func pruningKeepsEverythingWhenUnscreenedIDsAreUnknown() {
+    let first = UUID()
+    let second = UUID()
+    let third = UUID()
+    let cache = [first, second, third].reduce(into: [String: TastePrompt.CachedSuggestion]()) { result, id in
+      result[id.uuidString] = TastePrompt.CachedSuggestion(
+        verdict: .keep, reason: nil, provider: .anthropic, suggestedAt: Date(timeIntervalSince1970: 1)
+      )
+    }
+
+    #expect(TastePrompt.prunedCache(cache, keeping: nil).count == 3)
+    #expect(Set(TastePrompt.prunedCache(cache, keeping: [first, third]).keys) == [first.uuidString, third.uuidString])
   }
 
   @Test func batchesFortyRowsAndCapsNotesAndExamples() throws {
@@ -80,24 +99,46 @@ import Testing
     #expect(agreement.unsure == 1)
   }
 
+  @Test func examplesSharingAKeyComeBeforeMoreRecentUnmatchedExamples() throws {
+    let source = sourceFixture()
+    let listing = Listing(
+      id: UUID(), sourceID: source.id, stableKey: "candidate", title: "New Act",
+      performers: "[\"Shared Performer\"]", startsAt: Date(timeIntervalSince1970: 300),
+      rung: .model, capturedBy: .mac
+    )
+    let matched = record(
+      "older-match", title: "Old Bill", kind: .kept, performers: "[\"Shared Performer\"]",
+      updated: 10
+    )
+    let recent = record("newer", title: "Unrelated", kind: .kept, updated: 100)
+    let prompt = TastePrompt.batches(
+      listings: [listing], source: source, records: [recent, matched], notes: [], people: [],
+      counts: TasteCounts(records: [recent, matched])
+    )[0].request.messages[0].text
+    let payload = try #require(try JSONSerialization.jsonObject(with: Data(prompt.utf8)) as? [String: Any])
+    let examples = try #require(payload["examples"] as? [[String: Any]])
+
+    #expect(examples.compactMap { $0["title"] as? String } == ["Old Bill", "Unrelated"])
+  }
+
   private func sourceFixture() -> Source {
     Source(id: UUID(), householdID: UUID(), registryID: "venue", name: "Venue", type: "venue",
       priority: "core", area: "Brooklyn", mode: .manual, method: "fixture", listingURL: "https://example.com",
       registeredHosts: "[\"example.com\"]", cadence: "weekly")
   }
 
-  private func listing(_ key: String, title: String) -> Listing {
+  private func listing(_ key: String, title: String, performers: String = "[]", room: String? = nil) -> Listing {
     Listing(id: UUID(), sourceID: UUID(), stableKey: key, title: title,
-      startsAt: Date(timeIntervalSince1970: 200), rung: .model, capturedBy: .mac)
+      performers: performers, room: room, startsAt: Date(timeIntervalSince1970: 200), rung: .model, capturedBy: .mac)
   }
 
   private func record(
     _ key: String, title: String, kind: ReactionKind, suggestion: TasteSuggestion? = nil,
-    note: String? = nil, decided: TimeInterval = 20
+    performers: String = "[]", note: String? = nil, decided: TimeInterval = 20, updated: TimeInterval = 20
   ) -> TasteRecord {
     TasteRecord(id: UUID(), householdID: UUID(), sourceRegistryID: "venue", sourceName: "Venue",
-      stableKey: key, title: title, performers: "[]", startsAt: Date(timeIntervalSince1970: 10),
+      stableKey: key, title: title, performers: performers, startsAt: Date(timeIntervalSince1970: 10),
       kind: kind, suggestion: suggestion, note: note,
-      firstDecidedAt: Date(timeIntervalSince1970: decided), updatedAt: Date(timeIntervalSince1970: decided))
+      firstDecidedAt: Date(timeIntervalSince1970: decided), updatedAt: Date(timeIntervalSince1970: updated))
   }
 }

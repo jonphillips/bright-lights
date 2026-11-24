@@ -383,6 +383,7 @@ struct SchemaTests {
         id: TasteRecord.id(householdID: newer.id, sourceRegistryID: "venue", stableKey: "show"),
         householdID: newer.id, sourceRegistryID: "venue", sourceName: "Venue", stableKey: "show",
         title: "Newer", performers: "", startsAt: Date(timeIntervalSince1970: 1), kind: .interested,
+        suggestion: .keep,
         authorID: newPerson.id, firstDecidedAt: Date(timeIntervalSince1970: 2),
         updatedAt: Date(timeIntervalSince1970: 20)
       )
@@ -421,6 +422,7 @@ struct SchemaTests {
       let rekeyedTasteID = TasteRecord.id(householdID: oldest.id, sourceRegistryID: "venue", stableKey: "show")
       #expect(try TasteRecord.fetchAll(db).filter { $0.stableKey == "show" }.count == 1)
       #expect(try TasteRecord.find(rekeyedTasteID).fetchOne(db)?.title == "Newer")
+      #expect(try TasteRecord.find(rekeyedTasteID).fetchOne(db)?.suggestion == .keep)
       let rekeyedPersonID = Person.id(householdID: oldest.id, recordName: "jon-record")
       let rekeyedOtherTasteID = TasteRecord.id(householdID: oldest.id, sourceRegistryID: "venue", stableKey: "other")
       #expect(try TasteRecord.find(rekeyedOtherTasteID).fetchOne(db)?.authorID == rekeyedPersonID)
@@ -685,6 +687,21 @@ struct SchemaTests {
       #expect(record.updatedAt == later)
       #expect(record.title == listing.title)
       #expect(record.suggestion == .keep)
+    }
+  }
+
+  @Test func reactionOutsideScreenDoesNotAddSuggestion() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let listing = try makeListing(sourceID: sourceID, key: "no-suggestion", title: "No suggestion")
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(listing) }.execute(db)
+      try Reaction.upsertForListing(
+        Reaction(id: UUID(), listingID: listing.id, kind: .kept, updatedAt: Date(timeIntervalSince1970: 1)), in: db
+      )
+      let householdID = try #require(try Source.find(sourceID).fetchOne(db)?.householdID)
+      let id = TasteRecord.id(householdID: householdID, sourceRegistryID: sourceID.uuidString, stableKey: listing.stableKey)
+      #expect(try TasteRecord.find(id).fetchOne(db)?.suggestion == nil)
     }
   }
 

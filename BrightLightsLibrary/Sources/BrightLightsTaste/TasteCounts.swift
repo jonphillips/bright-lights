@@ -140,17 +140,63 @@ public struct TasteCounts: Sendable {
     return Result(score: sourceRate, evidence: nil)
   }
 
+  public func evidence(for listing: Listing, sourceRegistryID: String) -> [Evidence] {
+    let own = contributions[ListingKey(source: sourceRegistryID, stableKey: listing.stableKey)] ?? Contribution()
+    var result: [Evidence] = []
+
+    let showKey = Key(source: sourceRegistryID, value: Self.normalized(listing.title))
+    var showCounts = shows[showKey] ?? Counts()
+    if own.show == showKey { showCounts.subtract(own.counts) }
+    if showCounts.decided >= 3 {
+      result.append(Evidence(key: .show, picked: showCounts.picked, decided: showCounts.decided, name: listing.title))
+    }
+
+    var seenPerformers: Set<String> = []
+    for name in Self.performerNames(listing.performers) {
+      let normalized = Self.normalized(name)
+      guard !normalized.isEmpty, seenPerformers.insert(normalized).inserted else { continue }
+      var counts = performers[normalized] ?? Counts()
+      if own.performers.contains(normalized) { counts.subtract(own.counts) }
+      guard counts.decided >= 3 else { continue }
+      result.append(Evidence(
+        key: .performer(name), picked: counts.picked, decided: counts.decided, name: name
+      ))
+    }
+
+    if let room = listing.room, !room.isEmpty {
+      let key = Key(source: sourceRegistryID, value: Self.normalized(room))
+      var counts = rooms[key] ?? Counts()
+      if own.room == key { counts.subtract(own.counts) }
+      if counts.decided >= 3 {
+        result.append(Evidence(key: .room, picked: counts.picked, decided: counts.decided, name: room))
+      }
+    }
+    return result
+  }
+
   public func sorted(
-    _ listings: [Listing], sourceRegistryID: String, likelyFirst: Bool = true
+    _ listings: [Listing], sourceRegistryID: String, likelyFirst: Bool = true,
+    verdicts: [Listing.ID: TasteSuggestion] = [:]
   ) -> [Listing] {
     listings.sorted { lhs, rhs in
       if likelyFirst {
+        let lhsVerdict = verdictRank(verdicts[lhs.id])
+        let rhsVerdict = verdictRank(verdicts[rhs.id])
+        if lhsVerdict != rhsVerdict { return lhsVerdict < rhsVerdict }
         let lhsScore = result(for: lhs, sourceRegistryID: sourceRegistryID).score
         let rhsScore = result(for: rhs, sourceRegistryID: sourceRegistryID).score
         if lhsScore != rhsScore { return lhsScore > rhsScore }
       }
       if lhs.startsAt != rhs.startsAt { return lhs.startsAt < rhs.startsAt }
       return lhs.id.uuidString < rhs.id.uuidString
+    }
+  }
+
+  private func verdictRank(_ suggestion: TasteSuggestion?) -> Int {
+    switch suggestion {
+    case .keep: 0
+    case .unsure, nil: 1
+    case .clear: 2
     }
   }
 

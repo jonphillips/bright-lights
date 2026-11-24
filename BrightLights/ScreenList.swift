@@ -12,7 +12,7 @@ struct ScreenList: View {
   let tasteRecords: [TasteRecord]
   let tasteNotes: [TasteNote]
   let people: [Person]
-  let unscreenedListingIDs: Set<Listing.ID>
+  let unscreenedListingIDs: Set<Listing.ID>?
   let onDone: () -> Void
   var onCancel: (() -> Void)? = nil
 
@@ -25,13 +25,13 @@ struct ScreenList: View {
   @Dependency(\.apiKeyStore) private var apiKeyStore
   @Dependency(\.modelClient) private var modelClient
   @Shared(.fileStorage(.documentsDirectory.appending(path: "BrightLightsTasteSuggestions.json")))
-  private var suggestionCache: [String: CachedTasteSuggestion] = [:]
+  private var suggestionCache: [String: TastePrompt.CachedSuggestion] = [:]
   @Shared(.currentPersonID) private var currentPersonIDString
   @Shared(.appStorage("brightLightsScreenSort")) private var sortModeRaw = ScreenSortMode.likelyFirst.rawValue
 
   init(
-    source: Source, listings: [Listing], tasteRecords: [TasteRecord], tasteNotes: [TasteNote] = [],
-    people: [Person] = [], unscreenedListingIDs: Set<Listing.ID>? = nil,
+    source: Source, listings: [Listing], tasteRecords: [TasteRecord], tasteNotes: [TasteNote],
+    people: [Person], unscreenedListingIDs: Set<Listing.ID>?,
     onDone: @escaping () -> Void,
     onCancel: (() -> Void)? = nil
   ) {
@@ -40,7 +40,7 @@ struct ScreenList: View {
     self.tasteRecords = tasteRecords
     self.tasteNotes = tasteNotes
     self.people = people
-    self.unscreenedListingIDs = unscreenedListingIDs ?? Set(listings.map(\.id))
+    self.unscreenedListingIDs = unscreenedListingIDs
     self.onDone = onDone
     self.onCancel = onCancel
     _tasteCounts = State(initialValue: TasteCounts(records: tasteRecords.filter { $0.householdID == source.householdID }))
@@ -51,21 +51,13 @@ struct ScreenList: View {
   private var selectedCount: Int { selectedIDs.count }
   private var visibleClearedCount: Int { visibleIDs.count - selectedCount }
   private var sortedListings: [Listing] {
-    return listings.sorted { lhs, rhs in
-      let left = suggestionCache[lhs.id.uuidString]?.verdict
-      let right = suggestionCache[rhs.id.uuidString]?.verdict
-      let rank: (TasteSuggestion?) -> Int = { suggestion in
-        switch suggestion { case .keep: 0; case .clear: 2; case .unsure, nil: 1 }
-      }
-      if rank(left) != rank(right) { return rank(left) < rank(right) }
-      if sortMode == .likelyFirst {
-        let leftScore = tasteCounts.result(for: lhs, sourceRegistryID: source.registryID).score
-        let rightScore = tasteCounts.result(for: rhs, sourceRegistryID: source.registryID).score
-        if leftScore != rightScore { return leftScore > rightScore }
-      }
-      if lhs.startsAt != rhs.startsAt { return lhs.startsAt < rhs.startsAt }
-      return lhs.id.uuidString < rhs.id.uuidString
-    }
+    let verdicts = Dictionary(uniqueKeysWithValues: suggestionCache.compactMap { key, cached in
+      UUID(uuidString: key).map { ($0, cached.verdict) }
+    })
+    return tasteCounts.sorted(
+      listings, sourceRegistryID: source.registryID, likelyFirst: sortMode == .likelyFirst,
+      verdicts: verdicts
+    )
   }
   private var sortMode: ScreenSortMode {
     get { ScreenSortMode(rawValue: sortModeRaw) ?? .likelyFirst }
@@ -158,9 +150,10 @@ struct ScreenList: View {
     let visibleIDs = self.visibleIDs
     let selectedIDs = self.selectedIDs
     let clearedIDs = visibleIDs.subtracting(selectedIDs)
-    let suggestions = Dictionary(uniqueKeysWithValues: visibleIDs.compactMap { id in
-      suggestionCache[id.uuidString].map { (id, $0.verdict) }
-    })
+    let suggestions = visibleIDs.reduce(into: [Listing.ID: TasteSuggestion]()) { result, id in
+      guard !isSuggesting.contains(id), let cached = suggestionCache[id.uuidString] else { return }
+      result[id] = cached.verdict
+    }
     let authorID = UUID(uuidString: currentPersonIDString)
     Task {
       do {
@@ -188,10 +181,6 @@ struct ScreenList: View {
   @MainActor
   private func requestSuggestionsIfNeeded() async {
     let now = Date.now
-    let unscreened = Set(unscreenedListingIDs.map(\.uuidString))
-    $suggestionCache.withLock { cache in
-      cache = cache.filter { unscreened.contains($0.key) }
-    }
     guard let provider = FrontierResolver().resolve(isConfigured: { apiKeyStore.key($0) != nil }) else {
       suggestionError = "Add a model key in Settings for suggestions"
       return
@@ -202,40 +191,37 @@ struct ScreenList: View {
     })
     let staleRows = listings.filter { !fresh.contains($0.id.uuidString) }
     guard !staleRows.isEmpty else { return }
+    let staleIDs = Set(staleRows.map(\.id))
+    isSuggesting.formUnion(staleIDs)
+    defer { isSuggesting.subtract(staleIDs) }
     for batch in TastePrompt.batches(
       listings: staleRows, source: source,
       records: tasteRecords.filter { $0.householdID == source.householdID },
       notes: tasteNotes.filter { $0.householdID == source.householdID },
-      people: people, counts: tasteCounts
+      people: people.filter { $0.householdID == source.householdID }, counts: tasteCounts
     ) {
-      isSuggesting.formUnion(batch.rowIDs)
-      defer { isSuggesting.subtract(batch.rowIDs) }
+      guard !Task.isCancelled else { return }
       do {
         let response = try await modelClient.complete(batch.request)
+        guard !Task.isCancelled else { return }
         let parsed = TastePrompt.parse(response.text, rowIDs: batch.rowIDs)
         $suggestionCache.withLock { cache in
+          cache = TastePrompt.prunedCache(cache, keeping: unscreenedListingIDs)
           for id in batch.rowIDs {
             guard let suggestion = parsed[id] else { continue }
-            cache[id.uuidString] = CachedTasteSuggestion(
+            cache[id.uuidString] = TastePrompt.CachedSuggestion(
               verdict: suggestion.verdict, reason: suggestion.reason, provider: provider,
               suggestedAt: now
             )
           }
         }
+        isSuggesting.subtract(Set(batch.rowIDs))
       } catch {
-        suggestionError = "Suggestions failed: \(error.localizedDescription)"
+        if !Task.isCancelled { suggestionError = "Suggestions failed: \(error.localizedDescription)" }
         return
       }
     }
   }
-
-  private struct CachedTasteSuggestion: Codable, Sendable, Equatable {
-    let verdict: TasteSuggestion
-    let reason: String?
-    let provider: FrontierProvider
-    let suggestedAt: Date
-  }
-
 }
 
 private enum ScreenSortMode: String, Hashable {

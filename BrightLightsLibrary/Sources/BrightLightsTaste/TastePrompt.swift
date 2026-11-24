@@ -18,6 +18,20 @@ public struct TastePrompt: Sendable {
     }
   }
 
+  public struct CachedSuggestion: Codable, Equatable, Sendable {
+    public let verdict: TasteSuggestion
+    public let reason: String?
+    public let provider: FrontierProvider
+    public let suggestedAt: Date
+
+    public init(verdict: TasteSuggestion, reason: String?, provider: FrontierProvider, suggestedAt: Date) {
+      self.verdict = verdict
+      self.reason = reason
+      self.provider = provider
+      self.suggestedAt = suggestedAt
+    }
+  }
+
   public struct Agreement: Equatable, Sendable {
     public let suggestedKeep: Int
     public let kept: Int
@@ -37,6 +51,21 @@ public struct TastePrompt: Sendable {
       clearedOrPassed: clears.filter { $0.kind == .cleared || $0.kind == .pass }.count,
       unsure: recent.filter { $0.suggestion == .unsure }.count
     )
+  }
+
+  public static func prunedCache(
+    _ cache: [String: CachedSuggestion], keeping unscreenedIDs: Set<UUID>?
+  ) -> [String: CachedSuggestion] {
+    guard let unscreenedIDs else { return cache }
+    let keys = Set(unscreenedIDs.map(\.uuidString))
+    return cache.filter { keys.contains($0.key) }
+  }
+
+  public static func formattedDate(_ date: Date) -> String {
+    var style = Date.FormatStyle(date: .abbreviated, time: .shortened).weekday(.abbreviated)
+    style.locale = Locale(identifier: "en_US_POSIX")
+    style.timeZone = TimeZone(identifier: "America/New_York")!
+    return date.formatted(style)
   }
 
   private struct PromptRow: Encodable {
@@ -90,9 +119,9 @@ public struct TastePrompt: Sendable {
         PromptRow(
           index: offset + 1, title: listing.title,
           performers: TasteCounts.performerNames(listing.performers), room: listing.room,
-          date: listing.startsAt.formatted(date: .abbreviated, time: .shortened),
+          date: formattedDate(listing.startsAt),
           source: source.name,
-          evidence: counts.result(for: listing, sourceRegistryID: source.registryID).evidence.map { [$0.line] } ?? []
+          evidence: counts.evidence(for: listing, sourceRegistryID: source.registryID).map(\.line)
         )
       }
       let exampleRecords = examples(for: group, source: source, records: records)
@@ -113,7 +142,7 @@ public struct TastePrompt: Sendable {
       let request = ModelRequest(
         tier: .frontierPreferred,
         system: """
-        You suggest whether each event fits the household's taste. Never decide for the people. Use the notes and examples as evidence. If notesOmitted is present, mention how many notes were left out. Return one verdict per row: keep, clear, or unsure. Give a reason of about 12 words or fewer that names an example or note. When there is no basis, use unsure. The row index must match the input.
+        You suggest whether each event fits the household's taste. Never decide for the people. Use the notes and examples as evidence. Return one verdict per row: keep, clear, or unsure. Give a reason of about 12 words or fewer that names an example or note. When there is no basis, use unsure. The row index must match the input.
         """,
         prompt: prompt, maxTokens: 1800,
         responseFormat: .jsonSchema(name: "taste_suggestions", schema: Self.schema)
