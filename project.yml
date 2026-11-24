@@ -75,6 +75,8 @@ targets:
       - package: BrightLightsLibrary
         product: BrightLightsSchema
       - package: BrightLightsLibrary
+        product: BrightLightsTaste
+      - package: BrightLightsLibrary
         product: BrightLightsChecking
       - package: sqlite-data
         product: SQLiteData

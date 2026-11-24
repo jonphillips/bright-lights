@@ -125,7 +125,7 @@ struct CaptureScreen: View {
     .inspector(isPresented: $inspectorPresented) {
       NavigationStack {
         if let route = screenRoute {
-          ScreenList(source: route.source, listings: route.listings, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
+          ScreenList(source: route.source, listings: route.listings, tasteRecords: tasteRecords, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
             .id(route.id)
         } else {
           RoundsList(onSelect: selectSource)
@@ -182,7 +182,7 @@ struct CaptureScreen: View {
     }
     .sheet(item: screenSheet) { route in
       NavigationStack {
-        ScreenList(source: route.source, listings: route.listings, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
+        ScreenList(source: route.source, listings: route.listings, tasteRecords: tasteRecords, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
           .id(route.id)
       }
     }
