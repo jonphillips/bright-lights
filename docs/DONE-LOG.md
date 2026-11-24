@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-24 — M3 · S3 — The model suggests (`m3/s3-model-suggests`)
+
+- **Result:** Added per-screen frontier suggestions with a local cache, stored each first verdict beside the decision, and added 30-day agreement counts in Settings.
+- **Verification:** scripts/check-drift.sh passed: 120 package tests, SwiftLint, check-report fixture, iOS Simulator build, and macOS build.
+- **Owed:** M3 S3's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-24 — Taste notes (`m3/s2-taste-notes`)
 
 - **Result:** Added shared household taste notes with author-based editing, listing prefill, and entry points from New and Settings.
