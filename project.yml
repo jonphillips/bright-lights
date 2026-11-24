@@ -61,6 +61,9 @@ targets:
         CFBundleDisplayName: Bright Lights
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # HTTPS only, no custom crypto: exempt. Answers App Store Connect's export
+        # compliance question so it isn't asked on every TestFlight upload.
+        ITSAppUsesNonExemptEncryption: false
         CKSharingSupported: true
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
