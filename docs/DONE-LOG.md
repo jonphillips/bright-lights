@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-24 — Counts sort a screen (`m3/s1-counts-sort`)
+
+- **Result:** New and capture review sort listings by the household taste counts and show the evidence behind each matched score.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint had 0 violations, 113 package tests passed, the check-report fixture passed, and the iOS simulator and macOS builds succeeded.
+- **Owed:** M3 S1's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-22 — Invited Wendy through household sharing (`m2/s2-inviting-wendy`)
 
 - **Result:** Added CloudKit household sharing, participant acceptance, per-person attribution and sync health. Private household convergence preserves and re-keys taste records and people; participants do not seed the registry.
