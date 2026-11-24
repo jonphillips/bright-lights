@@ -91,6 +91,9 @@ struct SettingsView: View {
         currentPersonNameDraft = value
         savedPersonName = value
       }
+      Section("Taste") {
+        NavigationLink("Taste notes") { TasteNotesView() }
+      }
       #if os(macOS)
       Section("Source checking") {
         Toggle("Check sources on this Mac", isOn: Binding(

@@ -100,6 +100,8 @@ public struct Household: Identifiable, Equatable, Sendable {
       .update { $0.householdID = #bind(survivor.id) }.execute(db)
     try Stay.where { $0.householdID.eq(loser.id) }
       .update { $0.householdID = #bind(survivor.id) }.execute(db)
+    try TasteNote.where { $0.householdID.eq(loser.id) }
+      .update { $0.householdID = #bind(survivor.id) }.execute(db)
 
     for record in try TasteRecord.where({ $0.householdID.eq(loser.id) }).fetchAll(db) {
       let id = TasteRecord.id(
@@ -129,6 +131,8 @@ public struct Household: Identifiable, Equatable, Sendable {
           .update { $0.authorID = #bind(newID) }.execute(db)
         try TasteRecord.where { $0.authorID.eq(person.id) }
           .update { $0.authorID = #bind(newID) }.execute(db)
+        try TasteNote.where { $0.authorID.eq(person.id) }
+          .update { $0.authorID = #bind(newID) }.execute(db)
         try Person.find(person.id).delete().execute(db)
       } else {
         let replacement = Person(
@@ -139,6 +143,8 @@ public struct Household: Identifiable, Equatable, Sendable {
         try Reaction.where { $0.authorID.eq(person.id) }
           .update { $0.authorID = #bind(newID) }.execute(db)
         try TasteRecord.where { $0.authorID.eq(person.id) }
+          .update { $0.authorID = #bind(newID) }.execute(db)
+        try TasteNote.where { $0.authorID.eq(person.id) }
           .update { $0.authorID = #bind(newID) }.execute(db)
       }
     }

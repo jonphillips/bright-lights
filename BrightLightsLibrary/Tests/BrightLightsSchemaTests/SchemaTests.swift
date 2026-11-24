@@ -25,6 +25,22 @@ struct SchemaTests {
       != "SQLiteData.db")
   }
 
+  @Test func tasteNoteEditabilityAndSubjectPrefill() {
+    let authorID = UUID()
+    let note = TasteNote(id: UUID(), householdID: UUID(), authorID: authorID, body: "A note")
+    let listing = Listing(
+      id: UUID(), sourceID: UUID(), stableKey: "show", title: "The Show",
+      startsAt: Date(timeIntervalSince1970: 10), rung: .model, capturedBy: .mac
+    )
+
+    #expect(note.isEditable(by: authorID))
+    #expect(!note.isEditable(by: UUID()))
+    #expect(!note.isEditable(by: nil))
+    #expect(TasteNote(id: UUID(), householdID: UUID(), body: "No author").isEditable(by: UUID()))
+    #expect(TasteNote.defaultSubject(for: listing, performerNames: ["First Performer", "Second Performer"]) == "First Performer")
+    #expect(TasteNote.defaultSubject(for: listing, performerNames: []) == "The Show")
+  }
+
   @Test func personIdentityIsStableAndBindingOnlyFillsAnEmptyName() async throws {
     let recordName = "cloudkit-record-name"
     let household = Household(id: UUID())
@@ -108,7 +124,7 @@ struct SchemaTests {
     }
     #expect(fields.count == rows.count)
     let tables = Set(fields.map(\.0))
-    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords", "people"])
+    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords", "people", "tasteNotes"])
     try await database.read { db in
       for table in tables {
         let listed = Set(fields.filter { $0.0 == table }.map(\.1))
@@ -120,6 +136,13 @@ struct SchemaTests {
             || ($0.hasPrefix(metadataPrefix) && columns.contains(String($0.dropFirst(metadataPrefix.count))))
         })
       }
+    }
+  }
+
+  @Test func migrationV7CreatesTasteNotesWithItsHouseholdIndex() async throws {
+    try await database.read { db in
+      let columns = Set(try db.columns(in: "tasteNotes").map(\.name))
+      #expect(columns == ["id", "householdID", "authorID", "subject", "body", "createdAt", "updatedAt"])
     }
   }
 
@@ -364,6 +387,12 @@ struct SchemaTests {
         TasteRecord.Draft(newerTaste)
         TasteRecord.Draft(nonCollidingTaste)
       }.execute(db)
+      let tasteNote = TasteNote(
+        id: UUID(), householdID: newer.id, authorID: newPerson.id,
+        subject: "The Show", body: "A note written by Wendy",
+        createdAt: Date(timeIntervalSince1970: 2), updatedAt: Date(timeIntervalSince1970: 20)
+      )
+      try TasteNote.insert { TasteNote.Draft(tasteNote) }.execute(db)
       let listing = Listing(
         id: UUID(), sourceID: source.id, stableKey: "attributed", title: "Show",
         startsAt: Date(timeIntervalSince1970: 100), rung: .adapter, capturedBy: .mac
@@ -384,6 +413,8 @@ struct SchemaTests {
       let rekeyedPersonID = Person.id(householdID: oldest.id, recordName: "jon-record")
       let rekeyedOtherTasteID = TasteRecord.id(householdID: oldest.id, sourceRegistryID: "venue", stableKey: "other")
       #expect(try TasteRecord.find(rekeyedOtherTasteID).fetchOne(db)?.authorID == rekeyedPersonID)
+      #expect(try TasteNote.find(tasteNote.id).fetchOne(db)?.householdID == oldest.id)
+      #expect(try TasteNote.find(tasteNote.id).fetchOne(db)?.authorID == rekeyedPersonID)
       #expect(try Person.fetchAll(db).filter { $0.iCloudUserRecordName == "jon-record" }.count == 1)
       #expect(try Reaction.find(reaction.id).fetchOne(db)?.authorID == rekeyedPersonID)
     }
@@ -462,10 +493,12 @@ struct SchemaTests {
       title: "Show", performers: "", startsAt: Date(timeIntervalSince1970: 100), kind: .kept,
       firstDecidedAt: Date(timeIntervalSince1970: 1), updatedAt: Date(timeIntervalSince1970: 2)
     )
+    let tasteNote = TasteNote(id: UUID(), householdID: privateHousehold.id, body: "Private note")
     try await database.write { db in
       try Household.insert { Household.Draft(privateHousehold); Household.Draft(sharedHousehold) }.execute(db)
       try Stay.insert { Stay.Draft(stay) }.execute(db)
       try TasteRecord.insert { TasteRecord.Draft(taste) }.execute(db)
+      try TasteNote.insert { TasteNote.Draft(tasteNote) }.execute(db)
       let states: [UUID: HouseholdSharing] = [
         privateHousehold.id: .private, sharedHousehold.id: .sharedByMe
       ]
@@ -475,6 +508,7 @@ struct SchemaTests {
       #expect(try Household.fetchAll(db).map(\.id) == [sharedHousehold.id])
       #expect(try Stay.fetchAll(db).isEmpty)
       #expect(try TasteRecord.fetchAll(db).isEmpty)
+      #expect(try TasteNote.fetchAll(db).isEmpty)
     }
   }
 

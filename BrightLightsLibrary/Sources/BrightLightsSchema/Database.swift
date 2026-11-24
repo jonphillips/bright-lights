@@ -31,6 +31,7 @@ extension DependencyValues {
     defaultSyncEngine = try SyncEngine(
       for: database,
       tables: Household.self, Source.self, Listing.self, Stay.self, Reaction.self, TasteRecord.self, Person.self,
+      TasteNote.self,
       containerIdentifier: "iCloud.com.jonphillips.BrightLights",
       startImmediately: false
     )
