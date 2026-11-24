@@ -15,6 +15,7 @@
 - [M1 — What's on](milestones/archive/M1-whats-on.md)
 - [M2 — Wendy joins](milestones/archive/M2-wendy-joins.md)
 - [M3 — Taste](milestones/M3-taste.md)
+- [M4 — Places and the stay plan](milestones/M4-places.md)
 - [Product brainstorm](BRAINSTORM.md)
 - [Event source survey](sources/SURVEY.md)
 - [Source survey data](sources/survey.json)

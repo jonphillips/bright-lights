@@ -12,6 +12,9 @@
   by meal. Still open, none of it urgent:
   - **Opening hours and "open tonight."** Galavant's `WeeklyHours` is the model. It's a permanent column, so it
     waits until meals alone fall short.
+  - **Meals from a place's website.** ADR-0007 D4 allows filling meals from website hours (Galavant's
+    `HoursExtractor`). M4 fills them by hand. Revisit once S3's "no meals set" count shows whether hand entry keeps
+    up.
   - **Progress by neighborhood** ("tried 11 of 27 in Williamsburg"). Needs a neighborhood per place, maybe from the
     Apple Maps address.
   - **Getting home** from places as well as listings, and **places in chat access**.
