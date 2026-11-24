@@ -33,7 +33,9 @@
 - **Per-page hashes for the model ration (S3 review, PR #8).** The Stand reads 9 pages and New York Comedy Club 8,
   all model-rung, under one combined hash. Any change on any page re-extracts every page, so a normal night is
   about 17 model calls. A hash per page, with each unchanged page's listings carried forward, would cut that to
-  the pages that changed. Decide it from the S3 live pass's model-call count and a week of the mini's logs.
+  the pages that changed. Decide it from the S3 live pass's model-call count and a week of the mini's logs. The
+  check report now records it: the first reported pass (2026-11-22, 9 sources) made 15 calls, 9 of them The Stand's,
+  and 6 of those 9 pages returned nothing usable.
 - **"Missing" on sources read one page deep (S3 review, PR #8).** On a complete check, a future listing that isn't
   returned is marked `missing`. On a source we read only one page of (UCB, and any whose first page is a window),
   a still-on-sale listing pushed off page 1 by newer ones gets marked `missing` too. Watch for it in S4's What's
@@ -43,7 +45,20 @@
   as invalid dates or times (and 13 for excluded hosts), with no per-source breakdown. Date-only starts were zero,
   so it's not the date-only rule. Once the mini runs nightly, read its `SourceChecks` and `ModelExtraction` logs and
   each source's `lastCheckNote` to see which sources produce them. If one source accounts for most of them, look at
-  its pages: a prompt or parsing fix there may recover real listings.
+  its pages: a prompt or parsing fix there may recover real listings. **Lead (first check report, 2026-11-22):**
+  Union Hall dropped 16 model rows for invalid dates or times and kept none, so it shows 0 listings. Start with its
+  page.
+- **Sources that succeed with zero listings (first check report, 2026-11-22).** The report counts a check as
+  healthy when it succeeds, even with 0 listings found. "Dropping" needs earlier successful checks to compare
+  against, so it can't catch a source that's been empty from the start. On the first reported night, 4 of 9 checks
+  succeeded with 0 listings: Union Hall (above), Gotham Comedy Club and UCB NYC ("Model extraction returned no usable
+  listings"), and The Greene Space / WNYC, whose page hash matches a check that found nothing, so the model is never
+  called again until the page changes. Two pieces of work:
+  - **The report:** add an **Empty** section to `scripts/check-report`, listing each source whose latest successful
+    check found 0, and count it in the verdict line.
+  - **The sources:** look at each one's page and sort it as the failed-sources entry below does. For UCB, see "UCB
+    beyond the first page" above. For The Greene Space, decide whether an unchanged page should be re-extracted when
+    the last check found nothing.
 - **The automated sources that failed in the S3 device pass.** Jon passed the gate on 2026-11-20, but a few
   automated sources failed on the mini's first nights. Each one's `lastCheckNote` on the Sources screen, and the
   mini's `SourceChecks` log, give the reason. Sort them into: a site change or adapter fix (a dispatch), a challenge
