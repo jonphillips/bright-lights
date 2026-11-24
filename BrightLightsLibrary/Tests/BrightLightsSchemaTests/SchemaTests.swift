@@ -143,6 +143,9 @@ struct SchemaTests {
     try await database.read { db in
       let columns = Set(try db.columns(in: "tasteNotes").map(\.name))
       #expect(columns == ["id", "householdID", "authorID", "subject", "body", "createdAt", "updatedAt"])
+      let index = try db.indexes(on: "tasteNotes").first { $0.name == "index_tasteNotes_on_householdID" }
+      #expect(index?.columns == ["householdID"])
+      #expect(index?.isUnique == false)
     }
   }
 
