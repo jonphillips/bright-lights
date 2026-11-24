@@ -70,7 +70,9 @@ struct TasteCountsTests {
       record("a3", source: "gamma", title: "Three", performers: "[\"A\u{00E9}ro\"]", kind: .kept)
     ]
     let listing = listing("target", title: "Other", performers: "[\"Björk\",\"Aéro\"]", start: 100)
-    #expect(TasteCounts(records: records).result(for: listing, sourceRegistryID: "alpha").evidence?.key == .performer("Aéro"))
+    let evidence = TasteCounts(records: records).result(for: listing, sourceRegistryID: "alpha").evidence
+    #expect(evidence?.key == .performer("Aéro"))
+    #expect(evidence?.line == "Kept 2 of 3 · Aéro")
     #expect(TasteCounts.performerNames("[\"One\",\"Two\"]") == ["One", "Two"])
     #expect(TasteCounts.performerNames("legacy name") == ["legacy name"])
   }
