@@ -1,9 +1,7 @@
 import Foundation
+import Dependencies
 import MapPlacesKit
-import OSLog
 import SQLiteData
-
-private let placeStandingLogger = Logger(subsystem: "com.jonphillips.BrightLights", category: "PlaceStanding")
 
 public enum Priority: String, CaseIterable, Sendable {
   case high
@@ -33,7 +31,7 @@ public enum PlaceStanding: Equatable, Hashable, Sendable, RawRepresentable, Quer
     case "tried.onceWasEnough": self = .tried(.onceWasEnough)
     case "notForUs": self = .notForUs
     default:
-      placeStandingLogger.error("Unknown place standing raw value \(rawValue, privacy: .public); treating it as toTry.normal")
+      reportIssue("Unknown place standing raw value \(rawValue); treating it as toTry.normal")
       self = .toTry(.normal)
     }
   }
@@ -53,6 +51,15 @@ public enum Meal: String, QueryBindable, CaseIterable, Sendable {
   case lunch
   case dinner
   case lateNight
+
+  public var title: String {
+    switch self {
+    case .breakfast: "Breakfast"
+    case .lunch: "Lunch"
+    case .dinner: "Dinner"
+    case .lateNight: "Late night"
+    }
+  }
 }
 
 public struct Meals: Equatable, Sendable, RawRepresentable, QueryBindable {
@@ -203,13 +210,30 @@ public enum PlaceOperations {
     }.execute(db)
   }
 
-  public static func save(_ place: Place, in db: Database) throws {
-    try Place.upsert { Place.Draft(place) }.execute(db)
+  public static func updateDetails(
+    name: String, kind: PlaceKind, meals: Meals, address: String?, websiteURL: String?, note: String?,
+    basedOn original: Place, updatedAt: Date, for placeID: UUID, in db: Database
+  ) throws {
+    guard let current = try Place.find(placeID).fetchOne(db) else { return }
+    try Place.find(placeID).update {
+      $0.name = #bind(name == original.name ? current.name : name)
+      $0.kind = #bind(kind == original.kind ? current.kind : kind)
+      $0.meals = #bind(meals == original.meals ? current.meals : meals)
+      $0.address = #bind(address == original.address ? current.address : address)
+      $0.websiteURL = #bind(websiteURL == original.websiteURL ? current.websiteURL : websiteURL)
+      $0.note = #bind(note == original.note ? current.note : note)
+      $0.updatedAt = #bind(updatedAt)
+    }.execute(db)
   }
 
   public static func logVisit(_ visit: PlaceVisit, verdict: Verdict? = nil, in db: Database) throws {
     guard let place = try Place.find(visit.placeID).fetchOne(db) else { return }
-    try PlaceVisit.insert { PlaceVisit.Draft(visit) }.execute(db)
+    let normalizedVisit = PlaceVisit(
+      id: visit.id, placeID: visit.placeID,
+      day: StayRules.normalized(visit.day, calendar: Calendar(identifier: .gregorian)),
+      meal: visit.meal, note: visit.note, authorID: visit.authorID, createdAt: visit.createdAt
+    )
+    try PlaceVisit.insert { PlaceVisit.Draft(normalizedVisit) }.execute(db)
     if case .toTry = place.standing {
       try setStanding(.tried(verdict), authorID: visit.authorID, now: visit.createdAt, for: place.id, in: db)
     }

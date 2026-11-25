@@ -33,7 +33,14 @@ struct PlacesView: View {
       if household == nil {
         ContentUnavailableView("Places unavailable", systemImage: "mappin.and.ellipse")
       } else if projection.groups.isEmpty {
-        ContentUnavailableView("No places", systemImage: "mappin.and.ellipse", description: Text("Add a place from Apple Maps to start your check sheet."))
+        ContentUnavailableView {
+          Label("No places", systemImage: "mappin.and.ellipse")
+        } description: {
+          Text("Add a place from Apple Maps to start your check sheet.")
+        } actions: {
+          Button("Add place", systemImage: "plus") { showingSearch = true }
+            .buttonStyle(.borderedProminent)
+        }
       } else {
         ForEach(projection.groups) { group in
           Section(group.title) {
@@ -73,7 +80,7 @@ private struct PlaceCheckSheetRowView: View {
   let row: PlaceCheckSheet.Row
   private var detailParts: [String] {
     var parts: [String] = []
-    let meals = row.place.meals.values.sorted { $0.rawValue < $1.rawValue }.map(\.rawValue).joined(separator: ", ")
+    let meals = Meal.allCases.filter(row.place.meals.values.contains).map(\.title).joined(separator: ", ")
     if !meals.isEmpty { parts.append(meals) }
     if case .tried = row.place.standing, let date = row.lastVisit {
       parts.append("Last visit \(date.formatted(.dateTime.month(.abbreviated).day()))")
@@ -154,9 +161,11 @@ private struct AddPlaceView: View {
 
 private struct PlaceDetailView: View {
   @Environment(\.dismiss) private var dismiss
+  @FetchOne var livePlace: Place?
   @FetchAll(PlaceVisit.order(by: \.day)) private var allVisits: [PlaceVisit]
   @Dependency(\.defaultDatabase) private var database
   @Dependency(\.date.now) private var dateNow
+  @Dependency(\.uuid) private var uuid
   @Shared(.currentPersonID) private var currentPersonIDString
   @State private var name: String
   @State private var kind: PlaceKind
@@ -168,6 +177,7 @@ private struct PlaceDetailView: View {
   @State private var showingVisit = false
   @State private var showingDelete = false
   @State private var errorMessage: String?
+  @State private var hasEditedStanding = false
 
   let place: Place
   private var visits: [PlaceVisit] { allVisits.filter { $0.placeID == place.id }.sorted { $0.day > $1.day } }
@@ -182,6 +192,7 @@ private struct PlaceDetailView: View {
 
   init(place: Place) {
     self.place = place
+    _livePlace = FetchOne(wrappedValue: nil, Place.find(place.id))
     _name = State(initialValue: place.name)
     _kind = State(initialValue: place.kind)
     _standing = State(initialValue: place.standing)
@@ -203,7 +214,7 @@ private struct PlaceDetailView: View {
         PlaceStandingPicker(selection: $standing)
         if kind == .food {
           ForEach(Meal.allCases, id: \.self) { meal in
-            Toggle(meal.rawValue.capitalized, isOn: Binding(
+            Toggle(meal.title, isOn: Binding(
               get: { meals.contains(meal) }, set: { if $0 { meals.insert(meal) } else { meals.remove(meal) } }
             ))
           }
@@ -215,7 +226,7 @@ private struct PlaceDetailView: View {
         ForEach(visits) { visit in
           VStack(alignment: .leading) {
             Text(visit.day.formatted(date: .abbreviated, time: .omitted))
-            if let meal = visit.meal { Text(meal.rawValue.capitalized).font(.caption).foregroundStyle(.secondary) }
+            if let meal = visit.meal { Text(meal.title).font(.caption).foregroundStyle(.secondary) }
             if let note = visit.note, !note.isEmpty { Text(note) }
           }.swipeActions {
             Button("Delete", systemImage: "trash", role: .destructive) { deleteVisit(visit) }
@@ -224,12 +235,27 @@ private struct PlaceDetailView: View {
       }
       Section { Button("Delete place", role: .destructive) { showingDelete = true } }
     }
-    .navigationTitle(place.name)
+    .navigationTitle(livePlace?.name ?? place.name)
     .toolbar {
       ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
       ToolbarItem(placement: .confirmationAction) { Button("Save", action: save) }
     }
-    .sheet(isPresented: $showingVisit) { NavigationStack { LogPlaceVisitView(place: place, onSave: logVisit) } }
+    .sheet(isPresented: $showingVisit) {
+      NavigationStack {
+        if let livePlace {
+          LogPlaceVisitView(place: livePlace, onSave: logVisit)
+        } else {
+          ProgressView("Loading place…")
+        }
+      }
+    }
+    .onChange(of: standing) { _, value in
+      hasEditedStanding = value != (livePlace?.standing ?? place.standing)
+    }
+    .onChange(of: livePlace?.standing) { _, value in
+      guard !hasEditedStanding, let value else { return }
+      standing = value
+    }
     .confirmationDialog("Delete \(place.name)?", isPresented: $showingDelete, titleVisibility: .visible) {
       Button("Mark Not for us", role: .destructive) { setStanding(.notForUs) }
       Button("Delete place and visits", role: .destructive) { deletePlace() }
@@ -241,16 +267,31 @@ private struct PlaceDetailView: View {
   }
 
   private func save() {
-    var updated = place
-    updated.name = name; updated.kind = kind; updated.standing = standing
-    updated.meals = Meals(kind == .food ? meals : [])
-    updated.address = address.isEmpty ? nil : address
-    updated.websiteURL = websiteURL.isEmpty ? nil : websiteURL
-    updated.note = note.isEmpty ? nil : note
-    updated.authorID = UUID(uuidString: currentPersonIDString)
-    updated.updatedAt = dateNow
-    let savedPlace = updated
-    Task { do { try await database.write { db in try PlaceOperations.save(savedPlace, in: db) }; dismiss() }
+    let currentPlace = livePlace ?? place
+    let shouldUpdateStanding = standing != currentPlace.standing
+    let authorID = UUID(uuidString: currentPersonIDString)
+    let now = dateNow
+    let placeID = place.id
+    let updatedName = name
+    let updatedKind = kind
+    let updatedStanding = standing
+    let updatedMeals = Meals(kind == .food ? meals : [])
+    let updatedAddress = address.isEmpty ? nil : address
+    let updatedWebsiteURL = websiteURL.isEmpty ? nil : websiteURL
+    let updatedNote = note.isEmpty ? nil : note
+    Task { do {
+      try await database.write { db in
+        try PlaceOperations.updateDetails(
+          name: updatedName, kind: updatedKind, meals: updatedMeals, address: updatedAddress,
+          websiteURL: updatedWebsiteURL, note: updatedNote, basedOn: place, updatedAt: now,
+          for: placeID, in: db
+        )
+        if shouldUpdateStanding {
+          try PlaceOperations.setStanding(updatedStanding, authorID: authorID, now: now, for: placeID, in: db)
+        }
+      }
+      dismiss()
+    }
       catch { errorMessage = error.localizedDescription } }
   }
   private func setStanding(_ value: PlaceStanding) {
@@ -261,9 +302,15 @@ private struct PlaceDetailView: View {
       catch { errorMessage = error.localizedDescription } }
   }
   private func logVisit(_ day: Date, _ meal: Meal?, _ visitNote: String, _ verdict: Verdict?) {
-    let visit = PlaceVisit(id: UUID(), placeID: place.id, day: day, meal: meal, note: visitNote.isEmpty ? nil : visitNote,
-      authorID: UUID(uuidString: currentPersonIDString), createdAt: dateNow)
-    Task { do { try await database.write { db in try PlaceOperations.logVisit(visit, verdict: verdict, in: db) } }
+    let currentStanding = livePlace?.standing ?? place.standing
+    let visit = PlaceVisit(
+      id: uuid(), placeID: place.id, day: day, meal: meal, note: visitNote.isEmpty ? nil : visitNote,
+      authorID: UUID(uuidString: currentPersonIDString), createdAt: dateNow
+    )
+    Task { do {
+      try await database.write { db in try PlaceOperations.logVisit(visit, verdict: verdict, in: db) }
+      if case .toTry = currentStanding { standing = .tried(verdict) }
+    }
       catch { errorMessage = error.localizedDescription } }
   }
   private func deleteVisit(_ visit: PlaceVisit) {
@@ -307,17 +354,24 @@ private struct LogPlaceVisitView: View {
   @Environment(\.dismiss) private var dismiss
   let place: Place
   let onSave: (Date, Meal?, String, Verdict?) -> Void
-  @State private var day = Date.now
+  @State private var day: Date
   @State private var meal: Meal?
   @State private var note = ""
   @State private var verdict: Verdict?
+
+  init(place: Place, onSave: @escaping (Date, Meal?, String, Verdict?) -> Void) {
+    @Dependency(\.date.now) var dateNow
+    self.place = place
+    self.onSave = onSave
+    _day = State(initialValue: dateNow)
+  }
 
   var body: some View {
     Form {
       DatePicker("Day", selection: $day, displayedComponents: .date)
       if place.kind == .food { Picker("Meal", selection: $meal) {
         Text("Not set").tag(Meal?.none)
-        ForEach(Meal.allCases, id: \.self) { Text($0.rawValue.capitalized).tag(Optional($0)) }
+        ForEach(Meal.allCases, id: \.self) { Text($0.title).tag(Optional($0)) }
       } }
       if case .toTry = place.standing {
         Picker("Verdict", selection: $verdict) {

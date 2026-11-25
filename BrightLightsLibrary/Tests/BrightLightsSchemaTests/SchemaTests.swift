@@ -184,10 +184,13 @@ struct SchemaTests {
       "tried.onceWasEnough", "notForUs"
     ]
     for rawValue in standings { #expect(PlaceStanding(rawValue: rawValue)?.rawValue == rawValue) }
-    #expect(PlaceStanding(rawValue: "future.value")?.rawValue == "toTry.normal")
+    withKnownIssue("unknown standing falls back to normal and reports an issue", isIntermittent: false) {
+      #expect(PlaceStanding(rawValue: "future.value") == .toTry(.normal))
+    }
     #expect(Meals(rawValue: "dinner,breakfast,lunch").rawValue == "breakfast,lunch,dinner")
     #expect(Meals(rawValue: "").values.isEmpty)
     #expect(Meals([.lateNight, .breakfast]).rawValue == "breakfast,lateNight")
+    #expect(Meal.allCases.map(\.title) == ["Breakfast", "Lunch", "Dinner", "Late night"])
   }
 
   @Test func placeWhenRoundTripsAndAlwaysClearsUnusedColumns() {
@@ -226,6 +229,45 @@ struct SchemaTests {
       #expect(try Place.find(place.id).fetchOne(db)?.standing == .tried(.ourPlace))
       try PlaceOperations.deletePlace(place.id, in: db)
       #expect(try PlaceVisit.fetchCount(db) == 0)
+    }
+  }
+
+  @Test func placeEditAndVisitKeepStandingAttributionAndNewYorkDay() async throws {
+    let householdID = UUID()
+    let authorID = UUID()
+    let calendar = Calendar(identifier: .gregorian)
+    var newYorkCalendar = calendar
+    newYorkCalendar.timeZone = TimeZone(identifier: "America/New_York")!
+    let nyCalendar = newYorkCalendar
+    let visitDate = nyCalendar.date(from: DateComponents(year: 2026, month: 11, day: 25, hour: 15))!
+    try await database.write { db in
+      let household = Household(id: householdID)
+      try Household.insert { Household.Draft(household) }.execute(db)
+      let place = try PlaceOperations.add(
+        MapPlace(id: UUID(), name: "Fixture Bistro", latitude: 40.7, longitude: -73.9),
+        kind: .food, householdID: householdID, in: db
+      )
+      let visit = PlaceVisit(id: UUID(), placeID: place.id, day: visitDate, authorID: authorID)
+      try PlaceOperations.logVisit(visit, verdict: .ourPlace, in: db)
+      try PlaceOperations.updateDetails(
+        name: "Remote name", kind: place.kind, meals: place.meals, address: place.address,
+        websiteURL: place.websiteURL, note: place.note, basedOn: place, updatedAt: visit.createdAt,
+        for: place.id, in: db
+      )
+      try PlaceOperations.updateDetails(
+        name: place.name, kind: place.kind, meals: place.meals, address: place.address,
+        websiteURL: place.websiteURL, note: "A new note", basedOn: place, updatedAt: visit.createdAt,
+        for: place.id, in: db
+      )
+
+      let updated = try #require(try Place.find(place.id).fetchOne(db))
+      let storedVisit = try #require(try PlaceVisit.find(visit.id).fetchOne(db))
+      #expect(updated.name == "Remote name")
+      #expect(updated.note == "A new note")
+      #expect(updated.standing == .tried(.ourPlace))
+      #expect(updated.authorID == authorID)
+      #expect(nyCalendar.dateComponents([.year, .month, .day, .hour], from: storedVisit.day)
+        == DateComponents(year: 2026, month: 11, day: 25, hour: 0))
     }
   }
 

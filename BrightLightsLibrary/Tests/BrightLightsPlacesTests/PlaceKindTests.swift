@@ -50,20 +50,28 @@ import Testing
 
   @Test func checkSheetGroupsByStandingAndShowsLastVisitOnlyInTriedGroups() {
     let householdID = UUID()
-    let high = Place(id: UUID(), householdID: householdID, name: "High", latitude: 0, longitude: 0,
-      standing: .toTry(.high))
-    let ourPlace = Place(id: UUID(), householdID: householdID, name: "Favorite", latitude: 0, longitude: 0,
-      standing: .tried(.ourPlace))
-    let hidden = Place(id: UUID(), householdID: householdID, name: "Hidden", latitude: 0, longitude: 0,
-      standing: .notForUs)
+    let groups: [(PlaceStanding, String)] = [
+      (.toTry(.high), "High"), (.toTry(.normal), "Normal"), (.toTry(.someday), "Someday"),
+      (.tried(.ourPlace), "Our place"), (.tried(.wouldReturn), "Would return"),
+      (.tried(nil), "Tried"), (.tried(.onceWasEnough), "Once was enough"), (.notForUs, "Not for us")
+    ]
+    let places = groups.flatMap { standing, prefix in
+      [
+        Place(id: UUID(), householdID: householdID, name: "Zulu \(prefix)", latitude: 0, longitude: 0, standing: standing),
+        Place(id: UUID(), householdID: householdID, name: "Alpha \(prefix)", latitude: 0, longitude: 0, standing: standing)
+      ]
+    }
+    let ourPlace = places.first { $0.standing == .tried(.ourPlace) }!
     let lastVisit = Date(timeIntervalSince1970: 1_800_000_000)
     let projection = PlaceCheckSheet(
-      places: [ourPlace, hidden, high], visits: [PlaceVisit(id: UUID(), placeID: ourPlace.id, day: lastVisit)]
+      places: places, visits: [PlaceVisit(id: UUID(), placeID: ourPlace.id, day: lastVisit)]
     )
-    #expect(projection.groups.map(\.title) == ["High priority", "Our place"])
-    #expect(projection.groups[0].rows.first?.place.id == high.id)
-    #expect(projection.groups[1].rows.first?.lastVisit == lastVisit)
-    #expect(PlaceCheckSheet(places: [hidden], visits: []).groups.map(\.title) == [])
-    #expect(PlaceCheckSheet(places: [hidden], visits: [], showingNotForUs: true).groups.map(\.title) == ["Not for us"])
+    let expectedTitles = ["High priority", "To try", "Someday", "Our place", "Would return", "Tried", "Once was enough"]
+    #expect(projection.groups.map(\.title) == expectedTitles)
+    #expect(projection.groups.first?.rows.map(\.place.name) == ["Alpha High", "Zulu High"])
+    #expect(projection.groups.first { $0.title == "Our place" }?.rows.first { $0.place.id == ourPlace.id }?.lastVisit == lastVisit)
+    let showingNotForUs = PlaceCheckSheet(places: places, visits: [], showingNotForUs: true)
+    #expect(showingNotForUs.groups.map(\.title) == expectedTitles + ["Not for us"])
+    #expect(showingNotForUs.groups.last?.rows.map(\.place.name) == ["Alpha Not for us", "Zulu Not for us"])
   }
 }
