@@ -83,7 +83,7 @@ private struct PlaceCheckSheetRowView: View {
     let meals = Meal.allCases.filter(row.place.meals.values.contains).map(\.title).joined(separator: ", ")
     if !meals.isEmpty { parts.append(meals) }
     if case .tried = row.place.standing, let date = row.lastVisit {
-      parts.append("Last visit \(date.formatted(.dateTime.month(.abbreviated).day()))")
+      parts.append("Last visit \(date.formatted(Date.FormatStyle(timeZone: Calendar.newYork.timeZone).month(.abbreviated).day()))")
     }
     return parts
   }
@@ -225,7 +225,7 @@ private struct PlaceDetailView: View {
         Button("Log visit", systemImage: "plus") { showingVisit = true }
         ForEach(visits) { visit in
           VStack(alignment: .leading) {
-            Text(visit.day.formatted(date: .abbreviated, time: .omitted))
+            Text(visit.day.formatted(Date.FormatStyle(date: .abbreviated, time: .omitted, timeZone: Calendar.newYork.timeZone)))
             if let meal = visit.meal { Text(meal.title).font(.caption).foregroundStyle(.secondary) }
             if let note = visit.note, !note.isEmpty { Text(note) }
           }.swipeActions {
@@ -383,10 +383,20 @@ private struct LogPlaceVisitView: View {
       }
       TextField("Note", text: $note, axis: .vertical)
     }
+    .environment(\.calendar, Calendar.newYork)
+    .environment(\.timeZone, Calendar.newYork.timeZone)
     .navigationTitle("Log visit")
     .toolbar {
       ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
       ToolbarItem(placement: .confirmationAction) { Button("Save") { onSave(day, meal, note, verdict); dismiss() } }
     }
+  }
+}
+
+private extension Calendar {
+  static var newYork: Calendar {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "America/New_York")!
+    return calendar
   }
 }
