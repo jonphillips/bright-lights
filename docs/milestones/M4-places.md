@@ -269,17 +269,82 @@ No schema. The architect merges on approve.
 
 ## S4 — Seasons
 
-**Goal:** A place can be on always, every year, or once (ADR-0007 D10), and Coming up warns before a season ends.
+**Goal:** A place can be on always, every year, or once (ADR-0007 D10). Out-of-season places say when they're next
+on, and Coming up warns before a to-try place's season ends. Branch `m4/s4-seasons`.
 
-Pinned now:
-- The place editor gets **When**: Always, Every year (from and to, as month and day), or Once (two dates).
-- An out-of-season place stays on the map and the list, marked "Next on Nov 20". A filter can hide out-of-season
-  places.
-- **Coming up** shows a to-try place whose season ends inside its range, with the same warning a listing's close
-  gets ("ends Jan 5, and you're only in town once more before then"). It comes from the same function, not a copy.
-- A `.once` place whose dates have passed drops out of to-try views and keeps its history.
+### Decisions pinned in this plan
 
-No schema, because S2 created the columns. The architect merges on approve.
+- **No schema.** S2 created the five `when` columns and `Place.when`.
+- **One pure season function**, `PlaceSeason`, in `BrightLightsSchema` beside `PlaceWhen`, because both Coming up
+  (`WhatsOnProjection`) and the check sheet use it. Given a place's `when` and today (New York), it returns
+  `.always`, `.inSeason(endsOn: Date?)`, `.outOfSeason(nextOn: Date)` or `.ended(on: Date)`. Every date is a New
+  York start of day.
+  - **Yearly:** today is in season when its month and day fall from `from` to `to`, inclusive. When `from` is after
+    `to`, the season runs across New Year. `endsOn` is the next `to` on or after today, and `nextOn` is the next
+    `from` after today. A Feb 29 bound means Feb 28 in other years.
+  - **Once:** in season from `from` to `to`, inclusive. Before `from` it's out of season, next on `from`. After `to`
+    it's `.ended(on: to)`.
+- **The editor** gets a **When** section in place detail: Always, Every year or Once.
+  - **Every year:** from and to, each a month picker and a day picker, with the day limited to that month's length
+    (Feb allows 29).
+  - **Once:** two date pickers in New York time, as in Log visit, with the end not before the start.
+  - It saves through `updateDetails`, which takes `when` under the same changed-field rule as the other fields.
+    When `when` is unchanged, all five columns stay as stored.
+- **The check sheet and map:**
+  - An out-of-season row says "Next on Nov 20", and an ended row says "Ended Mar 3", in New York time. An
+    out-of-season or ended marker keeps its tint at half opacity.
+  - `PlaceFilter` gains **Hide out of season**, a device-local toggle under More, off by default. It hides
+    `.outOfSeason` and `.ended` places.
+  - An ended `.once` place is left out of the **To try** standing filter whatever its standing. It still shows under
+    Tried and Everything, and keeps its visits.
+  - `PlaceCheckSheet` takes `today` and gives each row its `PlaceSeason`.
+- **Coming up:**
+  - The Deadlines section adds a row for each to-try place that's in season now and whose `endsOn` falls inside the
+    same window as listings that close (today up to 60 days on). It reads "Ends Jan 5 — your last stay before it
+    ends", and tapping it opens the place's detail.
+  - The stays count comes from one function that both kinds of row call. Lift the count out of `makeDeadlines`
+    into `WhatsOnProjection.staysBefore(_:stays:today:)`, and give `closingNote` the verb ("closes" or "ends").
+    Nothing is copied.
+  - `WhatsOnProjection.init` takes `places: [Place] = []`. The app passes the household's places, and
+    `WhatsOnDeadlines` gains `ending: [(place: Place, endsOn: Date, staysBefore: Int)]`, sorted by `endsOn`, then
+    name.
+
+### Tests (package)
+
+- `PlaceSeason`:
+  - Always.
+  - A yearly season inside one year: today before it, on its first day, inside it, on its last day, and after it.
+  - A yearly season across New Year: Dec 31, Jan 1, and the next `from` after it ends.
+  - A Feb 29 bound in a non-leap year.
+  - Once: before it, inside it, on its last day, and after it.
+- `updateDetails`: changing `when` writes the new case and clears the unused columns. An unchanged `when` leaves
+  the stored columns alone, even when another device changed them meanwhile.
+- `PlaceFilter`: Hide out of season hides out-of-season and ended places only. An ended `.once` to-try place is
+  absent under To try and present under Everything.
+- `PlaceCheckSheet`: a row carries its season.
+- `WhatsOnProjection`:
+  - A to-try yearly place ending inside the window is in `ending`, with the same stays count a listing closing that
+    day gets.
+  - Each of these is absent: a tried place, a place ending after the window, an out-of-season place, and an
+    `.always` place.
+  - The existing listing-closing tests still pass unchanged.
+
+### Done when
+
+- `scripts/check-drift.sh` passes, and CI is green.
+- Closeout (ADR-0005 D16), with a device gate whose check is § S4 device pass, below.
+
+**Not in S4:** offering in-season places to stays (S5), a season on the map's legend, and reminders.
+
+### S4 device pass (Jon)
+
+On the iPad, using places already added:
+1. Set a park to Every year, Nov 20 to Jan 5. In late November or December it shows no "Next on". Coming up's
+   Deadlines shows "Ends Jan 5", with the right stays count, and tapping it opens the park.
+2. Set a bar to Every year, Jun 1 to Aug 31. It shows "Next on Jun 1", and More → Hide out of season hides it.
+3. Set a shop to Once, with both dates last week. It leaves the To try filter, shows "Ended" under Everything, and
+   its visits are still there.
+4. On the iPhone, all three show the same When.
 
 ## S5 — The stay plan
 
