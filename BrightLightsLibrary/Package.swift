@@ -16,7 +16,6 @@ let package = Package(
     .package(path: "../../jon-platform/Vendor/sqlite-data"),
     .package(path: "../../jon-platform/packages/WebExtractorKit"),
     .package(path: "../../jon-platform/packages/MapPlacesKit"),
-    .package(url: "https://github.com/pointfreeco/swift-issue-reporting", from: "2.1.0"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0")
   ],
   targets: [
@@ -56,7 +55,6 @@ let package = Package(
       dependencies: [
         "BrightLightsExtraction",
         .product(name: "MapPlacesKit", package: "MapPlacesKit"),
-        .product(name: "IssueReporting", package: "swift-issue-reporting"),
         .product(name: "SQLiteData", package: "sqlite-data"),
         .product(name: "Dependencies", package: "swift-dependencies")
       ],

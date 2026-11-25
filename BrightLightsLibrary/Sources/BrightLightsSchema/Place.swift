@@ -1,7 +1,9 @@
 import Foundation
-import IssueReporting
 import MapPlacesKit
+import OSLog
 import SQLiteData
+
+private let placeStandingLogger = Logger(subsystem: "com.jonphillips.BrightLights", category: "PlaceStanding")
 
 public enum Priority: String, CaseIterable, Sendable {
   case high
@@ -31,7 +33,7 @@ public enum PlaceStanding: Equatable, Hashable, Sendable, RawRepresentable, Quer
     case "tried.onceWasEnough": self = .tried(.onceWasEnough)
     case "notForUs": self = .notForUs
     default:
-      reportIssue("Unknown place standing raw value \(rawValue); treating it as toTry.normal")
+      placeStandingLogger.error("Unknown place standing raw value \(rawValue, privacy: .public); treating it as toTry.normal")
       self = .toTry(.normal)
     }
   }

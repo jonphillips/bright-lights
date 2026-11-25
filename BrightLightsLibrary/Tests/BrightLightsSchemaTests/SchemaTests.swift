@@ -1,7 +1,6 @@
 import Dependencies
 import DependenciesTestSupport
 import Foundation
-import IssueReporting
 import BrightLightsExtraction
 import BrightLightsSchema
 import MapPlacesKit
@@ -185,9 +184,7 @@ struct SchemaTests {
       "tried.onceWasEnough", "notForUs"
     ]
     for rawValue in standings { #expect(PlaceStanding(rawValue: rawValue)?.rawValue == rawValue) }
-    expectReportsIssue("unknown place standing falls back safely", {
-      #expect(PlaceStanding(rawValue: "future.value")?.rawValue == "toTry.normal")
-    }, matching: { _ in true })
+    #expect(PlaceStanding(rawValue: "future.value")?.rawValue == "toTry.normal")
     #expect(Meals(rawValue: "dinner,breakfast,lunch").rawValue == "breakfast,lunch,dinner")
     #expect(Meals(rawValue: "").values.isEmpty)
     #expect(Meals([.lateNight, .breakfast]).rawValue == "breakfast,lateNight")
