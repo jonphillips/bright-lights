@@ -1,5 +1,6 @@
 import BrightLightsChecking
 import BrightLightsSchema
+import BrightLightsTaste
 import CloudKit
 import CloudSyncKit
 import Dependencies
@@ -16,6 +17,7 @@ struct SettingsView: View {
   @FetchAll private var people: [Person]
   @FetchAll(SyncMetadata.where { $0.recordType.eq("households") }) private var syncMetadata: [SyncMetadata]
   @FetchAll private var sources: [Source]
+  @FetchAll private var tasteRecords: [TasteRecord]
   @Dependency(\.defaultDatabase) private var db
   @Dependency(\.defaultSyncEngine) private var syncEngine
   @Dependency(\.apiKeyStore) private var apiKeyStore
@@ -93,6 +95,8 @@ struct SettingsView: View {
       }
       Section("Taste") {
         NavigationLink("Taste notes") { TasteNotesView() }
+        LabeledContent("Suggestion provider", value: suggestionProviderName)
+        LabeledContent("Last 30 days", value: tasteAgreementSummary)
       }
       #if os(macOS)
       Section("Source checking") {
@@ -190,6 +194,14 @@ struct SettingsView: View {
 
   @Shared(.currentPersonID) private var currentPersonIDString
   private var currentPersonID: UUID? { UUID(uuidString: currentPersonIDString) }
+  private var suggestionProviderName: String {
+    FrontierResolver().resolve(isConfigured: { apiKeyStore.key($0) != nil })?.displayName ?? "None"
+  }
+  private var tasteAgreementSummary: String {
+    let cutoff = Calendar.current.date(byAdding: .day, value: -30, to: .now) ?? .distantPast
+    let result = TastePrompt.agreement(records: tasteRecords, since: cutoff)
+    return "\(result.kept) of \(result.suggestedKeep) keeps · \(result.clearedOrPassed) of \(result.suggestedClear) clears · \(result.unsure) unsure"
+  }
   private var currentPerson: Person? { people.first { $0.id == currentPersonID } }
   private var householdOwnerName: String { syncMetadata.first(where: {
     $0.recordType == "households" && UUID(uuidString: $0.recordPrimaryKey) == household?.id

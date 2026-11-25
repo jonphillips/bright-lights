@@ -2,14 +2,14 @@
 
 *Architect, 2026-11-22. Arc: from screening every listing in date order to screens that put likely keeps first,
 with the evidence on each row and a model's suggestion beside it. Jon and Wendy still make every decision.
-Decisions: [ADR-0010](../decisions/0010-taste-suggests-jon-decides.md). Builds on ADR-0006's taste record and
+Decisions: [ADR-0010](../../decisions/0010-taste-suggests-jon-decides.md). Builds on ADR-0006's taste record and
 M2's people. The repo is public, so every fixture uses invented venues, performers and notes.*
 
 ## Slice ledger
 
 - [x] **S1** — Counts sort a screen
 - [x] **S2** — Taste notes
-- [ ] **S3** — The model suggests
+- [x] **S3** — The model suggests
 
 Each slice is one dispatch, in this order. S3 reads S1's counts and S2's notes. All three are expanded below.
 

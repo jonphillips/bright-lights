@@ -155,7 +155,7 @@ public struct Household: Identifiable, Equatable, Sendable {
       id: id, householdID: householdID, sourceRegistryID: record.sourceRegistryID,
       sourceName: record.sourceName, stableKey: record.stableKey, title: record.title,
       performers: record.performers, room: record.room, startsAt: record.startsAt,
-      closesAt: record.closesAt, kind: record.kind, note: record.note, authorID: record.authorID,
+      closesAt: record.closesAt, kind: record.kind, suggestion: record.suggestion, note: record.note, authorID: record.authorID,
       firstDecidedAt: record.firstDecidedAt, updatedAt: record.updatedAt
     )
   }

@@ -16,6 +16,8 @@ struct CaptureScreen: View {
   @FetchAll(Listing.canonical.order(by: \.startsAt)) private var listings
   @FetchAll private var reactions: [Reaction]
   @FetchAll private var tasteRecords: [TasteRecord]
+  @FetchAll private var tasteNotes: [TasteNote]
+  @FetchAll private var people: [Person]
   @State private var inspectorPresented = false
   @State private var showingReport = false
   @State private var showingFlagPrompt = false
@@ -125,7 +127,11 @@ struct CaptureScreen: View {
     .inspector(isPresented: $inspectorPresented) {
       NavigationStack {
         if let route = screenRoute {
-          ScreenList(source: route.source, listings: route.listings, tasteRecords: tasteRecords, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
+          ScreenList(
+            source: route.source, listings: route.listings, tasteRecords: tasteRecords,
+            tasteNotes: tasteNotes, people: people, unscreenedListingIDs: nil,
+            onDone: { finishScreen(route) }, onCancel: { screenRoute = nil }
+          )
             .id(route.id)
         } else {
           RoundsList(onSelect: selectSource)
@@ -182,7 +188,11 @@ struct CaptureScreen: View {
     }
     .sheet(item: screenSheet) { route in
       NavigationStack {
-        ScreenList(source: route.source, listings: route.listings, tasteRecords: tasteRecords, onDone: { finishScreen(route) }, onCancel: { screenRoute = nil })
+        ScreenList(
+          source: route.source, listings: route.listings, tasteRecords: tasteRecords,
+          tasteNotes: tasteNotes, people: people, unscreenedListingIDs: nil,
+          onDone: { finishScreen(route) }, onCancel: { screenRoute = nil }
+        )
           .id(route.id)
       }
     }

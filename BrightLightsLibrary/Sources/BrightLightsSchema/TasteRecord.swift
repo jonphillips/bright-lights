@@ -2,6 +2,12 @@ import CryptoKit
 import Foundation
 import SQLiteData
 
+public enum TasteSuggestion: String, QueryBindable, Codable, CaseIterable, Sendable, Equatable {
+  case keep
+  case clear
+  case unsure
+}
+
 @Table
 public struct TasteRecord: Identifiable, Equatable, Sendable {
   public let id: UUID
@@ -15,6 +21,7 @@ public struct TasteRecord: Identifiable, Equatable, Sendable {
   public var startsAt: Date
   public var closesAt: Date?
   public var kind: ReactionKind
+  public var suggestion: TasteSuggestion?
   public var note: String?
   public var authorID: UUID?
   public var firstDecidedAt: Date
@@ -23,13 +30,13 @@ public struct TasteRecord: Identifiable, Equatable, Sendable {
   public init(
     id: UUID, householdID: UUID, sourceRegistryID: String, sourceName: String,
     stableKey: String, title: String, performers: String, room: String? = nil,
-    startsAt: Date, closesAt: Date? = nil, kind: ReactionKind, note: String? = nil,
+    startsAt: Date, closesAt: Date? = nil, kind: ReactionKind, suggestion: TasteSuggestion? = nil, note: String? = nil,
     authorID: UUID? = nil, firstDecidedAt: Date, updatedAt: Date
   ) {
     self.id = id; self.householdID = householdID; self.sourceRegistryID = sourceRegistryID
     self.sourceName = sourceName; self.stableKey = stableKey; self.title = title
     self.performers = performers; self.room = room; self.startsAt = startsAt
-    self.closesAt = closesAt; self.kind = kind; self.note = note; self.authorID = authorID
+    self.closesAt = closesAt; self.kind = kind; self.suggestion = suggestion; self.note = note; self.authorID = authorID
     self.firstDecidedAt = firstDecidedAt; self.updatedAt = updatedAt
   }
 
@@ -42,7 +49,7 @@ public struct TasteRecord: Identifiable, Equatable, Sendable {
       bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]))
   }
 
-  static func upsertForReaction(_ reaction: Reaction, in db: Database) throws {
+  static func upsertForReaction(_ reaction: Reaction, suggestion: TasteSuggestion? = nil, in db: Database) throws {
     guard let listing = try Listing.find(reaction.listingID).fetchOne(db),
       let source = try Source.find(listing.sourceID).fetchOne(db) else { return }
     let id = id(householdID: source.householdID, sourceRegistryID: source.registryID, stableKey: listing.stableKey)
@@ -51,7 +58,7 @@ public struct TasteRecord: Identifiable, Equatable, Sendable {
       id: id, householdID: source.householdID, sourceRegistryID: source.registryID,
       sourceName: source.name, stableKey: listing.stableKey, title: listing.title,
       performers: listing.performers, room: listing.room, startsAt: listing.startsAt,
-      closesAt: listing.closesAt, kind: reaction.kind, note: reaction.note,
+      closesAt: listing.closesAt, kind: reaction.kind, suggestion: existing?.suggestion ?? suggestion, note: reaction.note,
       authorID: reaction.authorID, firstDecidedAt: existing?.firstDecidedAt ?? reaction.updatedAt,
       updatedAt: reaction.updatedAt
     )
