@@ -26,9 +26,9 @@ struct PlacesView: View {
   @State private var mapPressStartedAt: Date?
   @State private var mapPressStartLocation: CGPoint?
   @State private var errorMessage: String?
-  @Shared(.appStorage("brightLightsPlaceKindFilter")) private var kindFilterRaw = PlaceKindFilter.food.rawValue
-  @Shared(.appStorage("brightLightsPlaceMealFilter")) private var mealFilterRaw = MealFilter.any.rawValue
-  @Shared(.appStorage("brightLightsPlaceStandingFilter")) private var standingFilterRaw = PlaceStandingFilter.toTry.rawValue
+  @Shared(.appStorage("brightLightsPlaceKindFilter")) private var kindFilterRaw = PlaceFilter.Kind.all.rawValue
+  @Shared(.appStorage("brightLightsPlaceMealFilter")) private var mealFilterRaw = PlaceFilter.MealChoice.any.rawValue
+  @Shared(.appStorage("brightLightsPlaceStandingFilter")) private var standingFilterRaw = PlaceFilter.Standing.everything.rawValue
   @Shared(.appStorage("brightLightsShowNotForUsPlaces")) private var includesNotForUs = false
 
   private static let initialMapRegion = MKCoordinateRegion(
@@ -42,62 +42,31 @@ struct PlacesView: View {
   }
   private var projection: PlaceCheckSheet {
     PlaceCheckSheet(
-      places: filteredPlaces, visits: visits,
-      showingNotForUs: includesNotForUs
+      places: householdPlaces, visits: visits, filter: placeFilter
     )
   }
 
-  private var kindFilter: PlaceKindFilter {
-    get { PlaceKindFilter(rawValue: kindFilterRaw) ?? .food }
+  private var placeFilter: PlaceFilter {
+    PlaceFilter(
+      kind: kindFilter, meal: mealFilter, standing: standingFilter,
+      includesNotForUs: includesNotForUs
+    )
+  }
+  private var kindFilter: PlaceFilter.Kind {
+    get { PlaceFilter.Kind(rawValue: kindFilterRaw) ?? .all }
     nonmutating set { $kindFilterRaw.withLock { $0 = newValue.rawValue } }
   }
-  private var mealFilter: MealFilter {
-    get { MealFilter(rawValue: mealFilterRaw) ?? .any }
+  private var mealFilter: PlaceFilter.MealChoice {
+    get { PlaceFilter.MealChoice(rawValue: mealFilterRaw) ?? .any }
     nonmutating set { $mealFilterRaw.withLock { $0 = newValue.rawValue } }
   }
-  private var standingFilter: PlaceStandingFilter {
-    get { PlaceStandingFilter(rawValue: standingFilterRaw) ?? .toTry }
+  private var standingFilter: PlaceFilter.Standing {
+    get { PlaceFilter.Standing(rawValue: standingFilterRaw) ?? .everything }
     nonmutating set { $standingFilterRaw.withLock { $0 = newValue.rawValue } }
   }
   private var isFoodSelected: Bool { kindFilter == .food }
-  private var selectedMeal: Meal? { mealFilter.meal }
   private var householdPlaces: [Place] { places.filter { $0.householdID == household?.id } }
-  private var filteredPlaces: [Place] {
-    householdPlaces.filter { place in
-      guard kindFilter.kind == nil || place.kind == kindFilter.kind else { return false }
-      if place.standing == .notForUs {
-        guard includesNotForUs else { return false }
-      } else {
-        switch standingFilter {
-        case .toTry:
-          guard case .toTry = place.standing else { return false }
-        case .tried:
-          guard case .tried = place.standing else { return false }
-        case .everything:
-          break
-        }
-      }
-      if let selectedMeal {
-        return place.kind == .food && place.meals.values.contains(selectedMeal)
-      }
-      return true
-    }
-  }
-  private var placesMissingMeals: [Place] {
-    householdPlaces.filter { place in
-      guard place.kind == .food, place.meals.values.isEmpty else { return false }
-      if place.standing == .notForUs { return includesNotForUs }
-      switch standingFilter {
-      case .toTry:
-        if case .toTry = place.standing { return true }
-      case .tried:
-        if case .tried = place.standing { return true }
-      case .everything:
-        return true
-      }
-      return false
-    }
-  }
+  private var filteredPlaces: [Place] { projection.filteredPlaces }
 
   var body: some View {
     VStack(spacing: 0) {
@@ -142,14 +111,14 @@ struct PlacesView: View {
       if household == nil {
         ContentUnavailableView("Places unavailable", systemImage: "mappin.and.ellipse")
       } else {
-        if isFoodSelected, selectedMeal != nil, !placesMissingMeals.isEmpty {
+        if projection.missingMealsCount > 0 {
           Section {
             HStack(alignment: .firstTextBaseline) {
-              Text("\(placesMissingMeals.count) food places have no meals set")
+              Text("\(projection.missingMealsCount) food places have no meals set")
                 .font(.subheadline).foregroundStyle(.secondary)
               Spacer(minLength: 8)
               Button("Fill them in") {
-                if let place = placesMissingMeals.first { placeForDetail = place }
+                if let place = projection.placesMissingMeals.first { placeForDetail = place }
               }
               .font(.subheadline.weight(.semibold))
             }
@@ -192,7 +161,7 @@ struct PlacesView: View {
     VStack(alignment: .leading, spacing: 10) {
       ScrollView(.horizontal) {
         HStack(spacing: 8) {
-          ForEach(PlaceKindFilter.allCases) { filter in
+          ForEach(PlaceFilter.Kind.allCases, id: \.self) { filter in
             PlaceKindFilterButton(filter: filter, isSelected: kindFilter == filter) {
               kindFilter = filter
             }
@@ -203,12 +172,12 @@ struct PlacesView: View {
       .scrollIndicators(.hidden)
       HStack(spacing: 10) {
         Picker("Standing", selection: Binding(get: { standingFilter }, set: { standingFilter = $0 })) {
-          ForEach(PlaceStandingFilter.allCases) { filter in Text(filter.title).tag(filter) }
+          ForEach(PlaceFilter.Standing.allCases, id: \.self) { filter in Text(filter.title).tag(filter) }
         }
         .pickerStyle(.segmented)
         if isFoodSelected {
           Menu {
-            ForEach(MealFilter.visibleCases) { filter in
+            ForEach(PlaceFilter.MealChoice.visibleCases, id: \.self) { filter in
               Button {
                 mealFilter = filter
               } label: {
@@ -223,7 +192,7 @@ struct PlacesView: View {
               .background(.quaternary, in: Capsule())
           }
           Menu("More") {
-            ForEach(MealFilter.moreCases) { filter in
+            ForEach(PlaceFilter.MealChoice.moreCases, id: \.self) { filter in
               Button {
                 mealFilter = filter
               } label: {
@@ -367,12 +336,23 @@ struct PlacesView: View {
 
 private struct MapPOIDetailModifier: ViewModifier {
   @Binding var selectedMapItem: MKMapItem?
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
   func body(content: Content) -> some View {
     #if os(iOS)
-      content
-        .mapFeatureSelectionAccessory(nil)
-        .mapItemDetailSheet(item: $selectedMapItem)
+      if horizontalSizeClass == .regular {
+        content
+          .mapFeatureSelectionDisabled { $0.kind != .pointOfInterest }
+          .mapFeatureSelectionAccessory(nil)
+          .mapItemDetailPopover(
+            item: $selectedMapItem, attachmentAnchor: .rect(.bounds), arrowEdge: .leading
+          )
+      } else {
+        content
+          .mapFeatureSelectionDisabled { $0.kind != .pointOfInterest }
+          .mapFeatureSelectionAccessory(nil)
+          .mapItemDetailSheet(item: $selectedMapItem)
+      }
     #else
       content
     #endif
@@ -397,7 +377,7 @@ private enum PlacePane: String, CaseIterable, Identifiable {
 }
 
 private struct PlaceKindFilterButton: View {
-  let filter: PlaceKindFilter
+  let filter: PlaceFilter.Kind
   let isSelected: Bool
   let action: () -> Void
 
@@ -408,52 +388,6 @@ private struct PlaceKindFilterButton: View {
     .buttonStyle(.bordered)
     .tint(isSelected ? Color.accentColor : Color.secondary)
     .controlSize(.small)
-  }
-}
-
-private enum PlaceKindFilter: String, CaseIterable, Identifiable {
-  case all
-  case food
-  case drink
-  case coffee
-  case park
-  case shop
-  case sight
-  case activity
-  case other
-
-  static var allCases: [Self] { [.food, .all, .drink, .coffee, .park, .shop, .sight, .activity, .other] }
-  var id: Self { self }
-  var kind: PlaceKind? { PlaceKind(rawValue: rawValue) }
-  var title: String { self == .all ? "All" : rawValue.capitalized }
-}
-
-private enum MealFilter: String, CaseIterable, Identifiable {
-  case any
-  case lunch
-  case dinner
-  case breakfast
-  case lateNight
-
-  static var visibleCases: [Self] { [.any, .lunch, .dinner] }
-  static var moreCases: [Self] { [.breakfast, .lateNight] }
-  var id: Self { self }
-  var meal: Meal? { self == .any ? nil : Meal(rawValue: rawValue) }
-  var title: String { self == .any ? "Any meal" : meal?.title ?? rawValue.capitalized }
-}
-
-private enum PlaceStandingFilter: String, CaseIterable, Identifiable {
-  case toTry
-  case tried
-  case everything
-
-  var id: Self { self }
-  var title: String {
-    switch self {
-    case .toTry: "To try"
-    case .tried: "Tried"
-    case .everything: "Everything"
-    }
   }
 }
 

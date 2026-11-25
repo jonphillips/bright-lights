@@ -5,8 +5,9 @@ History, newest first. The PR that completes a dispatch adds its entry naming it
 
 ## 2026-11-25 — M4 · S3 — The map and its filters (`m4/s3-map-filters`)
 
-- **Result:** Joined the places check sheet and map with device-local kind, meal, and standing filters. Added Apple Maps place exploration and capture, dropped pins, and responsive list/map layouts.
-- **Verification:** scripts/check-drift.sh passed: SwiftLint (0 violations), BrightLightsLibrary tests (141 tests; one known issue), check-report fixture, iOS Simulator and macOS builds; git diff --check passed.
+- **Result:** Joined the places check sheet and map with device-local filters backed by a tested pure projection. Added Apple Maps place exploration and capture, dropped pins, and responsive list/map layouts.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint (0 violations), BrightLightsLibrary tests (147 tests; one known issue), check-report fixture, iOS Simulator and macOS builds; git diff --check passed.
+- **Owed:** M4 S3's device gate, in [device-passes.md](device-passes.md).
 
 ## 2026-11-25 — M4 S2 — Places and the check sheet (`m4/s2-places`)
 
