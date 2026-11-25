@@ -9,3 +9,4 @@ with `jon-platform/scripts/archive-brief`. **The table's row order is the queue*
 
 | Brief | Implements | Status |
 | --- | --- | --- |
+| [Source health](source-health.md) | ADR-0004, ADR-0003 point 6 | Ready |

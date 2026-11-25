@@ -139,6 +139,8 @@ private struct NewScreen: View {
   @FetchAll(Source.active.order(by: \.name)) private var sources: [Source]
   @FetchAll private var reactions: [Reaction]
   @FetchAll private var tasteRecords: [TasteRecord]
+  @FetchAll private var tasteNotes: [TasteNote]
+  @FetchAll private var people: [Person]
 
   var body: some View {
     let projection = NewProjection(
@@ -171,7 +173,12 @@ private struct NewScreen: View {
     .navigationDestination(for: Source.ID.self) { sourceID in
       if let source = sources.first(where: { $0.id == sourceID }) {
         let rows = projection.groups.first(where: { $0.source.id == sourceID })?.listings ?? []
-        ScreenList(source: source, listings: rows, tasteRecords: tasteRecords, onDone: { path.removeAll() })
+        ScreenList(
+          source: source, listings: rows, tasteRecords: tasteRecords,
+          tasteNotes: tasteNotes, people: people,
+          unscreenedListingIDs: Set(projection.groups.flatMap(\.listings).map(\.id)),
+          onDone: { path.removeAll() }
+        )
       } else {
         ContentUnavailableView("Source unavailable", systemImage: "building.2")
       }

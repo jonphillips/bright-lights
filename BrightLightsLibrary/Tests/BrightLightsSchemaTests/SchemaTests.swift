@@ -149,6 +149,14 @@ struct SchemaTests {
     }
   }
 
+  @Test func migrationV8AddsNullableTasteSuggestion() async throws {
+    try await database.read { db in
+      let columns = try db.columns(in: "tasteRecords")
+      let suggestion = try #require(columns.first { $0.name == "suggestion" })
+      #expect(suggestion.isNotNull == false)
+    }
+  }
+
   @Test func listingTimeRoundTripsThroughColumns() {
     let opens = Date(timeIntervalSince1970: 1_800_000_000)
     let closes = Date(timeIntervalSince1970: 1_800_100_000)
@@ -375,6 +383,7 @@ struct SchemaTests {
         id: TasteRecord.id(householdID: newer.id, sourceRegistryID: "venue", stableKey: "show"),
         householdID: newer.id, sourceRegistryID: "venue", sourceName: "Venue", stableKey: "show",
         title: "Newer", performers: "", startsAt: Date(timeIntervalSince1970: 1), kind: .interested,
+        suggestion: .keep,
         authorID: newPerson.id, firstDecidedAt: Date(timeIntervalSince1970: 2),
         updatedAt: Date(timeIntervalSince1970: 20)
       )
@@ -413,6 +422,7 @@ struct SchemaTests {
       let rekeyedTasteID = TasteRecord.id(householdID: oldest.id, sourceRegistryID: "venue", stableKey: "show")
       #expect(try TasteRecord.fetchAll(db).filter { $0.stableKey == "show" }.count == 1)
       #expect(try TasteRecord.find(rekeyedTasteID).fetchOne(db)?.title == "Newer")
+      #expect(try TasteRecord.find(rekeyedTasteID).fetchOne(db)?.suggestion == .keep)
       let rekeyedPersonID = Person.id(householdID: oldest.id, recordName: "jon-record")
       let rekeyedOtherTasteID = TasteRecord.id(householdID: oldest.id, sourceRegistryID: "venue", stableKey: "other")
       #expect(try TasteRecord.find(rekeyedOtherTasteID).fetchOne(db)?.authorID == rekeyedPersonID)
@@ -666,7 +676,7 @@ struct SchemaTests {
     let later = first.addingTimeInterval(300)
     try await database.write { db in
       try Listing.insert { Listing.Draft(listing) }.execute(db)
-      try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .kept, note: "first", updatedAt: first), in: db)
+      try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .kept, note: "first", updatedAt: first), suggestion: .keep, in: db)
       try Reaction.upsertForListing(Reaction(id: UUID(), listingID: listing.id, kind: .booked, note: "later", updatedAt: later), in: db)
       let household = try #require(try Source.find(sourceID).fetchOne(db)?.householdID)
       let id = TasteRecord.id(householdID: household, sourceRegistryID: sourceID.uuidString, stableKey: listing.stableKey)
@@ -676,6 +686,22 @@ struct SchemaTests {
       #expect(record.firstDecidedAt == first)
       #expect(record.updatedAt == later)
       #expect(record.title == listing.title)
+      #expect(record.suggestion == .keep)
+    }
+  }
+
+  @Test func reactionOutsideScreenDoesNotAddSuggestion() async throws {
+    let sourceID = UUID()
+    try await createSource(id: sourceID)
+    let listing = try makeListing(sourceID: sourceID, key: "no-suggestion", title: "No suggestion")
+    try await database.write { db in
+      try Listing.insert { Listing.Draft(listing) }.execute(db)
+      try Reaction.upsertForListing(
+        Reaction(id: UUID(), listingID: listing.id, kind: .kept, updatedAt: Date(timeIntervalSince1970: 1)), in: db
+      )
+      let householdID = try #require(try Source.find(sourceID).fetchOne(db)?.householdID)
+      let id = TasteRecord.id(householdID: householdID, sourceRegistryID: sourceID.uuidString, stableKey: listing.stableKey)
+      #expect(try TasteRecord.find(id).fetchOne(db)?.suggestion == nil)
     }
   }
 
@@ -689,12 +715,17 @@ struct SchemaTests {
     try await database.write { db in
       try Listing.insert { Listing.Draft(existing); Listing.Draft(kept); Listing.Draft(cleared) }.execute(db)
       try Reaction.insert { Reaction.Draft(Reaction(id: UUID(), listingID: existing.id, kind: .booked)) }.execute(db)
-      let written = try Reaction.screen(kept: [existing.id, kept.id], cleared: [cleared.id], authorID: nil, now: time, in: db)
+      let written = try Reaction.screen(
+        kept: [existing.id, kept.id], cleared: [cleared.id],
+        suggestions: [kept.id: .keep, cleared.id: .clear], authorID: nil, now: time, in: db
+      )
       #expect(written == 2)
       #expect(try Reaction.where { $0.listingID.eq(existing.id) }.fetchOne(db)?.kind == .booked)
       #expect(try Reaction.where { $0.listingID.eq(kept.id) }.fetchOne(db)?.kind == .kept)
       #expect(try Reaction.where { $0.listingID.eq(cleared.id) }.fetchOne(db)?.kind == .cleared)
       #expect(try TasteRecord.fetchCount(db) == 2)
+      #expect(try TasteRecord.where { $0.stableKey.eq("kept") }.fetchOne(db)?.suggestion == .keep)
+      #expect(try TasteRecord.where { $0.stableKey.eq("cleared") }.fetchOne(db)?.suggestion == .clear)
     }
   }
 
