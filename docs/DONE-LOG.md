@@ -3,6 +3,11 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-25 — M4 · S1 — Shared map places kit companion (`m4/s1-map-places-kit`)
+
+- **Result:** Added the BrightLightsPlaces product and its Apple Maps category to PlaceKind mapping, including the other fallback. The Bright Lights branch m4/s1-map-places-kit follows jon-platform branch m4/s1-map-places-kit and merged PR #170.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint with 0 violations, 133 package tests, check-report fixture, iOS Simulator build, and macOS build.
+
 ## 2026-11-24 — Source health (`effort/source-health`)
 
 - **Result:** Fixed model extraction dates and truncation handling, stopped caching empty results, added the Eventbrite organizer adapter, made UCB manual, and surfaced empty sources and bot challenges.

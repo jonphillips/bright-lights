@@ -7,6 +7,7 @@ let package = Package(
   products: [
     .library(name: "BrightLightsExtraction", targets: ["BrightLightsExtraction"]),
     .library(name: "BrightLightsSchema", targets: ["BrightLightsSchema"]),
+    .library(name: "BrightLightsPlaces", targets: ["BrightLightsPlaces"]),
     .library(name: "BrightLightsTaste", targets: ["BrightLightsTaste"]),
     .library(name: "BrightLightsChecking", targets: ["BrightLightsChecking"])
   ],
@@ -14,6 +15,7 @@ let package = Package(
     .package(path: "../../jon-platform/packages/LLMClientKit"),
     .package(path: "../../jon-platform/Vendor/sqlite-data"),
     .package(path: "../../jon-platform/packages/WebExtractorKit"),
+    .package(path: "../../jon-platform/packages/MapPlacesKit"),
     .package(url: "https://github.com/pointfreeco/swift-dependencies", from: "1.0.0")
   ],
   targets: [
@@ -39,6 +41,13 @@ let package = Package(
       dependencies: [
         "BrightLightsSchema",
         .product(name: "LLMClientKit", package: "LLMClientKit")
+      ]
+    ),
+    .target(
+      name: "BrightLightsPlaces",
+      dependencies: [
+        "BrightLightsSchema",
+        .product(name: "MapPlacesKit", package: "MapPlacesKit")
       ]
     ),
     .target(
@@ -81,6 +90,10 @@ let package = Package(
     .testTarget(
       name: "BrightLightsTasteTests",
       dependencies: ["BrightLightsTaste", "BrightLightsSchema"]
+    ),
+    .testTarget(
+      name: "BrightLightsPlacesTests",
+      dependencies: ["BrightLightsPlaces", "BrightLightsSchema"]
     )
   ]
 )

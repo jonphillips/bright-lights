@@ -1,7 +1,7 @@
-# Next Up — M4 · S1: A shared map places kit
+# Next Up — M4 · S2: Places and the check sheet
 
-**Slices:** M4 · S1
-**Briefs:** [docs/milestones/M4-places.md § S1](milestones/M4-places.md#s1--a-shared-map-places-kit), [ADR-0007](decisions/0007-places-and-the-check-sheet.md) D6
+**Slices:** M4 · S2
+**Briefs:** [docs/milestones/M4-places.md § S2](milestones/M4-places.md#s2--places-and-the-check-sheet), [ADR-0007](decisions/0007-places-and-the-check-sheet.md) D1–D4, D9
 **Done when:** per the brief
 **Owed:** see [device-passes.md](device-passes.md)
-**Notes:** Branches `m4/s1-map-places-kit` in jon-platform and in Bright Lights. The package PR comes first, per jon-platform `agent-collaboration.md` § Dispatches whose code lands in jon-platform; the companion Bright Lights PR opens after it merges. No schema change, so the architect merges both on approve. Fixtures use invented places.
+**Notes:** S2 adds two synced tables; Jon merges and deploys their Development schema per the brief.
