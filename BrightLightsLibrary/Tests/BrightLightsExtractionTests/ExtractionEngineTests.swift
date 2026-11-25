@@ -67,7 +67,7 @@ import Testing
 
   @Test("Eventbrite organizer maps timed events and skips missing times")
   func eventbriteOrganizer() async throws {
-    let document = #"<script>window.data={"upcomingEvents":[{"name":"  Invented   Comedy Night ","start_date":"2027-02-01","start_time":"7:30 PM","timezone":"America/New_York","url":"https://example.com/one"},{"name":"Invented Talk","start_date":"2027-02-02","start_time":"19:00","timezone":"America/New_York","url":"https://example.com/two"},{"name":"No time","start_date":"2027-02-03","timezone":"America/New_York","url":"https://example.com/three"}]};</script>"#
+    let document = #"<script>window.data={"upcomingEvents":[{"name":"  Invented   Comedy Night ","start_date":"2027-02-01","start_time":"7:30 PM","timezone":"America/New_York","url":"https://example.com/one"},{"name":"Invented Talk","start_date":"2027-02-02","start_time":"19:00:00","timezone":"America/New_York","is_cancelled":true,"url":"https://example.com/two"},{"name":"No time","start_date":"2027-02-03","timezone":"America/New_York","url":"https://example.com/three"}]};</script>"#
     let source = SourceDescriptor(id: "invented-organizer", adapter: .eventbriteOrganizer)
     let result = try await ExtractionEngine().extract(.html(document), sourceURL: sourceURL, source: source)
     #expect(result.listings.count == 2)
@@ -75,6 +75,8 @@ import Testing
     #expect(result.listings[0].stableKey == "invented-organizer:https://example.com/one")
     #expect(result.listings[0].ticketURL?.absoluteString == "https://example.com/one")
     #expect(startISO(result.listings[0].time) == "2027-02-02T00:30:00Z")
+    #expect(result.listings[0].status == .listed)
+    #expect(result.listings[1].status == .cancelled)
     #expect(startISO(result.listings[1].time) == "2027-02-03T00:00:00Z")
     let empty = await ExtractionEngine().deterministicListings(.html("<main>No events</main>"), sourceURL: sourceURL, source: source)
     #expect(empty.isEmpty)

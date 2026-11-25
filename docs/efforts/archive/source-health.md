@@ -57,7 +57,7 @@ reliably.
   It finds the array by locating `"upcomingEvents":` and decoding the JSON array that follows. The adapter's raw
   value is `eventbriteOrganizer`, matching the existing camel-case names.
 - **A challenge page fails the check.** After each fetch, rendered or plain, a page whose HTML contains
-  `<title>Just a moment...</title>`, `challenge-platform` or `_cf_chl_opt` throws a new
+  `<title>Just a moment...</title>`, `/cdn-cgi/challenge-platform/h/` or `_cf_chl_opt` throws a new
   `SourceCheckError.challenge`. Its note is "The site showed a bot challenge. Make this source manual; nothing works
   around it." That's a failure, so it shows under **Failing** in the report, and in Rounds after three failures.
   Nothing tries to get past the challenge.

@@ -321,7 +321,8 @@ public struct SourceChecker: Sendable {
 
   static func isChallengePage(_ document: String) -> Bool {
     let lower = document.lowercased()
-    if lower.contains("challenge-platform") || lower.contains("_cf_chl_opt") { return true }
+    // Cloudflare serves /cdn-cgi/challenge-platform/scripts/jsd/ on healthy pages; only /h/ is the challenge.
+    if lower.contains("_cf_chl_opt") { return true }
     guard !lower.contains("cf-chl"), !lower.contains("/cdn-cgi/challenge-platform/h/"),
       !lower.contains("px-captcha") else { return true }
     guard let match = lower.range(of: #"(?is)<title\b[^>]*>(.*?)</title\s*>"#, options: .regularExpression) else { return false }

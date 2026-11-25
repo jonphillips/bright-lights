@@ -103,7 +103,8 @@ extension ExtractionEngine {
         .filter { !$0.isEmpty }.joined(separator: " ")
       return ExtractedListingFactory.make(source: source, sourceURL: sourceURL,
         identity: url, title: normalizedTitle, performers: [], room: nil,
-        time: .performance(start), ticketURL: url, onSaleDate: nil, status: .listed, rung: .adapter)
+        time: .performance(start), ticketURL: url, onSaleDate: nil,
+        status: event["is_cancelled"] as? Bool == true ? .cancelled : .listed, rung: .adapter)
     }
   }
 
@@ -117,7 +118,7 @@ extension ExtractionEngine {
     let formatter = DateFormatter()
     formatter.locale = Locale(identifier: "en_US_POSIX")
     formatter.timeZone = timezone
-    for format in ["yyyy-MM-dd h:mm a", "yyyy-MM-dd hh:mm a", "yyyy-MM-dd HH:mm", "yyyy-MM-dd H:mm"] {
+    for format in ["yyyy-MM-dd HH:mm:ss", "yyyy-MM-dd h:mm a", "yyyy-MM-dd hh:mm a", "yyyy-MM-dd HH:mm", "yyyy-MM-dd H:mm"] {
       formatter.dateFormat = format
       if let parsed = formatter.date(from: "\(date) \(time)") { return parsed }
     }

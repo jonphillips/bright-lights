@@ -35,8 +35,8 @@ struct SourceCheckingTests {
 
   @Test func challengeDetectionIgnoresNewsletterRecaptcha() {
     #expect(!SourceChecker.isChallengePage("<html><title>Events</title><form>Newsletter reCAPTCHA</form></html>"))
+    #expect(!SourceChecker.isChallengePage("<html><title>Events</title><script src='/cdn-cgi/challenge-platform/scripts/jsd/main.js'></script></html>"))
     #expect(SourceChecker.isChallengePage("<html><title>Just a moment...</title><script src='/cdn-cgi/challenge-platform/h/b/orchestrate/chl_page/v1'></script></html>"))
-    #expect(SourceChecker.isChallengePage("<html><script src='/cdn-cgi/challenge-platform/js'></script></html>"))
     #expect(SourceChecker.isChallengePage("<html><input name='_cf_chl_opt'></html>"))
     #expect(SourceChecker.isChallengePage("<html><div>cf-chl</div></html>"))
     #expect(SourceChecker.isChallengePage("<html><div>px-captcha</div></html>"))
@@ -76,6 +76,7 @@ struct SourceCheckingTests {
     let normalClient = SourceCheckClient(fetch: { url, _ in
       FetchedPage(document: """
         <html><title>Events</title>
+        <script src="/cdn-cgi/challenge-platform/scripts/jsd/main.js"></script>
         <script type="application/ld+json">{"@type":"MusicEvent","name":"Live show","startDate":"2027-02-10T20:00:00-05:00","url":"https://example.com/shows/live-show"}</script>
         </html>
         """, statusCode: 200, effectiveURL: url, contentType: "text/html")

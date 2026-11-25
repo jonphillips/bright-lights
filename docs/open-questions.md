@@ -29,6 +29,10 @@
   check report now records it: the first reported pass (2026-11-22, 9 sources) made 15 calls, 9 of them The Stand's,
   and 6 of those 9 pages returned nothing usable.
   Some of those may have been replies cut off at the old 5,000-token limit, so recount after `source-health`.
+- **Rows from a cut-off model reply (source-health review, PR #41).** A reply that hits the token limit is reported
+  and the check counts as incomplete, but its JSON is cut off mid-array, so no row parses and the page yields
+  nothing. Salvaging the complete rows before the cut would keep most of the page. Decide it if a check report
+  shows "hit the token limit" at the 16,000 cap.
 - **"Missing" on sources read one page deep (S3 review, PR #8).** On a complete check, a future listing that isn't
   returned is marked `missing`. On a source we read only one page of (Union Hall, and any whose first page is a
   window), a still-on-sale listing pushed off page 1 by newer ones gets marked `missing` too. Watch for it in S4's
