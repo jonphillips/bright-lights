@@ -11,6 +11,7 @@ public enum BrightLightsDatabaseMigrations {
     registerPeopleV6(on: &migrator)
     registerTasteNotesV7(on: &migrator)
     registerTasteSuggestionV8(on: &migrator)
+    registerPlacesV8(on: &migrator)
     return migrator
   }
 
@@ -76,6 +77,32 @@ public enum BrightLightsDatabaseMigrations {
   private static func registerTasteSuggestionV8(on migrator: inout DatabaseMigrator) {
     migrator.registerMigration("Add taste suggestion v8") { db in
       try db.execute(sql: "ALTER TABLE \"tasteRecords\" ADD COLUMN \"suggestion\" TEXT")
+    }
+  }
+
+  private static func registerPlacesV8(on migrator: inout DatabaseMigrator) {
+    migrator.registerMigration("Add places v8") { db in
+      try db.execute(sql: """
+        CREATE TABLE "places" (
+          "id" TEXT PRIMARY KEY NOT NULL,
+          "householdID" TEXT NOT NULL REFERENCES "households"("id") ON DELETE CASCADE,
+          "name" TEXT NOT NULL, "latitude" REAL NOT NULL, "longitude" REAL NOT NULL,
+          "address" TEXT, "mapItemIdentifier" TEXT, "websiteURL" TEXT,
+          "kind" TEXT NOT NULL, "meals" TEXT NOT NULL DEFAULT '', "standing" TEXT NOT NULL,
+          "authorID" TEXT, "note" TEXT, "whenKind" TEXT NOT NULL DEFAULT 'always',
+          "seasonStart" INTEGER, "seasonEnd" INTEGER, "onceStart" TEXT, "onceEnd" TEXT,
+          "createdAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL
+        ) STRICT;
+        CREATE TABLE "placeVisits" (
+          "id" TEXT PRIMARY KEY NOT NULL,
+          "placeID" TEXT NOT NULL REFERENCES "places"("id") ON DELETE CASCADE,
+          "day" TEXT NOT NULL, "meal" TEXT, "note" TEXT, "authorID" TEXT,
+          "createdAt" TEXT NOT NULL
+        ) STRICT;
+        CREATE INDEX "index_places_on_householdID" ON "places"("householdID");
+        CREATE INDEX "index_places_on_mapItemIdentifier" ON "places"("mapItemIdentifier");
+        CREATE INDEX "index_placeVisits_on_placeID" ON "placeVisits"("placeID");
+        """)
     }
   }
 

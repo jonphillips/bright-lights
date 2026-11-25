@@ -1,8 +1,10 @@
 import Dependencies
 import DependenciesTestSupport
 import Foundation
+import IssueReporting
 import BrightLightsExtraction
 import BrightLightsSchema
+import MapPlacesKit
 import SQLiteData
 import Testing
 
@@ -124,7 +126,7 @@ struct SchemaTests {
     }
     #expect(fields.count == rows.count)
     let tables = Set(fields.map(\.0))
-    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords", "people", "tasteNotes"])
+    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords", "people", "tasteNotes", "places", "placeVisits"])
     try await database.read { db in
       for table in tables {
         let listed = Set(fields.filter { $0.0 == table }.map(\.1))
@@ -154,6 +156,112 @@ struct SchemaTests {
       let columns = try db.columns(in: "tasteRecords")
       let suggestion = try #require(columns.first { $0.name == "suggestion" })
       #expect(suggestion.isNotNull == false)
+    }
+  }
+
+  @Test func placesMigrationCreatesBothTablesAndIndexes() async throws {
+    try await database.read { db in
+      let placeColumns = Set(try db.columns(in: "places").map(\.name))
+      let visitColumns = Set(try db.columns(in: "placeVisits").map(\.name))
+      let placeIndexes = try db.indexes(on: "places")
+      let visitIndexes = try db.indexes(on: "placeVisits")
+      #expect(placeColumns == [
+        "id", "householdID", "name", "latitude", "longitude", "address", "mapItemIdentifier", "websiteURL",
+        "kind", "meals", "standing", "authorID", "note", "whenKind", "seasonStart", "seasonEnd",
+        "onceStart", "onceEnd", "createdAt", "updatedAt"
+      ])
+      #expect(visitColumns == [
+        "id", "placeID", "day", "meal", "note", "authorID", "createdAt"
+      ])
+      #expect(placeIndexes.contains { $0.name == "index_places_on_householdID" && $0.columns == ["householdID"] })
+      #expect(placeIndexes.contains { $0.name == "index_places_on_mapItemIdentifier" && $0.columns == ["mapItemIdentifier"] })
+      #expect(visitIndexes.contains { $0.name == "index_placeVisits_on_placeID" && $0.columns == ["placeID"] })
+    }
+  }
+
+  @Test func placeStandingAndMealsRoundTrip() {
+    let standings = [
+      "toTry.high", "toTry.normal", "toTry.someday", "tried", "tried.ourPlace", "tried.wouldReturn",
+      "tried.onceWasEnough", "notForUs"
+    ]
+    for rawValue in standings { #expect(PlaceStanding(rawValue: rawValue)?.rawValue == rawValue) }
+    expectReportsIssue("unknown place standing falls back safely", {
+      #expect(PlaceStanding(rawValue: "future.value")?.rawValue == "toTry.normal")
+    }, matching: { _ in true })
+    #expect(Meals(rawValue: "dinner,breakfast,lunch").rawValue == "breakfast,lunch,dinner")
+    #expect(Meals(rawValue: "").values.isEmpty)
+    #expect(Meals([.lateNight, .breakfast]).rawValue == "breakfast,lateNight")
+  }
+
+  @Test func placeWhenRoundTripsAndAlwaysClearsUnusedColumns() {
+    var place = Place(id: UUID(), householdID: UUID(), name: "Fixture", latitude: 1, longitude: 2)
+    let yearly = PlaceWhen.yearly(from: MonthDay(month: 11, day: 20), to: MonthDay(month: 1, day: 5))
+    place.when = yearly
+    #expect(place.when == yearly)
+    #expect(place.seasonStart == 1120)
+    #expect(place.seasonEnd == 105)
+    let start = Date(timeIntervalSince1970: 1_800_000_000)
+    let once = PlaceWhen.once(from: start, to: start.addingTimeInterval(86_400))
+    place.when = once
+    #expect(place.when == once)
+    #expect(place.seasonStart == nil && place.seasonEnd == nil)
+    place.when = .always
+    #expect(place.when == .always)
+    #expect(place.onceStart == nil && place.onceEnd == nil && place.seasonStart == nil && place.seasonEnd == nil)
+  }
+
+  @Test func placeOperationsDeduplicateCaptureAndLogVisit() async throws {
+    let householdID = UUID()
+    let mapID = "maps:fixture-place"
+    let captured = MapPlace(id: UUID(), name: "Fixture Cafe", latitude: 40.7, longitude: -73.9,
+      pointOfInterestCategory: "restaurant", address: "123 Fiction St", mapItemIdentifier: mapID)
+    try await database.write { db in
+      try Household.insert { Household.Draft(Household(id: householdID)) }.execute(db)
+      let place = try PlaceOperations.add(captured, kind: .food, householdID: householdID, in: db)
+      let duplicate = try PlaceOperations.add(captured, kind: .food, householdID: householdID, in: db)
+      #expect(duplicate.id == place.id)
+      #expect(try Place.fetchCount(db) == 1)
+      let visit = PlaceVisit(id: UUID(), placeID: place.id, day: Date(timeIntervalSince1970: 1_800_000_000))
+      try PlaceOperations.logVisit(visit, in: db)
+      #expect(try Place.find(place.id).fetchOne(db)?.standing == .tried(nil))
+      try PlaceOperations.setStanding(.tried(.ourPlace), authorID: nil, for: place.id, in: db)
+      try PlaceOperations.logVisit(PlaceVisit(id: UUID(), placeID: place.id, day: visit.day), verdict: .onceWasEnough, in: db)
+      #expect(try Place.find(place.id).fetchOne(db)?.standing == .tried(.ourPlace))
+      try PlaceOperations.deletePlace(place.id, in: db)
+      #expect(try PlaceVisit.fetchCount(db) == 0)
+    }
+  }
+
+  @Test func householdConvergenceRepointsPrivatePlacesAndCascadesSharedOnes() async throws {
+    try await database.write { db in
+      let survivor = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 1))
+      let loser = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 2))
+      try Household.insert { Household.Draft(survivor); Household.Draft(loser) }.execute(db)
+      let place = Place(id: UUID(), householdID: loser.id, name: "Fixture Park", latitude: 40, longitude: -73)
+      try Place.insert { Place.Draft(place) }.execute(db)
+      let visit = PlaceVisit(id: UUID(), placeID: place.id, day: .now)
+      try PlaceVisit.insert { PlaceVisit.Draft(visit) }.execute(db)
+      _ = try Household.ensureDefault(in: db, sharing: { _ in .private })
+      #expect(try Place.find(place.id).fetchOne(db)?.householdID == survivor.id)
+      #expect(try PlaceVisit.find(visit.id).fetchOne(db) != nil)
+    }
+  }
+
+  @Test func householdConvergenceDeletesPlacesFromLosingSharedHousehold() async throws {
+    try await database.write { db in
+      let survivor = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 1))
+      let loser = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 2))
+      try Household.insert { Household.Draft(survivor); Household.Draft(loser) }.execute(db)
+      let place = Place(id: UUID(), householdID: loser.id, name: "Shared loser", latitude: 40, longitude: -73)
+      try Place.insert { Place.Draft(place) }.execute(db)
+      let visit = PlaceVisit(id: UUID(), placeID: place.id, day: .now)
+      try PlaceVisit.insert { PlaceVisit.Draft(visit) }.execute(db)
+      _ = try Household.ensureDefault(in: db) { household in
+        household.id == survivor.id ? .sharedWithMe : .private
+      }
+      #expect(try Household.find(loser.id).fetchOne(db) == nil)
+      #expect(try Place.find(place.id).fetchOne(db) == nil)
+      #expect(try PlaceVisit.find(visit.id).fetchOne(db) == nil)
     }
   }
 
