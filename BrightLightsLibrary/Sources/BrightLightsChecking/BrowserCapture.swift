@@ -58,7 +58,7 @@ public actor BrowserCapture {
     guard !needsModel || apiKeyStore.key(.anthropic) != nil || apiKeyStore.key(.openai) != nil else {
       throw BrowserCaptureError.noModelKey
     }
-    let result = try await engine.extract(document, sourceURL: pageURL, source: descriptor)
+    let result = try await engine.extract(document, sourceURL: pageURL, source: descriptor, now: now)
     try Task.checkCancellation()
     let unique = Dictionary(result.listings.map { ($0.stableKey, $0) }, uniquingKeysWith: { first, _ in first })
       .values.sorted { $0.stableKey < $1.stableKey }

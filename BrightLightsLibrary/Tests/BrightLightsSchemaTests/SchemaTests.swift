@@ -183,8 +183,8 @@ struct SchemaTests {
       try Source.syncFromRegistry(in: db, sharing: { _ in .private })
       let seeded = try Source.fetchAll(db)
       #expect(seeded.count == 44)
-      #expect(seeded.filter { $0.mode == .automated }.count == 29)
-      #expect(seeded.filter { $0.mode == .manual }.count == 15)
+      #expect(seeded.filter { $0.mode == .automated }.count == 28)
+      #expect(seeded.filter { $0.mode == .manual }.count == 16)
       guard let source = seeded.first else { return }
       try Source.find(source.id).update {
         $0.lastCheckedAt = #bind(Date(timeIntervalSince1970: 1_800_000_000))
@@ -534,6 +534,12 @@ struct SchemaTests {
       #expect(sources.first { $0.registryID == "ny-comedy-club" }?.pagination?.contains("months_ahead") == true)
       #expect(sources.first { $0.registryID == "brooklyn-steel" }?.feedURL == "https://aegwebprod.blob.core.windows.net/json/resources/8/events/d099bg4x01/events.json")
       #expect(sources.first { $0.registryID == "caveat" }?.feedURL == "https://caveat.nyc/api/events/listings")
+      #expect(sources.first { $0.registryID == "union-hall" }?.adapter == "eventbriteOrganizer")
+      #expect(sources.first { $0.registryID == "union-hall" }?.listingURL == "https://www.eventbrite.com/o/union-hall-17899496497")
+      #expect(sources.first { $0.registryID == "greene-space" }?.listingURL == "https://wnyc.org/events")
+      #expect(sources.first { $0.registryID == "ucb" }?.mode == .manual)
+      #expect(sources.first { $0.registryID == "ucb" }?.method == "manual")
+      #expect(sources.first { $0.registryID == "ucb" }?.cadence == "weekly")
     }
   }
 
@@ -923,7 +929,7 @@ struct SchemaTests {
     }
   }
 
-  private func registryData(id: String, name: String, listingURL: String, version: String = "1.3") -> Data {
+  private func registryData(id: String, name: String, listingURL: String, version: String = "1.4") -> Data {
     let registry: [String: Any] = ["registry_version": version, "sources": [[
       "id": id, "name": name, "source_type": "venue", "area": "NYC", "priority": "core",
       "listing_url": listingURL, "registered_hosts": ["thetownhall.org"], "mode": "manual",

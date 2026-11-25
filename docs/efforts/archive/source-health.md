@@ -7,8 +7,8 @@ them: the model isn't told today's date, its output is cut off at 5,000 tokens, 
 makes UCB manual because it shows a bot challenge, and adds an **Empty** section to `scripts/check-report`. No
 schema change.
 
-**Implements:** [ADR-0004](../decisions/0004-one-extraction-engine.md) (adapters first, the model last) and
-[ADR-0003](../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface). It answers the
+**Implements:** [ADR-0004](../../decisions/0004-one-extraction-engine.md) (adapters first, the model last) and
+[ADR-0003](../../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface). It answers the
 `open-questions.md` entries "Sources that succeed with zero listings", "Model rows dropped for invalid dates" and
 "UCB beyond the first page". Branch `effort/source-health`.
 
@@ -57,7 +57,7 @@ reliably.
   It finds the array by locating `"upcomingEvents":` and decoding the JSON array that follows. The adapter's raw
   value is `eventbriteOrganizer`, matching the existing camel-case names.
 - **A challenge page fails the check.** After each fetch, rendered or plain, a page whose HTML contains
-  `<title>Just a moment...</title>`, `challenge-platform` or `_cf_chl_opt` throws a new
+  `<title>Just a moment...</title>`, `/cdn-cgi/challenge-platform/h/` or `_cf_chl_opt` throws a new
   `SourceCheckError.challenge`. Its note is "The site showed a bot challenge. Make this source manual; nothing works
   around it." That's a failure, so it shows under **Failing** in the report, and in Rounds after three failures.
   Nothing tries to get past the challenge.

@@ -1,5 +1,7 @@
 @testable import BrightLightsChecking
+import BrightLightsExtraction
 import BrightLightsSchema
+import CryptoKit
 import Dependencies
 import DependenciesTestSupport
 import Foundation
@@ -35,6 +37,7 @@ struct SourceCheckingTests {
     #expect(!SourceChecker.isChallengePage("<html><title>Events</title><form>Newsletter reCAPTCHA</form></html>"))
     #expect(!SourceChecker.isChallengePage("<html><title>Events</title><script src='/cdn-cgi/challenge-platform/scripts/jsd/main.js'></script></html>"))
     #expect(SourceChecker.isChallengePage("<html><title>Just a moment...</title><script src='/cdn-cgi/challenge-platform/h/b/orchestrate/chl_page/v1'></script></html>"))
+    #expect(SourceChecker.isChallengePage("<html><input name='_cf_chl_opt'></html>"))
     #expect(SourceChecker.isChallengePage("<html><div>cf-chl</div></html>"))
     #expect(SourceChecker.isChallengePage("<html><div>px-captcha</div></html>"))
     #expect(SourceChecker.isChallengePage("<html><title>Access denied</title></html>"))
@@ -49,7 +52,16 @@ struct SourceCheckingTests {
     let challengeReport = await runPass(client: challengeClient, apiKey: nil, now: .now)
     #expect(challengeReport.first?.sourceID == challenged.id)
     #expect(challengeReport.first?.outcome == .failed)
-    #expect(challengeReport.first?.note == "bot-challenge page")
+    #expect(challengeReport.first?.note == "The site showed a bot challenge. Make this source manual; nothing works around it.")
+
+    let plain = try await insertSource(registryID: "plain-challenge", listingURL: "https://example.com/plain", method: "structured_html")
+    let plainClient = SourceCheckClient(fetch: { url, _ in
+      FetchedPage(document: "<html><script>window._cf_chl_opt = {};</script></html>", statusCode: 200,
+        effectiveURL: url, contentType: "text/html")
+    }, wait: { _ in })
+    let plainReports = await runPass(client: plainClient, apiKey: nil, now: .now)
+    #expect(plainReports.first { $0.sourceID == plain.id }?.outcome == .failed)
+    #expect(plainReports.first { $0.sourceID == plain.id }?.note == "The site showed a bot challenge. Make this source manual; nothing works around it.")
 
     let newsletter = try await insertSource(registryID: "newsletter", listingURL: "https://example.com/newsletter", method: "rendered_scrape")
     let newsletterClient = SourceCheckClient(fetch: { url, _ in
@@ -71,6 +83,84 @@ struct SourceCheckingTests {
     }, wait: { _ in })
     let normalReports = await runPass(client: normalClient, apiKey: "test-key", now: .now)
     #expect(normalReports.contains { $0.sourceID == normalCloudflarePage.id && $0.outcome == .succeeded })
+  }
+
+  @Test func emptyModelResultsAreRetriedAndListingResultsAreCached() async throws {
+    let emptySource = try await insertSource(registryID: "empty-model", listingURL: "https://example.com/empty", method: "rendered_scrape")
+    let listingSource = try await insertSource(registryID: "listing-model", listingURL: "https://example.com/listing", method: "rendered_scrape")
+    let emptyCalls = ModelCallCounter()
+    let listingCalls = ModelCallCounter()
+    let emptyJSON = #"{"listings":[]}"#
+    let listingJSON = #"{"listings":[{"title":"Invented Show","performers":[],"room":"","startsAt":"2030-03-12T20:00:00","opensAt":"","closesAt":"","eventURL":"https://example.com/invented-show","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let client = SourceCheckClient(fetch: { url, _ in
+      FetchedPage(document: "<main>Invented show</main>", statusCode: 200, effectiveURL: url, contentType: "text/html")
+    }, wait: { _ in })
+    let model = StubModelClient { request in
+      if request.messages.first?.text.contains("Source: empty-model") == true {
+        await emptyCalls.increment()
+        return ModelResponse(text: emptyJSON)
+      }
+      if request.messages.first?.text.contains("Source: listing-model") == true {
+        await listingCalls.increment()
+        return ModelResponse(text: listingJSON)
+      }
+      return ModelResponse(text: emptyJSON)
+    }
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
+    for offset in [0.0, 60.0] {
+      let passDate = now.addingTimeInterval(offset)
+      let emptyReports = await withDependencies {
+        $0.sourceCheckClient = client
+        $0.date.now = passDate
+        $0.apiKeyStore = APIKeyStore(read: { _ in "test-key" }, write: { _, _ in })
+        $0.modelClient = model
+      } operation: {
+        await SourceChecker().runPass(in: database, checkAll: true, now: passDate)
+      }
+      #expect(emptyReports.first { $0.sourceID == emptySource.id }?.modelCalls == 1)
+
+      let listingReports = emptyReports
+      let listingReport = listingReports.first { $0.sourceID == listingSource.id }
+      #expect(listingReport?.modelCalls == (offset == 0 ? 1 : 0))
+      if offset == 60 { #expect(listingReport?.unchanged == true) }
+    }
+    #expect(await emptyCalls.count() == 2)
+    #expect(await listingCalls.count() == 1)
+    let contentHashes = try await database.read { db in
+      try Source.fetchAll(db).filter { $0.id == emptySource.id || $0.id == listingSource.id }
+        .map { ($0.registryID, $0.lastContentHash) }
+    }
+    #expect(contentHashes.first { $0.0 == emptySource.registryID }?.1 == nil)
+    #expect(contentHashes.first { $0.0 == listingSource.registryID }?.1 != nil)
+  }
+
+  @Test func preVersionedHashDoesNotSkipModelExtraction() async throws {
+    let html = "<main>Invented listing</main>"
+    let source = try await insertSource(registryID: "versioned-hash", listingURL: "https://example.com/versioned", method: "rendered_scrape")
+    let pageHash = ExtractionEngine.pageHash(for: .html(html))
+    let oldHash = SHA256.hash(data: Data(pageHash.utf8)).map { String(format: "%02x", $0) }.joined()
+    try await database.write { db in
+      try Source.find(source.id).update { $0.lastContentHash = #bind(oldHash) }.execute(db)
+    }
+    let calls = ModelCallCounter()
+    let client = SourceCheckClient(fetch: { url, _ in
+      FetchedPage(document: html, statusCode: 200, effectiveURL: url, contentType: "text/html")
+    }, wait: { _ in })
+    let model = StubModelClient { _ in
+      await calls.increment()
+      return ModelResponse(text: #"{"listings":[]}"#)
+    }
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
+    let reports = await withDependencies {
+      $0.sourceCheckClient = client
+      $0.date.now = now
+      $0.apiKeyStore = APIKeyStore(read: { _ in "test-key" }, write: { _, _ in })
+      $0.modelClient = model
+    } operation: {
+      await SourceChecker().runPass(in: database, checkAll: true, now: now)
+    }
+    #expect(reports.first { $0.sourceID == source.id }?.modelCalls == 1)
+    #expect(await calls.count() == 1)
   }
 
   @Test func nightlyAndWeeklyCadenceBecomeNightlyDuringStay() {
@@ -238,9 +328,9 @@ struct SourceCheckingTests {
         .map { "\($0.id.recordPrimaryKey):\($0.userModificationTime)" }.sorted()
     }
     #expect(repeated.allSatisfy { $0.rowsWritten == 0 })
-    #expect(repeated.first { $0.sourceID == standID }?.unchanged == true)
+    #expect(repeated.first { $0.sourceID == standID }?.unchanged == false)
     #expect(repeated.first { $0.sourceID == boweryID }?.pagesRead == 2)
-    #expect(repeated.first { $0.sourceID == standID }?.modelCalls == 0)
+    #expect(repeated.first { $0.sourceID == standID }?.modelCalls == 3)
     #expect(metadataAfter == metadataBefore)
   }
 

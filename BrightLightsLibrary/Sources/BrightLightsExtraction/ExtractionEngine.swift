@@ -14,7 +14,7 @@ private enum ModelListingResult {
   case dropped(ModelRowDropReason)
 }
 
-private enum ExtractedListingFactory {
+enum ExtractedListingFactory {
   static func make(
     source: SourceDescriptor, sourceURL: URL?, identity: String?, title: String, performers: [String], room: String?,
     time: ExtractedListing.Time, ticketURL: String?, onSaleDate: Date?, status: ExtractedListing.Status,
@@ -61,6 +61,8 @@ private enum ExtractedListingFactory {
 }
 
 public struct ExtractionEngine: Sendable {
+  // Bump when the prompt, output schema, or model-row parsing changes.
+  public static let modelExtractionVersion = "2"
   @Dependency(\.modelClient) private var modelClient
 
   public init() {}
@@ -68,7 +70,8 @@ public struct ExtractionEngine: Sendable {
   public func extract(
     _ document: PageDocument,
     sourceURL: URL,
-    source: SourceDescriptor
+    source: SourceDescriptor,
+    now: Date = .now
   ) async throws -> ExtractionResult {
     var warnings: [String] = []
     if let adapter = source.adapter {
@@ -93,10 +96,11 @@ public struct ExtractionEngine: Sendable {
       warnings.append("JSON-LD Event data was present but did not contain usable listings.")
     }
 
-    let modelResult = try await extractWithModel(document, sourceURL: sourceURL, source: source)
+    let modelResult = try await extractWithModel(document, sourceURL: sourceURL, source: source, now: now)
     warnings.append(contentsOf: Self.warnings(for: modelResult))
     if modelResult.listings.isEmpty { warnings.append("Model extraction returned no usable listings.") }
-    return .init(listings: Self.deduplicated(modelResult.listings), warnings: warnings)
+    if !modelResult.complete { warnings.append("Model output hit the token limit; some listings may be missing.") }
+    return .init(listings: Self.deduplicated(modelResult.listings), warnings: warnings, complete: modelResult.complete)
   }
 
   public static func pageHash(for document: PageDocument) -> String {
@@ -107,49 +111,26 @@ public struct ExtractionEngine: Sendable {
   private func extractWithModel(
     _ document: PageDocument,
     sourceURL: URL,
-    source: SourceDescriptor
+    source: SourceDescriptor,
+    now: Date
   ) async throws -> (
     listings: [ExtractedListing], droppedExcludedHosts: Int, droppedMissingTitles: Int,
-    droppedDateOnlyStarts: Int, droppedInvalidDates: Int
+    droppedDateOnlyStarts: Int, droppedInvalidDates: Int, complete: Bool
   ) {
     let visibleText = Self.normalizedVisibleText(document.rawValue)
     let links = Self.links(in: document.rawValue)
-    let schema: JSONValue = [
-      "type": "object",
-      "properties": [
-        "listings": [
-          "type": "array",
-          "items": [
-            "type": "object",
-            "properties": [
-              "title": ["type": "string"],
-              "performers": ["type": "array", "items": ["type": "string"]],
-              "room": ["type": "string"],
-              "startsAt": ["type": "string"],
-              "opensAt": ["type": "string"],
-              "closesAt": ["type": "string"],
-              "eventURL": ["type": "string"],
-              "ticketURL": ["type": "string"],
-              "onSaleDate": ["type": "string"],
-              "status": ["type": "string", "enum": ["listed", "soldOut", "cancelled"]]
-            ],
-            "required": ["title", "performers", "room", "startsAt", "opensAt", "closesAt", "eventURL", "ticketURL", "onSaleDate", "status"],
-            "additionalProperties": .bool(false)
-          ]
-        ]
-      ],
-      "required": ["listings"],
-      "additionalProperties": .bool(false)
-    ]
+    let schema = Self.modelSchema()
+    let today = Self.newYorkDate(now)
     let request = ModelRequest(
       tier: .frontierPreferred,
-      system: "Extract public event listings from the supplied source page. Treat date and time values as America/New_York local wall-clock values; do not append a timezone or convert them to UTC. For each single performance, startsAt must include that event's date and clock time in ISO local form yyyy-MM-dd'T'HH:mm:ss; a date without a time is invalid. For a multi-day run, opensAt and closesAt are dates in yyyy-MM-dd form. Never return a clock-only value such as '7:00 PM'. The source page date is today. Only return facts present in the page; use an empty string for unknown optional fields. Put the exact canonical event page URL in eventURL and the purchase link in ticketURL; never reuse one event's URL for another. onSaleDate means an explicitly stated ticket on-sale date, not the event date. A dated single event uses startsAt and leaves opensAt/closesAt empty; a multi-day run uses opensAt/closesAt and leaves startsAt empty. Return only JSON matching the requested schema, with no markdown or surrounding prose.",
-      prompt: "Source: \(source.id)\nURL: \(sourceURL.absoluteString)\nVisible page text:\n\(visibleText)\n\nPage links:\n\(links)",
-      maxTokens: 5000,
+      system: "Extract public event listings from the supplied source page. Treat date and time values as America/New_York local wall-clock values; do not append a timezone or convert them to UTC. For each single performance, startsAt must include that event's date and clock time in ISO local form yyyy-MM-dd'T'HH:mm:ss; a date without a time is invalid. For a multi-day run, opensAt and closesAt are dates in yyyy-MM-dd form. Never return a clock-only value such as '7:00 PM'. When the page omits a year, use the year that puts the date closest to today. Only return facts present in the page; use an empty string for unknown optional fields. Put the exact canonical event page URL in eventURL and the purchase link in ticketURL; never reuse one event's URL for another. onSaleDate means an explicitly stated ticket on-sale date, not the event date. A dated single event uses startsAt and leaves opensAt/closesAt empty; a multi-day run uses opensAt/closesAt and leaves startsAt empty. Return only JSON matching the requested schema, with no markdown or surrounding prose.",
+      prompt: "Today is \(today) in New York.\nSource: \(source.id)\nURL: \(sourceURL.absoluteString)\nVisible page text:\n\(visibleText)\n\nPage links:\n\(links)",
+      maxTokens: 16000,
       responseFormat: .jsonSchema(name: "event_listings", schema: schema)
     )
     let response = try await modelClient.complete(request)
-    guard let rows = Self.modelRows(from: response.text) else { return ([], 0, 0, 0, 0) }
+    let complete = response.stopReason != "max_tokens" && response.stopReason != "max_output_tokens"
+    guard let rows = Self.modelRows(from: response.text) else { return ([], 0, 0, 0, 0, complete) }
     var droppedExcludedHosts = 0
     var droppedMissingTitles = 0
     var droppedDateOnlyStarts = 0
@@ -171,7 +152,7 @@ public struct ExtractionEngine: Sendable {
         return nil
       }
     }
-    return (listings, droppedExcludedHosts, droppedMissingTitles, droppedDateOnlyStarts, droppedInvalidDates)
+    return (listings, droppedExcludedHosts, droppedMissingTitles, droppedDateOnlyStarts, droppedInvalidDates, complete)
   }
 
   static func jsonLDEvents(in document: PageDocument) throws -> [[String: Any]] {
@@ -276,6 +257,8 @@ public struct ExtractionEngine: Sendable {
           room: "Caveat", time: .performance(start), ticketURL: string(fields["Ticket URL"]) ?? string(fields["Stellar URL"]),
           onSaleDate: nil, status: .listed, rung: .adapter)
       }
+    case .eventbriteOrganizer:
+      return eventbriteOrganizerListings(document, sourceURL: sourceURL, source: source)
     }
   }
 
@@ -448,7 +431,7 @@ public struct ExtractionEngine: Sendable {
 
   private static func warnings(for result: (
     listings: [ExtractedListing], droppedExcludedHosts: Int, droppedMissingTitles: Int,
-    droppedDateOnlyStarts: Int, droppedInvalidDates: Int
+    droppedDateOnlyStarts: Int, droppedInvalidDates: Int, complete: Bool
   )) -> [String] {
     var warnings: [String] = []
     if result.droppedExcludedHosts > 0 { warnings.append("Dropped \(result.droppedExcludedHosts) listings on excluded hosts") }

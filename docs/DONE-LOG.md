@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-24 — Source health (`effort/source-health`)
+
+- **Result:** Fixed model extraction dates and truncation handling, stopped caching empty results, added the Eventbrite organizer adapter, made UCB manual, and surfaced empty sources and bot challenges.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint, 131 package tests, check-report fixture, iOS Simulator build, and macOS build.
+- **Owed:** source-health's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-24 — M3 · S3 — The model suggests (`m3/s3-model-suggests`)
 
 - **Result:** Added per-screen frontier suggestions with a local cache, stored each first verdict beside the decision, and added 30-day agreement counts in Settings.
