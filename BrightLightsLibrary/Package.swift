@@ -54,6 +54,7 @@ let package = Package(
       name: "BrightLightsSchema",
       dependencies: [
         "BrightLightsExtraction",
+        .product(name: "MapPlacesKit", package: "MapPlacesKit"),
         .product(name: "SQLiteData", package: "sqlite-data"),
         .product(name: "Dependencies", package: "swift-dependencies")
       ],

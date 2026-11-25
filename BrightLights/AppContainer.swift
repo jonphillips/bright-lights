@@ -9,6 +9,7 @@ import BrightLightsTaste
 enum AppScreen: String, CaseIterable, Identifiable {
   case whileHere
   case comingUp
+  case places
   case new
   case capture
   case stays
@@ -19,6 +20,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
     switch self {
     case .whileHere: "While we're here"
     case .comingUp: "Coming up"
+    case .places: "Places"
     case .new: "New"
     case .capture: "Capture"
     case .stays: "Stays"
@@ -29,6 +31,7 @@ enum AppScreen: String, CaseIterable, Identifiable {
     switch self {
     case .whileHere: "moon.stars"
     case .comingUp: "calendar"
+    case .places: "mappin.and.ellipse"
     case .new: "tray.full"
     case .capture: "safari"
     case .stays: "house"
@@ -109,6 +112,7 @@ struct AppContainer: View {
     switch screen {
     case .whileHere: WhatsOnScreen(mode: .whileHere, filter: $filter)
     case .comingUp: WhatsOnScreen(mode: .comingUp, filter: $filter)
+    case .places: PlacesView()
     case .new: NewScreen(path: $newPath)
     case .capture: CaptureScreen()
     case .stays: StaysView()

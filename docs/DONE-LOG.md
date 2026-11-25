@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-25 — M4 S2 — Places and the check sheet (`m4/s2-places`)
+
+- **Result:** Added household-synced places and visits, capture from biased Apple Maps search, the standing-based check sheet, editable place details, and visit logging.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint (0 violations), BrightLightsLibrary tests (140 tests), check-report fixture, and iOS Simulator and macOS builds.
+- **Owed:** M4 S2's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-25 — M4 · S1 — Shared map places kit companion (`m4/s1-map-places-kit`)
 
 - **Result:** Added the BrightLightsPlaces product and its Apple Maps category to PlaceKind mapping, including the other fallback. The Bright Lights branch m4/s1-map-places-kit follows jon-platform branch m4/s1-map-places-kit and merged PR #170.

@@ -102,6 +102,8 @@ public struct Household: Identifiable, Equatable, Sendable {
       .update { $0.householdID = #bind(survivor.id) }.execute(db)
     try TasteNote.where { $0.householdID.eq(loser.id) }
       .update { $0.householdID = #bind(survivor.id) }.execute(db)
+    try Place.where { $0.householdID.eq(loser.id) }
+      .update { $0.householdID = #bind(survivor.id) }.execute(db)
 
     for record in try TasteRecord.where({ $0.householdID.eq(loser.id) }).fetchAll(db) {
       let id = TasteRecord.id(

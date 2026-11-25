@@ -1,7 +1,7 @@
-# Next Up — M4 · S2: Places and the check sheet
+# Next Up — M4 · S3: The map and its filters
 
-**Slices:** M4 · S2
-**Briefs:** [docs/milestones/M4-places.md § S2](milestones/M4-places.md#s2--places-and-the-check-sheet), [ADR-0007](decisions/0007-places-and-the-check-sheet.md) D1–D4, D9
+**Slices:** M4 · S3
+**Briefs:** [docs/milestones/M4-places.md § S3](milestones/M4-places.md#s3--the-map-and-its-filters), [ADR-0007](decisions/0007-places-and-the-check-sheet.md) D5–D6
 **Done when:** per the brief
 **Owed:** see [device-passes.md](device-passes.md)
-**Notes:** S2 adds two synced tables; Jon merges and deploys their Development schema per the brief.
+**Notes:** No schema. On regular widths, show the list beside the map; on compact widths, use List | Map. Filters stay device-local. Explore a Maps point of interest before adding it; long press adds a dropped pin.

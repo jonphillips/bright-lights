@@ -47,4 +47,31 @@ import Testing
     #expect(PlaceKind(pointOfInterestCategory: MKPointOfInterestCategory.hotel.rawValue) == .other)
     #expect(PlaceKind(pointOfInterestCategory: "MKPOICategoryFutureCategory") == .other)
   }
+
+  @Test func checkSheetGroupsByStandingAndShowsLastVisitOnlyInTriedGroups() {
+    let householdID = UUID()
+    let groups: [(PlaceStanding, String)] = [
+      (.toTry(.high), "High"), (.toTry(.normal), "Normal"), (.toTry(.someday), "Someday"),
+      (.tried(.ourPlace), "Our place"), (.tried(.wouldReturn), "Would return"),
+      (.tried(nil), "Tried"), (.tried(.onceWasEnough), "Once was enough"), (.notForUs, "Not for us")
+    ]
+    let places = groups.flatMap { standing, prefix in
+      [
+        Place(id: UUID(), householdID: householdID, name: "Zulu \(prefix)", latitude: 0, longitude: 0, standing: standing),
+        Place(id: UUID(), householdID: householdID, name: "Alpha \(prefix)", latitude: 0, longitude: 0, standing: standing)
+      ]
+    }
+    let ourPlace = places.first { $0.standing == .tried(.ourPlace) }!
+    let lastVisit = Date(timeIntervalSince1970: 1_800_000_000)
+    let projection = PlaceCheckSheet(
+      places: places, visits: [PlaceVisit(id: UUID(), placeID: ourPlace.id, day: lastVisit)]
+    )
+    let expectedTitles = ["High priority", "To try", "Someday", "Our place", "Would return", "Tried", "Once was enough"]
+    #expect(projection.groups.map(\.title) == expectedTitles)
+    #expect(projection.groups.first?.rows.map(\.place.name) == ["Alpha High", "Zulu High"])
+    #expect(projection.groups.first { $0.title == "Our place" }?.rows.first { $0.place.id == ourPlace.id }?.lastVisit == lastVisit)
+    let showingNotForUs = PlaceCheckSheet(places: places, visits: [], showingNotForUs: true)
+    #expect(showingNotForUs.groups.map(\.title) == expectedTitles + ["Not for us"])
+    #expect(showingNotForUs.groups.last?.rows.map(\.place.name) == ["Alpha Not for us", "Zulu Not for us"])
+  }
 }
