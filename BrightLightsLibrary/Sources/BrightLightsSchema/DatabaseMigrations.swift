@@ -3,6 +3,18 @@ import SQLiteData
 public enum BrightLightsDatabaseMigrations {
   public static func makeMigrator() -> DatabaseMigrator {
     var migrator = DatabaseMigrator()
+    registerInitialSchemaV1(on: &migrator)
+    registerSourceCheckingV2(on: &migrator)
+    registerSourceFixesV3(on: &migrator)
+    registerTasteRecordsV4(on: &migrator)
+    registerRegistryVersionV5(on: &migrator)
+    registerPeopleV6(on: &migrator)
+    registerTasteNotesV7(on: &migrator)
+    registerTasteSuggestionV8(on: &migrator)
+    return migrator
+  }
+
+  private static func registerInitialSchemaV1(on migrator: inout DatabaseMigrator) {
     migrator.registerMigration("Create Bright Lights shared schema v1") { db in
       try db.execute(sql: """
         CREATE TABLE "households" (
@@ -44,6 +56,9 @@ public enum BrightLightsDatabaseMigrations {
         CREATE INDEX "index_reactions_on_listingID" ON "reactions"("listingID");
         """)
     }
+  }
+
+  private static func registerSourceCheckingV2(on migrator: inout DatabaseMigrator) {
     migrator.registerMigration("Add source checking state v2") { db in
       try db.execute(sql: """
         ALTER TABLE "households" ADD COLUMN "checkerDeviceID" TEXT;
@@ -56,12 +71,12 @@ public enum BrightLightsDatabaseMigrations {
         ALTER TABLE "sources" ADD COLUMN "lastCheckNote" TEXT;
         """)
     }
-    registerSourceFixesV3(on: &migrator)
-    registerTasteRecordsV4(on: &migrator)
-    registerRegistryVersionV5(on: &migrator)
-    registerPeopleV6(on: &migrator)
-    registerTasteNotesV7(on: &migrator)
-    return migrator
+  }
+
+  private static func registerTasteSuggestionV8(on migrator: inout DatabaseMigrator) {
+    migrator.registerMigration("Add taste suggestion v8") { db in
+      try db.execute(sql: "ALTER TABLE \"tasteRecords\" ADD COLUMN \"suggestion\" TEXT")
+    }
   }
 
   private static func registerRegistryVersionV5(on migrator: inout DatabaseMigrator) {

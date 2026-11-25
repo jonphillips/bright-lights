@@ -135,4 +135,4 @@ A screen's suggestions take seconds on demand. Revisit if waiting on them gets i
 
 ## Slices
 
-[M3 — Taste](../milestones/M3-taste.md): S1 counts sort a screen, S2 taste notes, S3 the model suggests.
+[M3 — Taste](../milestones/archive/M3-taste.md): S1 counts sort a screen, S2 taste notes, S3 the model suggests.
