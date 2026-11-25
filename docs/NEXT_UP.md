@@ -1,7 +1,7 @@
-# Next Up — M4 · S3: The map and its filters
+# Next Up — M4 · S4: Seasons
 
-**Slices:** M4 · S3
-**Briefs:** [docs/milestones/M4-places.md § S3](milestones/M4-places.md#s3--the-map-and-its-filters), [ADR-0007](decisions/0007-places-and-the-check-sheet.md) D5–D6
+**Slices:** M4 · S4
+**Briefs:** [docs/milestones/M4-places.md § S4](milestones/M4-places.md#s4--seasons), [ADR-0007](decisions/0007-places-and-the-check-sheet.md) D10
 **Done when:** per the brief
 **Owed:** see [device-passes.md](device-passes.md)
-**Notes:** No schema. On regular widths, show the list beside the map; on compact widths, use List | Map. Filters stay device-local. Explore a Maps point of interest before adding it; long press adds a dropped pin.
+**Notes:** No schema. Add Always, Every year, and Once to place details; show next-on dates outside the season and surface ending to-try places in Coming up.

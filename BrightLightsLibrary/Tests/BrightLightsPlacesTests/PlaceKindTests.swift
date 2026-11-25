@@ -70,7 +70,9 @@ import Testing
     #expect(projection.groups.map(\.title) == expectedTitles)
     #expect(projection.groups.first?.rows.map(\.place.name) == ["Alpha High", "Zulu High"])
     #expect(projection.groups.first { $0.title == "Our place" }?.rows.first { $0.place.id == ourPlace.id }?.lastVisit == lastVisit)
-    let showingNotForUs = PlaceCheckSheet(places: places, visits: [], showingNotForUs: true)
+    let showingNotForUs = PlaceCheckSheet(
+      places: places, visits: [], filter: PlaceFilter(includesNotForUs: true)
+    )
     #expect(showingNotForUs.groups.map(\.title) == expectedTitles + ["Not for us"])
     #expect(showingNotForUs.groups.last?.rows.map(\.place.name) == ["Alpha Not for us", "Zulu Not for us"])
   }

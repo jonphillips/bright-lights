@@ -15,10 +15,21 @@ public struct PlaceCheckSheet: Equatable, Sendable {
   }
 
   public var groups: [Group]
+  public var filteredPlaces: [Place]
+  public var placesMissingMeals: [Place]
+  public var missingMealsCount: Int
 
-  public init(places: [Place], visits: [PlaceVisit], showingNotForUs: Bool = false) {
+  public init(places: [Place], visits: [PlaceVisit], filter: PlaceFilter = PlaceFilter()) {
+    let filteredPlaces = places.filter(filter.includes)
+    self.filteredPlaces = filteredPlaces
+    let mealIndependentFilter = PlaceFilter(
+      kind: filter.kind, meal: .any, standing: filter.standing, includesNotForUs: filter.includesNotForUs
+    )
+    let placesMissingMeals = places.filter(mealIndependentFilter.includes)
+      .filter { $0.kind == .food && $0.meals.values.isEmpty }
+    self.placesMissingMeals = placesMissingMeals
+    missingMealsCount = filter.kind == .food && filter.meal != .any ? placesMissingMeals.count : 0
     let lastVisits = Dictionary(grouping: visits, by: \.placeID).mapValues { $0.map(\.day).max() }
-    let shown = places.filter { showingNotForUs || $0.standing != .notForUs }
     let priorities: [(title: String, matches: (Place) -> Bool)] = [
       ("High priority", { if case .toTry(.high) = $0.standing { true } else { false } }),
       ("To try", { if case .toTry(.normal) = $0.standing { true } else { false } }),
@@ -30,7 +41,7 @@ public struct PlaceCheckSheet: Equatable, Sendable {
       ("Not for us", { $0.standing == .notForUs })
     ]
     groups = priorities.compactMap { title, matches in
-      let rows = shown.filter(matches).sorted {
+      let rows = filteredPlaces.filter(matches).sorted {
         let order = $0.name.localizedStandardCompare($1.name)
         return order == .orderedSame ? $0.id.uuidString < $1.id.uuidString : order == .orderedAscending
       }.map { Row(place: $0, lastVisit: lastVisits[$0.id] ?? nil) }

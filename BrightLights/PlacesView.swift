@@ -1,6 +1,7 @@
 import BrightLightsPlaces
 import BrightLightsSchema
 import Dependencies
+import MapKit
 import MapPlacesKit
 import SQLiteData
 import Sharing
@@ -11,11 +12,29 @@ struct PlacesView: View {
   @FetchAll(Place.order(by: \.name)) private var places: [Place]
   @FetchAll(PlaceVisit.order(by: \.day)) private var visits: [PlaceVisit]
   @FetchAll(SyncMetadata.where { $0.recordType.eq("households") }) private var metadata: [SyncMetadata]
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
   @Dependency(\.defaultDatabase) private var database
+  @Dependency(\.date.now) private var dateNow
+  @Dependency(\.uuid) private var uuid
   @State private var placeForDetail: Place?
   @State private var showingSearch = false
-  @State private var showingNotForUs = false
+  @State private var selectedPlaceID: Place.ID?
+  @State private var mapCamera: MapCameraPosition = .region(Self.initialMapRegion)
+  @State private var mapSelection: MapSelection<Place.ID>?
+  @State private var selectedMapItem: MKMapItem?
+  @State private var compactPresentation: PlacePane = .list
+  @State private var mapPressStartedAt: Date?
+  @State private var mapPressStartLocation: CGPoint?
   @State private var errorMessage: String?
+  @Shared(.appStorage("brightLightsPlaceKindFilter")) private var kindFilterRaw = PlaceFilter.Kind.all.rawValue
+  @Shared(.appStorage("brightLightsPlaceMealFilter")) private var mealFilterRaw = PlaceFilter.MealChoice.any.rawValue
+  @Shared(.appStorage("brightLightsPlaceStandingFilter")) private var standingFilterRaw = PlaceFilter.Standing.everything.rawValue
+  @Shared(.appStorage("brightLightsShowNotForUsPlaces")) private var includesNotForUs = false
+
+  private static let initialMapRegion = MKCoordinateRegion(
+    center: CLLocationCoordinate2D(latitude: 40.72, longitude: -73.96),
+    span: MKCoordinateSpan(latitudeDelta: 0.22, longitudeDelta: 0.22)
+  )
 
   private var household: Household? {
     guard !households.isEmpty else { return nil }
@@ -23,33 +42,48 @@ struct PlacesView: View {
   }
   private var projection: PlaceCheckSheet {
     PlaceCheckSheet(
-      places: places.filter { $0.householdID == household?.id }, visits: visits,
-      showingNotForUs: showingNotForUs
+      places: householdPlaces, visits: visits, filter: placeFilter
     )
   }
 
+  private var placeFilter: PlaceFilter {
+    PlaceFilter(
+      kind: kindFilter, meal: mealFilter, standing: standingFilter,
+      includesNotForUs: includesNotForUs
+    )
+  }
+  private var kindFilter: PlaceFilter.Kind {
+    get { PlaceFilter.Kind(rawValue: kindFilterRaw) ?? .all }
+    nonmutating set { $kindFilterRaw.withLock { $0 = newValue.rawValue } }
+  }
+  private var mealFilter: PlaceFilter.MealChoice {
+    get { PlaceFilter.MealChoice(rawValue: mealFilterRaw) ?? .any }
+    nonmutating set { $mealFilterRaw.withLock { $0 = newValue.rawValue } }
+  }
+  private var standingFilter: PlaceFilter.Standing {
+    get { PlaceFilter.Standing(rawValue: standingFilterRaw) ?? .everything }
+    nonmutating set { $standingFilterRaw.withLock { $0 = newValue.rawValue } }
+  }
+  private var isFoodSelected: Bool { kindFilter == .food }
+  private var householdPlaces: [Place] { places.filter { $0.householdID == household?.id } }
+  private var filteredPlaces: [Place] { projection.filteredPlaces }
+
   var body: some View {
-    List {
-      if household == nil {
-        ContentUnavailableView("Places unavailable", systemImage: "mappin.and.ellipse")
-      } else if projection.groups.isEmpty {
-        ContentUnavailableView {
-          Label("No places", systemImage: "mappin.and.ellipse")
-        } description: {
-          Text("Add a place from Apple Maps to start your check sheet.")
-        } actions: {
-          Button("Add place", systemImage: "plus") { showingSearch = true }
-            .buttonStyle(.borderedProminent)
+    VStack(spacing: 0) {
+      filterBar
+      if horizontalSizeClass == .compact {
+        Picker("Places view", selection: $compactPresentation) {
+          ForEach(PlacePane.allCases) { pane in Text(pane.title).tag(pane) }
         }
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+        .padding(.vertical, 8)
+        if compactPresentation == .list { placeList } else { mapPane }
       } else {
-        ForEach(projection.groups) { group in
-          Section(group.title) {
-            ForEach(group.rows) { row in
-              Button { placeForDetail = row.place } label: {
-                PlaceCheckSheetRowView(row: row)
-              }.buttonStyle(.plain)
-            }
-          }
+        HStack(spacing: 0) {
+          placeList.frame(minWidth: 320, idealWidth: 390, maxWidth: 480)
+          Divider()
+          mapPane
         }
       }
     }
@@ -57,9 +91,6 @@ struct PlacesView: View {
     .toolbar {
       ToolbarItem(placement: .primaryAction) {
         Menu {
-          Button(showingNotForUs ? "Hide Not for us" : "Show Not for us", systemImage: "eye") {
-            showingNotForUs.toggle()
-          }
           Button("Add place", systemImage: "plus") { showingSearch = true }
             .disabled(household == nil)
         } label: { Label("Places", systemImage: "ellipsis.circle") }
@@ -72,8 +103,292 @@ struct PlacesView: View {
     .alert("Places", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
       Button("OK", role: .cancel) { errorMessage = nil }
     } message: { Text(errorMessage ?? "") }
+    .task(id: mapSelection) { await handleMapSelection() }
   }
 
+  private var placeList: some View {
+    List {
+      if household == nil {
+        ContentUnavailableView("Places unavailable", systemImage: "mappin.and.ellipse")
+      } else {
+        if projection.missingMealsCount > 0 {
+          Section {
+            HStack(alignment: .firstTextBaseline) {
+              Text("\(projection.missingMealsCount) food places have no meals set")
+                .font(.subheadline).foregroundStyle(.secondary)
+              Spacer(minLength: 8)
+              Button("Fill them in") {
+                if let place = projection.placesMissingMeals.first { placeForDetail = place }
+              }
+              .font(.subheadline.weight(.semibold))
+            }
+          }
+        }
+        if projection.groups.isEmpty {
+          ContentUnavailableView {
+            Label("No places", systemImage: "mappin.and.ellipse")
+          } description: {
+            Text("Try another filter or add a place from Apple Maps.")
+          } actions: {
+            Button("Add place", systemImage: "plus") { showingSearch = true }
+              .buttonStyle(.borderedProminent)
+          }
+        } else {
+          ForEach(projection.groups) { group in
+            Section(group.title) {
+              ForEach(group.rows) { row in
+                Button {
+                  selectedPlaceID = row.place.id
+                  placeForDetail = row.place
+                } label: {
+                  PlaceCheckSheetRowView(row: row)
+                    .padding(.vertical, 3)
+                    .background(selectedPlaceID == row.place.id ? Color.accentColor.opacity(0.08) : .clear)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+                .buttonStyle(.plain)
+                .listRowBackground(selectedPlaceID == row.place.id ? Color.accentColor.opacity(0.08) : nil)
+              }
+            }
+          }
+        }
+      }
+    }
+    .modifier(PlacesListStyleModifier())
+  }
+
+  private var filterBar: some View {
+    VStack(alignment: .leading, spacing: 10) {
+      ScrollView(.horizontal) {
+        HStack(spacing: 8) {
+          ForEach(PlaceFilter.Kind.allCases, id: \.self) { filter in
+            PlaceKindFilterButton(filter: filter, isSelected: kindFilter == filter) {
+              kindFilter = filter
+            }
+          }
+        }
+        .padding(.horizontal)
+      }
+      .scrollIndicators(.hidden)
+      HStack(spacing: 10) {
+        Picker("Standing", selection: Binding(get: { standingFilter }, set: { standingFilter = $0 })) {
+          ForEach(PlaceFilter.Standing.allCases, id: \.self) { filter in Text(filter.title).tag(filter) }
+        }
+        .pickerStyle(.segmented)
+        if isFoodSelected {
+          Menu {
+            ForEach(PlaceFilter.MealChoice.visibleCases, id: \.self) { filter in
+              Button {
+                mealFilter = filter
+              } label: {
+                if mealFilter == filter { Label(filter.title, systemImage: "checkmark") }
+                else { Text(filter.title) }
+              }
+            }
+          } label: {
+            Label(mealFilter.title, systemImage: "chevron.down")
+              .font(.subheadline.weight(.medium))
+              .padding(.horizontal, 10).padding(.vertical, 7)
+              .background(.quaternary, in: Capsule())
+          }
+          Menu("More") {
+            ForEach(PlaceFilter.MealChoice.moreCases, id: \.self) { filter in
+              Button {
+                mealFilter = filter
+              } label: {
+                if mealFilter == filter { Label(filter.title, systemImage: "checkmark") }
+                else { Text(filter.title) }
+              }
+            }
+            Divider()
+            Toggle("Not for us", isOn: Binding(
+              get: { includesNotForUs }, set: { newValue in $includesNotForUs.withLock { $0 = newValue } }
+            ))
+          }
+          .fixedSize()
+        } else {
+          Menu("More") {
+            Toggle("Not for us", isOn: Binding(
+              get: { includesNotForUs }, set: { newValue in $includesNotForUs.withLock { $0 = newValue } }
+            ))
+          }
+            .fixedSize()
+        }
+      }
+      .padding(.horizontal)
+    }
+    .padding(.vertical, 10)
+    .background(.bar)
+  }
+
+  private var mapPane: some View {
+    VStack(spacing: 0) {
+      if selectedMapItem != nil {
+        HStack {
+          Spacer()
+          Button("Add place", systemImage: "plus") {
+            Task { await addSelectedMapItem() }
+          }
+          .buttonStyle(.borderedProminent)
+        }
+        .padding(.horizontal, 16).padding(.vertical, 8)
+        .background(.bar)
+      }
+      MapReader { proxy in
+        Map(position: $mapCamera, selection: $mapSelection) {
+          ForEach(filteredPlaces) { place in
+            Marker(place.name, systemImage: place.kind.symbol,
+              coordinate: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
+              .tint(place.id == selectedPlaceID ? Color.orange : (place.standing == .notForUs ? Color.gray : Color.accentColor))
+              .tag(place.id)
+          }
+        }
+        .modifier(MapPOIDetailModifier(selectedMapItem: $selectedMapItem))
+        .coordinateSpace(name: "places-map")
+        .simultaneousGesture(
+          DragGesture(minimumDistance: 0, coordinateSpace: .named("places-map"))
+            .onChanged { value in
+              if mapPressStartedAt == nil {
+                mapPressStartedAt = .now
+                mapPressStartLocation = value.startLocation
+              }
+            }
+            .onEnded { value in
+              defer {
+                mapPressStartedAt = nil
+                mapPressStartLocation = nil
+              }
+              guard let startedAt = mapPressStartedAt,
+                    let start = mapPressStartLocation,
+                    Date.now.timeIntervalSince(startedAt) >= 0.8,
+                    hypot(value.location.x - start.x, value.location.y - start.y) <= 12,
+                    let coordinate = proxy.convert(value.location, from: .named("places-map"))
+              else { return }
+              Task { await addDroppedPin(at: coordinate) }
+            }
+        )
+        .overlay(alignment: .bottomLeading) {
+          Text("Tap a Maps place to explore · press and hold to drop a pin")
+            .font(.caption).foregroundStyle(.primary)
+            .padding(8).background(.regularMaterial, in: Capsule()).padding(10)
+            .allowsHitTesting(false)
+        }
+      }
+    }
+    .overlay {
+      if filteredPlaces.isEmpty && household != nil {
+        ContentUnavailableView("No places on the map", systemImage: "map",
+          description: Text("Adjust the filters or tap an Apple Maps place to add one."))
+          .allowsHitTesting(false)
+      }
+    }
+  }
+
+  @MainActor
+  private func handleMapSelection() async {
+    guard let mapSelection else { return }
+    if let id = mapSelection.value {
+      selectedPlaceID = id
+      if let place = filteredPlaces.first(where: { $0.id == id }) {
+        placeForDetail = place
+      }
+    } else if let feature = mapSelection.feature, feature.kind == .pointOfInterest {
+      selectedMapItem = await MapPlaceResolver.mapItem(for: feature)
+    }
+    self.mapSelection = nil
+  }
+
+  @MainActor
+  private func addSelectedMapItem() async {
+    guard let selectedMapItem else { return }
+    let captured = MapPlaceResolver.place(for: selectedMapItem)
+    self.selectedMapItem = nil
+    await Task.yield()
+    await add(captured)
+  }
+
+  @MainActor
+  private func addDroppedPin(at coordinate: CLLocationCoordinate2D) async {
+    let captured = MapPlace(
+      id: uuid(), name: "Dropped pin", latitude: coordinate.latitude, longitude: coordinate.longitude
+    )
+    await add(captured)
+  }
+
+  @MainActor
+  private func add(_ captured: MapPlace) async {
+    guard let householdID = household?.id else { return }
+    do {
+      let now = dateNow
+      let place = try await database.write { db in
+        try PlaceOperations.add(
+          captured, kind: PlaceKind(pointOfInterestCategory: captured.pointOfInterestCategory),
+          householdID: householdID, now: now, id: captured.id, in: db
+        )
+      }
+      selectedPlaceID = place.id
+      placeForDetail = place
+    } catch {
+      errorMessage = error.localizedDescription
+    }
+  }
+}
+
+private struct MapPOIDetailModifier: ViewModifier {
+  @Binding var selectedMapItem: MKMapItem?
+  @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+
+  func body(content: Content) -> some View {
+    #if os(iOS)
+      if horizontalSizeClass == .regular {
+        content
+          .mapFeatureSelectionDisabled { $0.kind != .pointOfInterest }
+          .mapFeatureSelectionAccessory(nil)
+          .mapItemDetailPopover(
+            item: $selectedMapItem, attachmentAnchor: .rect(.bounds), arrowEdge: .leading
+          )
+      } else {
+        content
+          .mapFeatureSelectionDisabled { $0.kind != .pointOfInterest }
+          .mapFeatureSelectionAccessory(nil)
+          .mapItemDetailSheet(item: $selectedMapItem)
+      }
+    #else
+      content
+    #endif
+  }
+}
+
+private struct PlacesListStyleModifier: ViewModifier {
+  func body(content: Content) -> some View {
+    #if os(iOS)
+      content.listStyle(.insetGrouped)
+    #else
+      content.listStyle(.automatic)
+    #endif
+  }
+}
+
+private enum PlacePane: String, CaseIterable, Identifiable {
+  case list
+  case map
+  var id: Self { self }
+  var title: String { rawValue.capitalized }
+}
+
+private struct PlaceKindFilterButton: View {
+  let filter: PlaceFilter.Kind
+  let isSelected: Bool
+  let action: () -> Void
+
+  var body: some View {
+    Button(action: action) {
+      Text(filter.title)
+    }
+    .buttonStyle(.bordered)
+    .tint(isSelected ? Color.accentColor : Color.secondary)
+    .controlSize(.small)
+  }
 }
 
 private struct PlaceCheckSheetRowView: View {
