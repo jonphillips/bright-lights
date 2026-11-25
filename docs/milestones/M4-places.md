@@ -10,7 +10,7 @@ and notes.*
 
 - [x] **S1** — A shared map places kit
 - [x] **S2** — Places and the check sheet
-- [ ] **S3** — The map and its filters
+- [x] **S3** — The map and its filters
 - [ ] **S4** — Seasons
 - [ ] **S5** — The stay plan
 - [ ] **S6** — Errands from Reminders

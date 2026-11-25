@@ -3,6 +3,11 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-25 — M4 · S3 — The map and its filters (`m4/s3-map-filters`)
+
+- **Result:** Joined the places check sheet and map with device-local kind, meal, and standing filters. Added Apple Maps place exploration and capture, dropped pins, and responsive list/map layouts.
+- **Verification:** scripts/check-drift.sh passed: SwiftLint (0 violations), BrightLightsLibrary tests (141 tests; one known issue), check-report fixture, iOS Simulator and macOS builds; git diff --check passed.
+
 ## 2026-11-25 — M4 S2 — Places and the check sheet (`m4/s2-places`)
 
 - **Result:** Added household-synced places and visits, capture from biased Apple Maps search, the standing-based check sheet, editable place details, and visit logging.
