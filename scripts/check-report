@@ -86,10 +86,16 @@ def summarize(records: list[dict[str, Any]], now: dt.datetime, days: int) -> dic
 
     failing = []
     dropping = []
+    empty = []
     flagged = []
     for source_records in by_source.values():
         source_records.sort(key=lambda item: item["_checkedAt"])
         latest = source_records[-1]
+        if latest.get("outcome") in ("succeeded", "unchanged") and latest.get("found", 0) == 0:
+            empty.append({
+                "registryID": latest["registryID"], "name": latest["name"],
+                "latestNote": latest.get("note"),
+            })
         failures = [item for item in source_records if item.get("outcome") == "failed"]
         if failures:
             failing.append({
@@ -114,12 +120,14 @@ def summarize(records: list[dict[str, Any]], now: dt.datetime, days: int) -> dic
         "nights": nights,
         "failing": sorted(failing, key=lambda item: item["registryID"]),
         "dropping": sorted(dropping, key=lambda item: item["registryID"]),
+        "empty": sorted(empty, key=lambda item: item["registryID"]),
         "flagged": sorted(flagged, key=lambda item: item["registryID"]),
         "nightCount": len(nights),
         "sourceCount": len(by_source),
         "sourceChecks": len(window),
         "failingCount": len(failing),
         "droppingCount": len(dropping),
+        "emptyCount": len(empty),
         "flaggedCount": len(flagged),
     }
 
@@ -132,7 +140,7 @@ def render(summary: dict[str, Any]) -> str:
             f"failed {night['failed']} · unchanged {night['unchanged']} · model calls {night['modelCalls']} · "
             f"new {night['new']} · changed {night['changed']} · missing {night['markedMissing']}"
         )
-    for section, title in (("failing", "Failing"), ("dropping", "Dropping"), ("flagged", "Flagged")):
+    for section, title in (("failing", "Failing"), ("dropping", "Dropping"), ("empty", "Empty"), ("flagged", "Flagged")):
         if summary[section]:
             lines.append(f"{title}:")
             for item in summary[section]:
@@ -141,12 +149,15 @@ def render(summary: dict[str, Any]) -> str:
                     detail = f"{item['failures']} failures · latest: {item.get('latestNote') or 'no note'} · {state}"
                 elif section == "dropping":
                     detail = f"latest {item['latestFound']} · earlier median {item['earlierMedian']:g}"
+                elif section == "empty":
+                    detail = f"latest note: {item.get('latestNote') or 'no note'}"
                 else:
                     detail = item.get("note") or "no note"
                 lines.append(f"  {item['name']} · {detail}")
     lines.append(
         f"check-report: {summary['nightCount']} nights, {summary['sourceCount']} sources, "
-        f"{summary['failingCount']} failing, {summary['droppingCount']} dropping, {summary['flaggedCount']} flagged"
+        f"{summary['failingCount']} failing, {summary['droppingCount']} dropping, "
+        f"{summary['emptyCount']} empty, {summary['flaggedCount']} flagged"
     )
     return "\n".join(lines) + "\n"
 

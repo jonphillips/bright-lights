@@ -55,10 +55,12 @@ public struct ExtractedListing: Codable, Sendable, Equatable, Identifiable {
 public struct ExtractionResult: Sendable, Equatable {
   public var listings: [ExtractedListing]
   public var warnings: [String]
+  public var complete: Bool
 
-  public init(listings: [ExtractedListing], warnings: [String] = []) {
+  public init(listings: [ExtractedListing], warnings: [String] = [], complete: Bool = true) {
     self.listings = listings
     self.warnings = warnings
+    self.complete = complete
   }
 }
 
@@ -67,6 +69,7 @@ public struct SourceDescriptor: Sendable, Equatable {
     case mercuryEast
     case aegAXS
     case caveatJSON
+    case eventbriteOrganizer
   }
 
   public var id: String

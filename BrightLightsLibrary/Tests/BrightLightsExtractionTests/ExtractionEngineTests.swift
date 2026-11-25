@@ -65,6 +65,55 @@ import Testing
     }
   }
 
+  @Test("Eventbrite organizer maps timed events and skips missing times")
+  func eventbriteOrganizer() async throws {
+    let document = #"<script>window.data={"upcomingEvents":[{"name":"  Invented   Comedy Night ","start_date":"2027-02-01","start_time":"7:30 PM","timezone":"America/New_York","url":"https://example.com/one"},{"name":"Invented Talk","start_date":"2027-02-02","start_time":"19:00","timezone":"America/New_York","url":"https://example.com/two"},{"name":"No time","start_date":"2027-02-03","timezone":"America/New_York","url":"https://example.com/three"}]};</script>"#
+    let source = SourceDescriptor(id: "invented-organizer", adapter: .eventbriteOrganizer)
+    let result = try await ExtractionEngine().extract(.html(document), sourceURL: sourceURL, source: source)
+    #expect(result.listings.count == 2)
+    #expect(result.listings[0].title == "Invented Comedy Night")
+    #expect(result.listings[0].stableKey == "invented-organizer:https://example.com/one")
+    #expect(result.listings[0].ticketURL?.absoluteString == "https://example.com/one")
+    #expect(startISO(result.listings[0].time) == "2027-02-02T00:30:00Z")
+    #expect(startISO(result.listings[1].time) == "2027-02-03T00:00:00Z")
+    let empty = await ExtractionEngine().deterministicListings(.html("<main>No events</main>"), sourceURL: sourceURL, source: source)
+    #expect(empty.isEmpty)
+  }
+
+  @Test("model request includes New York today and reports token truncation")
+  func modelDateAndTruncation() async throws {
+    let now = ISO8601DateFormatter().date(from: "2026-11-25T04:59:00Z")!
+    let output = #"{"listings":[{"title":"Invented Show","performers":[],"room":"","startsAt":"2026-12-01T20:00:00","opensAt":"","closesAt":"","eventURL":"https://example.com/show","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
+    let recorder = ModelRequestRecorder()
+    let result = try await withDependencies {
+      $0.modelClient = StubModelClient { request in
+        await recorder.save(request)
+        return ModelResponse(text: output, stopReason: "max_tokens")
+      }
+    } operation: {
+      try await ExtractionEngine().extract(.html("<main>Show</main>"), sourceURL: sourceURL,
+        source: .init(id: "date-test"), now: now)
+    }
+    let request = try #require(await recorder.request)
+    #expect(request.messages.first?.text.hasPrefix("Today is 2026-11-24 in New York.") == true)
+    #expect(request.system?.contains("use the year that puts the date closest to today") == true)
+    #expect(request.maxTokens == 16000)
+    #expect(result.listings.count == 1)
+    #expect(!result.complete)
+    #expect(result.warnings.contains("Model output hit the token limit; some listings may be missing."))
+
+    for stopReason in ["max_tokens", "max_output_tokens"] {
+      let truncated = try await withDependencies {
+        $0.modelClient = StubModelClient { _ in ModelResponse(text: output, stopReason: stopReason) }
+      } operation: {
+        try await ExtractionEngine().extract(.html("<main>Show</main>"), sourceURL: sourceURL,
+          source: .init(id: "truncated-\(stopReason)"), now: now)
+      }
+      #expect(truncated.listings.count == 1)
+      #expect(!truncated.complete)
+    }
+  }
+
   @Test("model rung maps recorded structured output, NYC time and multi-day runs")
   func modelMapping() async throws {
     let output = #"{"listings":[{"title":"The Stand: Jane Doe","performers":["Jane Doe"],"room":"The Stand","startsAt":"2026-12-04T20:00:00Z","opensAt":"2026-12-04T19:00:00","closesAt":"2026-12-04T21:00:00","eventURL":"https://thestandnyc.com/show/jane-doe","ticketURL":"https://tickets.example/jane-doe","onSaleDate":"2026-11-20T10:00:00","status":"listed"},{"title":"Winter Repertory","performers":[],"room":"The Stand","startsAt":"","opensAt":"2026-12-01","closesAt":"2026-12-20","eventURL":"","ticketURL":"","onSaleDate":"","status":"listed"},{"title":"Wrong source","performers":[],"room":"Other room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://thestandwest.com/show/wrong","ticketURL":"","onSaleDate":"","status":"listed"},{"title":"Wrong subdomain","performers":[],"room":"Other room","startsAt":"2026-12-04T20:00:00","opensAt":"","closesAt":"","eventURL":"https://events.thestandwest.com/show/wrong","ticketURL":"","onSaleDate":"","status":"listed"}]}"#
@@ -255,4 +304,9 @@ import Testing
     formatter.formatOptions = [.withInternetDateTime]
     return formatter.string(from: date)
   }
+}
+
+private actor ModelRequestRecorder {
+  private(set) var request: ModelRequest?
+  func save(_ request: ModelRequest) { self.request = request }
 }

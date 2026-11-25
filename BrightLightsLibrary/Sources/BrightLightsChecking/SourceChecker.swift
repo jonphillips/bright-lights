@@ -29,6 +29,8 @@ private struct ExtractionBatch {
   var warnings: [String]
   var modelCalls: Int
   var rungs: [ExtractionRung]
+  var complete: Bool
+  var modelListings: Int
 }
 
 private struct PageFetchResult {
@@ -120,11 +122,11 @@ public struct SourceChecker: Sendable {
           newListings: 0, changedListings: 0, markedMissing: 0,
           complete: pageResult.complete, unchanged: true, durationSeconds: elapsedSeconds(since: startedAt))
       }
-      let batch = try await extractDocuments(documents, source: source, descriptor: descriptor)
+      let batch = try await extractDocuments(documents, source: source, descriptor: descriptor, now: now)
       calls = batch.modelCalls
       rungs = batch.rungs
       let unique = Dictionary(batch.listings.map { ($0.stableKey, $0) }, uniquingKeysWith: { first, _ in first }).values.sorted { $0.stableKey < $1.stableKey }
-      if unique.isEmpty, let previousCount = source.lastListingCount,
+      if unique.isEmpty, pageResult.complete && batch.complete, let previousCount = source.lastListingCount,
         previousCount >= SourceCheckingPolicy.zeroDropPreviousCountThreshold {
         throw SourceCheckError.noListings(previousCount: previousCount)
       }
@@ -132,15 +134,16 @@ public struct SourceChecker: Sendable {
       if pageResult.partialFailure { warnings.append("partial check; a later page failed") }
       let note = warnings.isEmpty ? nil : String(warnings.joined(separator: "; ").prefix(Source.checkNoteCharacterLimit))
       let usedModel = calls > 0
+      let complete = pageResult.complete && batch.complete
       let counts = try await recordSuccess(
-        unique, source: source, complete: pageResult.complete, database: database,
-        now: now, usedModel: usedModel, hash: hash, note: note
+        unique, source: source, complete: complete, database: database,
+        now: now, contentHash: usedModel && batch.modelListings > 0 && batch.complete ? hash : nil, note: note
       )
       return SourceCheckReport(sourceID: source.id, outcome: .succeeded, listingCount: unique.count,
         pagesRead: pages.count, rungs: rungs.sorted { $0.rawValue < $1.rawValue },
         modelCalls: calls, note: note, rowsWritten: counts.written,
         newListings: counts.new, changedListings: counts.changed, markedMissing: counts.markedMissing,
-        complete: pageResult.complete, unchanged: false, durationSeconds: elapsedSeconds(since: startedAt))
+        complete: complete, unchanged: false, durationSeconds: elapsedSeconds(since: startedAt))
     } catch {
       let fetchFailure = error as? PaginatedFetchError
       let note = String((fetchFailure?.note ?? error.localizedDescription).prefix(Source.checkNoteCharacterLimit))
@@ -175,16 +178,16 @@ public struct SourceChecker: Sendable {
   }
 
   private func extractDocuments(
-    _ documents: [(URL, PageDocument)], source: Source, descriptor: SourceDescriptor
+    _ documents: [(URL, PageDocument)], source: Source, descriptor: SourceDescriptor, now: Date
   ) async throws -> ExtractionBatch {
     let engine = ExtractionEngine()
-    var batch = ExtractionBatch(listings: [], warnings: [], modelCalls: 0, rungs: [])
+    var batch = ExtractionBatch(listings: [], warnings: [], modelCalls: 0, rungs: [], complete: true, modelListings: 0)
     for (index, (url, document)) in documents.enumerated() {
       let modelPage = !engine.hasDeterministicRung(document, sourceURL: url, source: descriptor)
       if modelPage { batch.modelCalls += 1 }
       let result: ExtractionResult
       do {
-        result = try await engine.extract(document, sourceURL: url, source: descriptor)
+        result = try await engine.extract(document, sourceURL: url, source: descriptor, now: now)
       } catch {
         if modelPage { logModelCall(source: source, page: index + 1, pageCount: documents.count, listingCount: 0) }
         throw error
@@ -192,6 +195,8 @@ public struct SourceChecker: Sendable {
       if modelPage { logModelCall(source: source, page: index + 1, pageCount: documents.count, listingCount: result.listings.count) }
       batch.listings.append(contentsOf: result.listings)
       batch.warnings.append(contentsOf: result.warnings)
+      batch.complete = batch.complete && result.complete
+      batch.modelListings += result.listings.filter { $0.rung == .model }.count
       for listing in result.listings {
         if let rung = ExtractionRung(rawValue: listing.rung.rawValue), !batch.rungs.contains(rung) { batch.rungs.append(rung) }
       }
@@ -213,7 +218,7 @@ public struct SourceChecker: Sendable {
 
   private func recordSuccess(
     _ listings: [ExtractedListing], source: Source, complete: Bool, database: any DatabaseWriter,
-    now: Date, usedModel: Bool, hash: String, note: String?
+    now: Date, contentHash: String?, note: String?
   ) async throws -> ListingReconcileCounts {
     try await database.write { db in
       let counts = try Listing.reconcile(
@@ -222,7 +227,7 @@ public struct SourceChecker: Sendable {
       try Source.find(source.id).update {
         $0.lastCheckedAt = #bind(now); $0.lastCheckOutcome = #bind(SourceCheckOutcome.succeeded)
         $0.lastListingCount = #bind(listings.count); $0.consecutiveFailures = #bind(0)
-        $0.lastContentHash = #bind(usedModel ? hash : nil as String?); $0.lastCheckNote = #bind(note)
+        $0.lastContentHash = #bind(contentHash); $0.lastCheckNote = #bind(note)
       }.execute(db)
       return counts
     }
@@ -267,7 +272,7 @@ public struct SourceChecker: Sendable {
         complete = false; partialFailure = true; break
       }
       if Self.isChallengePage(page.document) {
-        throw SourceCheckError.challenge("bot-challenge page")
+        throw SourceCheckError.challenge("The site showed a bot challenge. Make this source manual; nothing works around it.")
       }
       if page.effectiveURL.path.localizedCaseInsensitiveContains("login") {
         throw SourceCheckError.challenge("redirected to a login page")
@@ -316,6 +321,7 @@ public struct SourceChecker: Sendable {
 
   static func isChallengePage(_ document: String) -> Bool {
     let lower = document.lowercased()
+    if lower.contains("challenge-platform") || lower.contains("_cf_chl_opt") { return true }
     guard !lower.contains("cf-chl"), !lower.contains("/cdn-cgi/challenge-platform/h/"),
       !lower.contains("px-captcha") else { return true }
     guard let match = lower.range(of: #"(?is)<title\b[^>]*>(.*?)</title\s*>"#, options: .regularExpression) else { return false }
@@ -359,6 +365,7 @@ public struct SourceChecker: Sendable {
   }
 
   private static func combinedHash(_ hashes: [String]) -> String {
-    SHA256.hash(data: Data(hashes.joined(separator: "\n").utf8)).map { String(format: "%02x", $0) }.joined()
+    let versioned = ([ExtractionEngine.modelExtractionVersion] + hashes).joined(separator: "\n")
+    return SHA256.hash(data: Data(versioned.utf8)).map { String(format: "%02x", $0) }.joined()
   }
 }

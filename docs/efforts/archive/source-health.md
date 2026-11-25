@@ -7,8 +7,8 @@ them: the model isn't told today's date, its output is cut off at 5,000 tokens, 
 makes UCB manual because it shows a bot challenge, and adds an **Empty** section to `scripts/check-report`. No
 schema change.
 
-**Implements:** [ADR-0004](../decisions/0004-one-extraction-engine.md) (adapters first, the model last) and
-[ADR-0003](../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface). It answers the
+**Implements:** [ADR-0004](../../decisions/0004-one-extraction-engine.md) (adapters first, the model last) and
+[ADR-0003](../../decisions/0003-the-mac-checks-the-sources.md) point 6 (failures surface). It answers the
 `open-questions.md` entries "Sources that succeed with zero listings", "Model rows dropped for invalid dates" and
 "UCB beyond the first page". Branch `effort/source-health`.
 
