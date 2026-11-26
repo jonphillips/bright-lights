@@ -20,7 +20,7 @@ merging plan PRs. The full loop is in jon-platform `docs/agent-collaboration.md`
 - `docs/NEXT_UP.md`: the single dispatch. If you're the executor, it's your only planning input; if it's empty,
   stop and ask.
 - `docs/open-questions.md`: for the architect only.
-- `~/code/galavant/galavant`: the sibling app. Bright Lights reuses its patterns and the jon-platform packages it
+- `~/code/galavant`: the sibling app. Bright Lights reuses its patterns and the jon-platform packages it
   uses. Mine it, never import it wholesale.
 
 ## Stack
