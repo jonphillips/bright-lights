@@ -43,7 +43,7 @@ if $dry_run; then
   cat <<EOF
 cd $repo_root
 xcodegen generate
-xcodebuild -project BrightLights.xcodeproj -scheme BrightLights -configuration $configuration -destination 'platform=macOS' -derivedDataPath $derived_data -clonedSourcePackagesDirPath $cloned_packages -onlyUsePackageVersionsFromResolvedFile build (through jon-platform/scripts/quiet-run, CLANG_MODULE_CACHE_PATH=$module_cache)
+xcodebuild -project BrightLights.xcodeproj -scheme BrightLights -configuration $configuration -destination 'platform=macOS' -derivedDataPath $derived_data -clonedSourcePackagesDirPath $cloned_packages -onlyUsePackageVersionsFromResolvedFile -skipMacroValidation build (through jon-platform/scripts/quiet-run, CLANG_MODULE_CACHE_PATH=$module_cache)
 Verify BLBuild matches git rev-parse --short HEAD; warn if BLDirty is true
 Verify codesign, the $configuration CloudKit environment, and development APS entitlement
 Verify embedded provisioning profile includes this Mac's Provisioning UDID
@@ -58,6 +58,10 @@ fi
 
 cd "$repo_root"
 xcodegen generate
+# -skipMacroValidation: SwiftPM keeps one macro approval per package, tied to the approved commit.
+# Building in jon-platform's Apps.xcworkspace approves its versions, which can differ from the ones
+# this project pins, and a plain build here then fails "changed since a previous approval".
+# jon-platform scripts/build and vinyl-fever's installer pass the same flag.
 CLANG_MODULE_CACHE_PATH="$module_cache" "$platform_root/scripts/quiet-run" xcodebuild \
   -project BrightLights.xcodeproj \
   -scheme BrightLights \
@@ -66,6 +70,7 @@ CLANG_MODULE_CACHE_PATH="$module_cache" "$platform_root/scripts/quiet-run" xcode
   -derivedDataPath "$derived_data" \
   -clonedSourcePackagesDirPath "$cloned_packages" \
   -onlyUsePackageVersionsFromResolvedFile \
+  -skipMacroValidation \
   build
 xcodegen generate
 
