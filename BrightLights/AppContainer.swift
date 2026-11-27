@@ -197,6 +197,7 @@ private struct WhatsOnScreen: View {
   @FetchAll(Listing.canonical.where { $0.closesAt.isNot(nil) }) private var runs: [Listing]
   @FetchAll(Source.active.order(by: \.name)) private var sources
   @FetchAll(Stay.order(by: \.arrivesOn)) private var stays
+  @FetchAll private var places: [Place]
   @FetchAll private var reactions: [Reaction]
   @FetchAll(Person.order(by: \.createdAt)) private var people: [Person]
   @Shared(.currentPersonID) private var currentPersonIDString
@@ -215,7 +216,7 @@ private struct WhatsOnScreen: View {
   }
 
   private var projection: WhatsOnProjection {
-    WhatsOnProjection(listings: allListings, sources: sources, stays: stays, reactions: reactions, now: .now, calendar: .current)
+    WhatsOnProjection(listings: allListings, sources: sources, stays: stays, reactions: reactions, places: places, now: .now, calendar: .current)
   }
 
   private var allListings: [Listing] {
@@ -276,7 +277,7 @@ private struct WhatsOnScreen: View {
 
   private var comingUpContent: some View {
     List {
-      if !projection.deadlines.onSale.isEmpty || !projection.deadlines.closing.isEmpty {
+      if !projection.deadlines.onSale.isEmpty || !projection.deadlines.closing.isEmpty || !projection.deadlines.ending.isEmpty {
         Section("Deadlines") {
           ForEach(projection.deadlines.onSale) { item in
             NavigationLink { ListingDetailView(item: item) } label: {
@@ -289,8 +290,16 @@ private struct WhatsOnScreen: View {
           ForEach(projection.deadlines.closing, id: \.item.id) { deadline in
             NavigationLink { ListingDetailView(item: deadline.item) } label: {
               VStack(alignment: .leading) {
-                Text("Closes \(nyDate(deadline.item.listing.closesAt!)) — \(closingNote(deadline.staysBeforeClose))")
+                Text("Closes \(nyDate(deadline.item.listing.closesAt!)) — \(closingNote(deadline.staysBeforeClose, verb: "closes"))")
                 Text(deadline.item.listing.title).font(.subheadline)
+              }
+            }
+          }
+          ForEach(projection.deadlines.ending, id: \.place.id) { deadline in
+            NavigationLink { PlaceDetailView(place: deadline.place) } label: {
+              VStack(alignment: .leading) {
+                Text("Ends \(nyDate(deadline.endsOn)) — \(closingNote(deadline.staysBefore, verb: "ends"))")
+                Text(deadline.place.name).font(.subheadline)
               }
             }
           }
@@ -380,11 +389,11 @@ private struct WhatsOnScreen: View {
     return nyWeekdayDate(date)
   }
 
-  private func closingNote(_ count: Int) -> String {
+  private func closingNote(_ count: Int, verb: String) -> String {
     switch count {
     case 0: "before your next stay"
-    case 1: "your last stay before it closes"
-    default: "\(count) stays before it closes"
+    case 1: "your last stay before it \(verb)"
+    default: "\(count) stays before it \(verb)"
     }
   }
 }

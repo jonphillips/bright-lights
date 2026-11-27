@@ -182,6 +182,31 @@ struct WhatsOnProjectionTests {
     #expect(result.deadlines.closing.map(\.staysBeforeClose) == [0, 1, 2])
   }
 
+  @Test func endingPlaceDeadlinesUseTheSameStayCountAsClosingListings() {
+    let now = date(2026, 11, 26, 12)
+    let stays = [
+      Stay(id: UUID(), householdID: UUID(), arrivesOn: date(2026, 12, 10), departure: .booked(date(2026, 12, 15))),
+      Stay(id: UUID(), householdID: UUID(), arrivesOn: date(2027, 1, 2), departure: .booked(date(2027, 1, 7)))
+    ]
+    var ending = Place(id: UUID(), householdID: UUID(), name: "Winter Lights", latitude: 40, longitude: -73)
+    ending.when = .yearly(from: MonthDay(month: 11, day: 20), to: MonthDay(month: 1, day: 5))
+    let tried = Place(id: UUID(), householdID: UUID(), name: "Tried", latitude: 40, longitude: -73, standing: .tried(nil), when: ending.when)
+    var outOfSeason = Place(id: UUID(), householdID: UUID(), name: "Summer", latitude: 40, longitude: -73)
+    outOfSeason.when = .yearly(from: MonthDay(month: 6, day: 1), to: MonthDay(month: 8, day: 31))
+    let always = Place(id: UUID(), householdID: UUID(), name: "Always", latitude: 40, longitude: -73)
+    var afterWindow = Place(id: UUID(), householdID: UUID(), name: "Late", latitude: 40, longitude: -73)
+    afterWindow.when = .yearly(from: MonthDay(month: 11, day: 1), to: MonthDay(month: 3, day: 31))
+    let closing = listing("Closing", start: date(2026, 12, 1), close: date(2027, 1, 5))
+    let result = WhatsOnProjection(
+      listings: [closing], sources: [], stays: stays, reactions: [], places: [ending, tried, outOfSeason, always, afterWindow],
+      now: now, calendar: ny
+    )
+    #expect(result.deadlines.ending.map(\.place.id) == [ending.id])
+    #expect(result.deadlines.ending.first?.endsOn == date(2027, 1, 5))
+    #expect(result.deadlines.ending.first?.staysBefore == result.deadlines.closing.first?.staysBeforeClose)
+    #expect(result.deadlines.ending.first?.staysBefore == 2)
+  }
+
   @Test func deadlinesHideCancelledAndMissingListingsWithoutAReaction() {
     let now = date(2027, 3, 1, 12)
     let cancelled = listing("Cancelled", start: date(2027, 3, 20), close: date(2027, 3, 25), status: .cancelled, onSale: date(2027, 3, 5))

@@ -30,6 +30,7 @@ struct PlacesView: View {
   @Shared(.appStorage("brightLightsPlaceMealFilter")) private var mealFilterRaw = PlaceFilter.MealChoice.any.rawValue
   @Shared(.appStorage("brightLightsPlaceStandingFilter")) private var standingFilterRaw = PlaceFilter.Standing.everything.rawValue
   @Shared(.appStorage("brightLightsShowNotForUsPlaces")) private var includesNotForUs = false
+  @Shared(.appStorage("brightLightsHideOutOfSeason")) private var hidesOutOfSeason = false
 
   private static let initialMapRegion = MKCoordinateRegion(
     center: CLLocationCoordinate2D(latitude: 40.72, longitude: -73.96),
@@ -41,15 +42,13 @@ struct PlacesView: View {
     return Household.survivor(in: households) { Household.sharingState(of: $0, metadata: metadata) }
   }
   private var projection: PlaceCheckSheet {
-    PlaceCheckSheet(
-      places: householdPlaces, visits: visits, filter: placeFilter
-    )
+    PlaceCheckSheet(places: householdPlaces, visits: visits, filter: placeFilter, today: dateNow)
   }
 
   private var placeFilter: PlaceFilter {
     PlaceFilter(
       kind: kindFilter, meal: mealFilter, standing: standingFilter,
-      includesNotForUs: includesNotForUs
+      includesNotForUs: includesNotForUs, hidesOutOfSeason: hidesOutOfSeason, today: dateNow
     )
   }
   private var kindFilter: PlaceFilter.Kind {
@@ -157,6 +156,14 @@ struct PlacesView: View {
     .modifier(PlacesListStyleModifier())
   }
 
+  private func markerTint(for place: Place) -> Color {
+    let base = place.id == selectedPlaceID ? Color.orange : (place.standing == .notForUs ? Color.gray : Color.accentColor)
+    switch PlaceSeason.resolve(place.when, today: dateNow) {
+    case .outOfSeason, .ended: return base.opacity(0.5)
+    default: return base
+    }
+  }
+
   private var filterBar: some View {
     VStack(alignment: .leading, spacing: 10) {
       ScrollView(.horizontal) {
@@ -204,12 +211,18 @@ struct PlacesView: View {
             Toggle("Not for us", isOn: Binding(
               get: { includesNotForUs }, set: { newValue in $includesNotForUs.withLock { $0 = newValue } }
             ))
+            Toggle("Hide out of season", isOn: Binding(
+              get: { hidesOutOfSeason }, set: { newValue in $hidesOutOfSeason.withLock { $0 = newValue } }
+            ))
           }
           .fixedSize()
         } else {
           Menu("More") {
             Toggle("Not for us", isOn: Binding(
               get: { includesNotForUs }, set: { newValue in $includesNotForUs.withLock { $0 = newValue } }
+            ))
+            Toggle("Hide out of season", isOn: Binding(
+              get: { hidesOutOfSeason }, set: { newValue in $hidesOutOfSeason.withLock { $0 = newValue } }
             ))
           }
             .fixedSize()
@@ -239,7 +252,7 @@ struct PlacesView: View {
           ForEach(filteredPlaces) { place in
             Marker(place.name, systemImage: place.kind.symbol,
               coordinate: CLLocationCoordinate2D(latitude: place.latitude, longitude: place.longitude))
-              .tint(place.id == selectedPlaceID ? Color.orange : (place.standing == .notForUs ? Color.gray : Color.accentColor))
+              .tint(markerTint(for: place))
               .tag(place.id)
           }
         }
@@ -400,6 +413,11 @@ private struct PlaceCheckSheetRowView: View {
     if case .tried = row.place.standing, let date = row.lastVisit {
       parts.append("Last visit \(date.formatted(Date.FormatStyle(timeZone: Calendar.newYork.timeZone).month(.abbreviated).day()))")
     }
+    switch row.season {
+    case .always, .inSeason: break
+    case let .outOfSeason(nextOn): parts.append("Next on \(shortNYDate(nextOn))")
+    case let .ended(on): parts.append("Ended \(shortNYDate(on))")
+    }
     return parts
   }
   var body: some View {
@@ -474,7 +492,7 @@ private struct AddPlaceView: View {
   }
 }
 
-private struct PlaceDetailView: View {
+struct PlaceDetailView: View {
   @Environment(\.dismiss) private var dismiss
   @FetchOne var livePlace: Place?
   @FetchAll(PlaceVisit.order(by: \.day)) private var allVisits: [PlaceVisit]
@@ -489,6 +507,11 @@ private struct PlaceDetailView: View {
   @State private var address: String
   @State private var websiteURL: String
   @State private var note: String
+  @State private var whenKind: PlaceWhenKind
+  @State private var fromMonthDay: MonthDay
+  @State private var toMonthDay: MonthDay
+  @State private var onceStart: Date
+  @State private var onceEnd: Date
   @State private var showingVisit = false
   @State private var showingDelete = false
   @State private var errorMessage: String?
@@ -515,6 +538,26 @@ private struct PlaceDetailView: View {
     _address = State(initialValue: place.address ?? "")
     _websiteURL = State(initialValue: place.websiteURL ?? "")
     _note = State(initialValue: place.note ?? "")
+    switch place.when {
+    case .always:
+      _whenKind = State(initialValue: .always)
+      _fromMonthDay = State(initialValue: MonthDay(month: 1, day: 1))
+      _toMonthDay = State(initialValue: MonthDay(month: 1, day: 1))
+      _onceStart = State(initialValue: .now)
+      _onceEnd = State(initialValue: .now)
+    case let .yearly(from, to):
+      _whenKind = State(initialValue: .yearly)
+      _fromMonthDay = State(initialValue: from)
+      _toMonthDay = State(initialValue: to)
+      _onceStart = State(initialValue: .now)
+      _onceEnd = State(initialValue: .now)
+    case let .once(from, to):
+      _whenKind = State(initialValue: .once)
+      _fromMonthDay = State(initialValue: MonthDay(month: 1, day: 1))
+      _toMonthDay = State(initialValue: MonthDay(month: 1, day: 1))
+      _onceStart = State(initialValue: from)
+      _onceEnd = State(initialValue: to)
+    }
   }
 
   var body: some View {
@@ -536,6 +579,20 @@ private struct PlaceDetailView: View {
         }
         TextField("Note", text: $note, axis: .vertical).lineLimit(2...6)
       }
+      Section("When") {
+        Picker("Season", selection: $whenKind) {
+          Text("Always").tag(PlaceWhenKind.always)
+          Text("Every year").tag(PlaceWhenKind.yearly)
+          Text("Once").tag(PlaceWhenKind.once)
+        }
+        if whenKind == .yearly {
+          MonthDayPicker(title: "From", selection: $fromMonthDay)
+          MonthDayPicker(title: "To", selection: $toMonthDay)
+        } else if whenKind == .once {
+          DatePicker("Starts", selection: $onceStart, displayedComponents: .date)
+          DatePicker("Ends", selection: $onceEnd, in: onceStart..., displayedComponents: .date)
+        }
+      }
       Section("Visits") {
         Button("Log visit", systemImage: "plus") { showingVisit = true }
         ForEach(visits) { visit in
@@ -551,6 +608,8 @@ private struct PlaceDetailView: View {
       Section { Button("Delete place", role: .destructive) { showingDelete = true } }
     }
     .navigationTitle(livePlace?.name ?? place.name)
+    .environment(\.calendar, .newYork)
+    .environment(\.timeZone, Calendar.newYork.timeZone)
     .toolbar {
       ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
       ToolbarItem(placement: .confirmationAction) { Button("Save", action: save) }
@@ -594,11 +653,21 @@ private struct PlaceDetailView: View {
     let updatedAddress = address.isEmpty ? nil : address
     let updatedWebsiteURL = websiteURL.isEmpty ? nil : websiteURL
     let updatedNote = note.isEmpty ? nil : note
+    let updatedWhen: PlaceWhen
+    switch whenKind {
+    case .always: updatedWhen = .always
+    case .yearly: updatedWhen = .yearly(from: fromMonthDay, to: toMonthDay)
+    case .once:
+      updatedWhen = .once(
+        from: StayRules.normalized(onceStart, calendar: .newYork),
+        to: StayRules.normalized(max(onceStart, onceEnd), calendar: .newYork)
+      )
+    }
     Task { do {
       try await database.write { db in
         try PlaceOperations.updateDetails(
           name: updatedName, kind: updatedKind, meals: updatedMeals, address: updatedAddress,
-          websiteURL: updatedWebsiteURL, note: updatedNote, basedOn: place, updatedAt: now,
+          websiteURL: updatedWebsiteURL, note: updatedNote, when: updatedWhen, basedOn: place, updatedAt: now,
           for: placeID, in: db
         )
         if shouldUpdateStanding {
@@ -646,6 +715,37 @@ private struct PlaceKindPicker: View {
         Text(kind.rawValue.capitalized).tag(kind)
       }
     }
+  }
+}
+
+private struct MonthDayPicker: View {
+  let title: String
+  @Binding var selection: MonthDay
+  private let months = Calendar.newYork.monthSymbols
+
+  var body: some View {
+    HStack {
+      Picker("\(title) month", selection: Binding(
+        get: { selection.month },
+        set: { month in selection = MonthDay(month: month, day: min(selection.day, daysIn(month))) }
+      )) {
+        ForEach(1...12, id: \.self) { month in Text(months[month - 1]).tag(month) }
+      }
+      Picker("\(title) day", selection: Binding(
+        get: { selection.day }, set: { selection = MonthDay(month: selection.month, day: $0) }
+      )) {
+        ForEach(1...daysIn(selection.month), id: \.self) { day in Text("\(day)").tag(day) }
+      }
+    }
+    .accessibilityElement(children: .contain)
+  }
+
+  // A leap year, so February offers the 29th.
+  private func daysIn(_ month: Int) -> Int {
+    var components = DateComponents()
+    components.year = 2024
+    components.month = month
+    return Calendar.newYork.range(of: .day, in: .month, for: Calendar.newYork.date(from: components)!)!.count
   }
 }
 
@@ -714,4 +814,8 @@ private extension Calendar {
     calendar.timeZone = TimeZone(identifier: "America/New_York")!
     return calendar
   }
+}
+
+private func shortNYDate(_ date: Date) -> String {
+  date.formatted(Date.FormatStyle(timeZone: Calendar.newYork.timeZone).month(.abbreviated).day())
 }

@@ -96,10 +96,58 @@ public enum PlaceWhen: Equatable, Sendable {
   case once(from: Date, to: Date)
 }
 
-public enum PlaceWhenKind: String, QueryBindable, Sendable {
+public enum PlaceWhenKind: String, QueryBindable, Equatable, Hashable, Sendable {
   case always
   case yearly
   case once
+}
+
+public enum PlaceSeason: Equatable, Sendable {
+  case always
+  case inSeason(endsOn: Date?)
+  case outOfSeason(nextOn: Date)
+  case ended(on: Date)
+
+  public static func resolve(_ when: PlaceWhen, today: Date, calendar: Calendar = .current) -> Self {
+    var calendar = calendar
+    calendar.timeZone = TimeZone(identifier: "America/New_York")!
+    let today = calendar.startOfDay(for: today)
+    switch when {
+    case .always:
+      return .always
+    case let .once(from, to):
+      let start = calendar.startOfDay(for: from)
+      let end = calendar.startOfDay(for: to)
+      if today < start { return .outOfSeason(nextOn: start) }
+      if today <= end { return .inSeason(endsOn: end) }
+      return .ended(on: end)
+    case let .yearly(from, to):
+      let year = calendar.component(.year, from: today)
+      let startThisYear = date(from: from, year: year, calendar: calendar)
+      let endThisYear = date(from: to, year: year, calendar: calendar)
+      let crossesYear = from.month * 100 + from.day > to.month * 100 + to.day
+      let inSeason: Bool
+      if crossesYear {
+        inSeason = today >= startThisYear || today <= endThisYear
+      } else {
+        inSeason = today >= startThisYear && today <= endThisYear
+      }
+      if inSeason {
+        var end = endThisYear
+        if crossesYear && today > endThisYear { end = date(from: to, year: year + 1, calendar: calendar) }
+        return .inSeason(endsOn: end)
+      }
+      let nextStart = today < startThisYear ? startThisYear : date(from: from, year: year + 1, calendar: calendar)
+      return .outOfSeason(nextOn: nextStart)
+    }
+  }
+
+  private static func date(from monthDay: MonthDay, year: Int, calendar: Calendar) -> Date {
+    let month = min(max(monthDay.month, 1), 12)
+    let first = calendar.date(from: DateComponents(year: year, month: month, day: 1))!
+    let lastDay = calendar.range(of: .day, in: .month, for: first)!.count
+    return calendar.date(from: DateComponents(year: year, month: month, day: min(max(monthDay.day, 1), lastDay)))!
+  }
 }
 
 @Table
@@ -211,7 +259,7 @@ public enum PlaceOperations {
   }
 
   public static func updateDetails(
-    name: String, kind: PlaceKind, meals: Meals, address: String?, websiteURL: String?, note: String?,
+    name: String, kind: PlaceKind, meals: Meals, address: String?, websiteURL: String?, note: String?, when: PlaceWhen,
     basedOn original: Place, updatedAt: Date, for placeID: UUID, in db: Database
   ) throws {
     guard let current = try Place.find(placeID).fetchOne(db) else { return }
@@ -222,6 +270,19 @@ public enum PlaceOperations {
       $0.address = #bind(address == original.address ? current.address : address)
       $0.websiteURL = #bind(websiteURL == original.websiteURL ? current.websiteURL : websiteURL)
       $0.note = #bind(note == original.note ? current.note : note)
+      if when != original.when {
+        $0.whenKind = #bind(when.kind)
+        $0.seasonStart = #bind(when.seasonStart)
+        $0.seasonEnd = #bind(when.seasonEnd)
+        $0.onceStart = #bind(when.onceStart)
+        $0.onceEnd = #bind(when.onceEnd)
+      } else {
+        $0.whenKind = #bind(current.whenKind)
+        $0.seasonStart = #bind(current.seasonStart)
+        $0.seasonEnd = #bind(current.seasonEnd)
+        $0.onceStart = #bind(current.onceStart)
+        $0.onceEnd = #bind(current.onceEnd)
+      }
       $0.updatedAt = #bind(updatedAt)
     }.execute(db)
   }
@@ -246,4 +307,14 @@ public enum PlaceOperations {
   public static func deletePlace(_ id: UUID, in db: Database) throws {
     try Place.find(id).delete().execute(db)
   }
+}
+
+private extension PlaceWhen {
+  var kind: PlaceWhenKind {
+    switch self { case .always: .always; case .yearly: .yearly; case .once: .once }
+  }
+  var seasonStart: Int? { if case let .yearly(from, _) = self { from.storageValue } else { nil } }
+  var seasonEnd: Int? { if case let .yearly(_, to) = self { to.storageValue } else { nil } }
+  var onceStart: Date? { if case let .once(from, _) = self { from } else { nil } }
+  var onceEnd: Date? { if case let .once(_, to) = self { to } else { nil } }
 }
