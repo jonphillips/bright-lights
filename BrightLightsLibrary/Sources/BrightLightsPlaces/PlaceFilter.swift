@@ -1,4 +1,5 @@
 import BrightLightsSchema
+import Foundation
 
 public struct PlaceFilter: Equatable, Sendable {
   public enum Kind: String, CaseIterable, Sendable {
@@ -49,20 +50,30 @@ public struct PlaceFilter: Equatable, Sendable {
   public var meal: MealChoice
   public var standing: Standing
   public var includesNotForUs: Bool
+  public var hidesOutOfSeason: Bool
+  public var today: Date
 
   public init(
     kind: Kind = .all,
     meal: MealChoice = .any,
     standing: Standing = .everything,
-    includesNotForUs: Bool = false
+    includesNotForUs: Bool = false,
+    hidesOutOfSeason: Bool = false,
+    today: Date = .now
   ) {
     self.kind = kind
     self.meal = meal
     self.standing = standing
     self.includesNotForUs = includesNotForUs
+    self.hidesOutOfSeason = hidesOutOfSeason
+    self.today = today
   }
 
   func includes(_ place: Place) -> Bool {
+    let season = PlaceSeason.resolve(place.when, today: today)
+    if hidesOutOfSeason, case .outOfSeason = season { return false }
+    if hidesOutOfSeason, case .ended = season { return false }
+    if standing == .toTry, case .ended = season, case .once = place.when { return false }
     guard kind.placeKind == nil || place.kind == kind.placeKind else { return false }
     if place.standing == .notForUs {
       return includesNotForUs

@@ -64,6 +64,7 @@ public struct WhatsOnStayGroup: Identifiable, Sendable {
 public struct WhatsOnDeadlines: Sendable {
   public let onSale: [WhatsOnItem]
   public let closing: [(item: WhatsOnItem, staysBeforeClose: Int)]
+  public let ending: [(place: Place, endsOn: Date, staysBefore: Int)]
 }
 
 /// A view-ready, non-persisted projection of listings against the household's stays.
@@ -78,7 +79,7 @@ public struct WhatsOnProjection: Sendable {
   public var passedCount: Int { passedItems.count }
 
   public init(
-    listings: [Listing], sources: [Source], stays: [Stay], reactions: [Reaction],
+    listings: [Listing], sources: [Source], stays: [Stay], reactions: [Reaction], places: [Place] = [],
     now: Date, calendar: Calendar
   ) {
     var calendar = calendar
@@ -104,7 +105,7 @@ public struct WhatsOnProjection: Sendable {
     }
     showEverythingByWeek = Self.weekGroups(allWindowItems, today: today, calendar: calendar, note: nil)
     let deadlineItems = allItems.filter { Self.isListable($0) && $0.reaction?.kind.isHidden != true }
-    deadlines = Self.makeDeadlines(deadlineItems, stays: sortedStays, now: now, today: today, windowEnd: windowEnd, calendar: calendar)
+    deadlines = Self.makeDeadlines(deadlineItems, places: places, stays: sortedStays, now: now, today: today, windowEnd: windowEnd, calendar: calendar)
   }
 
   public static func currentStay(in stays: [Stay], now: Date, calendar: Calendar) -> Stay? {
@@ -201,7 +202,11 @@ public struct WhatsOnProjection: Sendable {
     }
   }
 
-  private static func makeDeadlines(_ items: [WhatsOnItem], stays: [Stay], now: Date, today: Date, windowEnd: Date, calendar: Calendar) -> WhatsOnDeadlines {
+  public static func staysBefore(_ date: Date, stays: [Stay], today: Date) -> Int {
+    stays.filter { $0.arrivesOn > today && $0.arrivesOn <= date }.count
+  }
+
+  private static func makeDeadlines(_ items: [WhatsOnItem], places: [Place], stays: [Stay], now: Date, today: Date, windowEnd: Date, calendar: Calendar) -> WhatsOnDeadlines {
     let saleEnd = calendar.date(byAdding: .day, value: 14, to: now)!
     let onSale = items.filter { item in
       guard let date = item.listing.onSaleAt else { return false }
@@ -209,10 +214,21 @@ public struct WhatsOnProjection: Sendable {
     }.sorted { ($0.listing.onSaleAt ?? .distantFuture) < ($1.listing.onSaleAt ?? .distantFuture) }
     let closing = items.compactMap { item -> (WhatsOnItem, Int)? in
       guard let close = item.listing.closesAt, close >= today, close < windowEnd else { return nil }
-      let count = stays.filter { $0.arrivesOn > today && $0.arrivesOn <= close }.count
+      let count = staysBefore(close, stays: stays, today: today)
       return (item, count)
     }.sorted { ($0.0.listing.closesAt ?? .distantFuture) < ($1.0.listing.closesAt ?? .distantFuture) }
-    return WhatsOnDeadlines(onSale: onSale, closing: closing)
+    let ending = places.compactMap { place -> (Place, Date, Int)? in
+      guard case .toTry = place.standing,
+        case let .inSeason(endsOn?) = PlaceSeason.resolve(place.when, today: today, calendar: calendar),
+        endsOn >= today, endsOn < windowEnd
+      else { return nil }
+      return (place, endsOn, staysBefore(endsOn, stays: stays, today: today))
+    }.sorted {
+      if $0.1 != $1.1 { return $0.1 < $1.1 }
+      let order = $0.0.name.localizedStandardCompare($1.0.name)
+      return order == .orderedSame ? $0.0.id.uuidString < $1.0.id.uuidString : order == .orderedAscending
+    }
+    return WhatsOnDeadlines(onSale: onSale, closing: closing, ending: ending)
   }
 
   public func filtered(_ items: [WhatsOnItem], by filter: WhatsOnFilter) -> [WhatsOnItem] {

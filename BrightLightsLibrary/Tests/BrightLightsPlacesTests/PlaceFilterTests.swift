@@ -1,6 +1,7 @@
 import BrightLightsPlaces
 import BrightLightsSchema
 import Foundation
+import Foundation
 import Testing
 
 @Suite struct PlaceFilterTests {
@@ -107,6 +108,30 @@ import Testing
     #expect(count(PlaceFilter(kind: .drink, meal: .lunch)) == 0)
     #expect(count(PlaceFilter(kind: .all, meal: .lunch)) == 0)
     #expect(count(PlaceFilter(kind: .food, meal: .any)) == 0)
+  }
+
+  @Test func outOfSeasonToggleAndEndedOnceStandingRules() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "America/New_York")!
+    let today = calendar.date(from: DateComponents(year: 2027, month: 3, day: 10))!
+    let summer = makePlace(name: "Summer", standing: .toTry(.normal))
+    var summerPlace = summer
+    summerPlace.when = .yearly(from: MonthDay(month: 6, day: 1), to: MonthDay(month: 8, day: 31))
+    let ended = makePlace(name: "Ended", standing: .toTry(.high))
+    var endedPlace = ended
+    endedPlace.when = .once(from: calendar.date(byAdding: .day, value: -5, to: today)!, to: calendar.date(byAdding: .day, value: -2, to: today)!)
+    let places = [summerPlace, endedPlace]
+
+    let ordinary = PlaceCheckSheet(places: places, visits: [], filter: PlaceFilter(today: today), today: today)
+    let toTry = PlaceCheckSheet(places: places, visits: [], filter: PlaceFilter(standing: .toTry, today: today), today: today)
+    let hidden = PlaceCheckSheet(
+      places: places, visits: [], filter: PlaceFilter(hidesOutOfSeason: true, today: today), today: today
+    )
+    #expect(Set(ordinary.filteredPlaces.map(\.id)) == Set(places.map(\.id)))
+    #expect(toTry.filteredPlaces.map(\.id) == [summerPlace.id])
+    #expect(hidden.filteredPlaces.isEmpty)
+    #expect(ordinary.groups.flatMap(\.rows).first(where: { $0.place.id == summerPlace.id })?.season
+      == .outOfSeason(nextOn: calendar.date(from: DateComponents(year: 2027, month: 6, day: 1))!))
   }
 
   private func makePlace(

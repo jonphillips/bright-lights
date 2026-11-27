@@ -251,19 +251,27 @@ struct SchemaTests {
       try PlaceOperations.logVisit(visit, verdict: .ourPlace, in: db)
       try PlaceOperations.updateDetails(
         name: "Remote name", kind: place.kind, meals: place.meals, address: place.address,
-        websiteURL: place.websiteURL, note: place.note, basedOn: place, updatedAt: visit.createdAt,
+        websiteURL: place.websiteURL, note: place.note, when: place.when, basedOn: place, updatedAt: visit.createdAt,
         for: place.id, in: db
       )
       try PlaceOperations.updateDetails(
         name: place.name, kind: place.kind, meals: place.meals, address: place.address,
-        websiteURL: place.websiteURL, note: "A new note", basedOn: place, updatedAt: visit.createdAt,
+        websiteURL: place.websiteURL, note: "A new note",
+        when: .yearly(from: MonthDay(month: 11, day: 20), to: MonthDay(month: 1, day: 5)),
+        basedOn: place, updatedAt: visit.createdAt,
         for: place.id, in: db
+      )
+      try PlaceOperations.updateDetails(
+        name: place.name, kind: place.kind, meals: place.meals, address: place.address,
+        websiteURL: place.websiteURL, note: "A newer note", when: place.when, basedOn: place,
+        updatedAt: visit.createdAt, for: place.id, in: db
       )
 
       let updated = try #require(try Place.find(place.id).fetchOne(db))
       let storedVisit = try #require(try PlaceVisit.find(visit.id).fetchOne(db))
       #expect(updated.name == "Remote name")
-      #expect(updated.note == "A new note")
+      #expect(updated.note == "A newer note")
+      #expect(updated.when == .yearly(from: MonthDay(month: 11, day: 20), to: MonthDay(month: 1, day: 5)))
       #expect(updated.standing == .tried(.ourPlace))
       #expect(updated.authorID == authorID)
       #expect(nyCalendar.dateComponents([.year, .month, .day, .hour], from: storedVisit.day)

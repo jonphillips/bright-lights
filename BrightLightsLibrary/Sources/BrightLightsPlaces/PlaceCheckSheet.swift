@@ -5,6 +5,7 @@ public struct PlaceCheckSheet: Equatable, Sendable {
   public struct Row: Identifiable, Equatable, Sendable {
     public var place: Place
     public var lastVisit: Date?
+    public var season: PlaceSeason
     public var id: UUID { place.id }
   }
 
@@ -19,11 +20,12 @@ public struct PlaceCheckSheet: Equatable, Sendable {
   public var placesMissingMeals: [Place]
   public var missingMealsCount: Int
 
-  public init(places: [Place], visits: [PlaceVisit], filter: PlaceFilter = PlaceFilter()) {
+  public init(places: [Place], visits: [PlaceVisit], filter: PlaceFilter = PlaceFilter(), today: Date = .now) {
     let filteredPlaces = places.filter(filter.includes)
     self.filteredPlaces = filteredPlaces
     let mealIndependentFilter = PlaceFilter(
-      kind: filter.kind, meal: .any, standing: filter.standing, includesNotForUs: filter.includesNotForUs
+      kind: filter.kind, meal: .any, standing: filter.standing, includesNotForUs: filter.includesNotForUs,
+      hidesOutOfSeason: filter.hidesOutOfSeason, today: filter.today
     )
     let placesMissingMeals = places.filter(mealIndependentFilter.includes)
       .filter { $0.kind == .food && $0.meals.values.isEmpty }
@@ -44,7 +46,7 @@ public struct PlaceCheckSheet: Equatable, Sendable {
       let rows = filteredPlaces.filter(matches).sorted {
         let order = $0.name.localizedStandardCompare($1.name)
         return order == .orderedSame ? $0.id.uuidString < $1.id.uuidString : order == .orderedAscending
-      }.map { Row(place: $0, lastVisit: lastVisits[$0.id] ?? nil) }
+      }.map { Row(place: $0, lastVisit: lastVisits[$0.id] ?? nil, season: PlaceSeason.resolve($0.when, today: today)) }
       return rows.isEmpty ? nil : Group(title: title, rows: rows)
     }
   }

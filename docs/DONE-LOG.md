@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-26 — M4 S4 — Seasons (`m4/s4-seasons`)
+
+- **Result:** Added Always, yearly and one-time seasons to place details, season-aware place rows and filters, and ending-soon place deadlines in Coming up.
+- **Verification:** scripts/check-drift.sh passed: strict SwiftLint, 152 BrightLightsLibrary tests (one known issue), check-report fixture, iOS Simulator build and macOS build.
+- **Owed:** M4 S4's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-25 — M4 · S3 — The map and its filters (`m4/s3-map-filters`)
 
 - **Result:** Joined the places check sheet and map with device-local filters backed by a tested pure projection. Added Apple Maps place exploration and capture, dropped pins, and responsive list/map layouts.
