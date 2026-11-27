@@ -116,10 +116,12 @@ struct SchemaTests {
     let root = URL(fileURLWithPath: #filePath)
       .deletingLastPathComponent().deletingLastPathComponent()
       .deletingLastPathComponent().deletingLastPathComponent()
-    let rows = try String(contentsOf: root.appendingPathComponent("cloudkit-expected-fields.txt"), encoding: .utf8)
-      .split(whereSeparator: \.isNewline)
+    let text = try String(contentsOf: root.appendingPathComponent("cloudkit-expected-fields.txt"), encoding: .utf8)
+    // Blank lines and stray spaces stay in, so the count below catches them. TestFlight's schema gate reads a
+    // blank line as a field with no name, which Production never has.
+    let rows = text.split(separator: "\n", omittingEmptySubsequences: false).dropLast(text.hasSuffix("\n") ? 1 : 0)
     let fields = rows.compactMap { row -> (String, String)? in
-      let pieces = row.split(separator: " ")
+      let pieces = row.split(separator: " ", omittingEmptySubsequences: false)
       guard pieces.count == 2 else { return nil }
       return (String(pieces[0]), String(pieces[1]))
     }
