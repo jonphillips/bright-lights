@@ -12,7 +12,7 @@ and notes.*
 - [x] **S2** — Places and the check sheet
 - [x] **S3** — The map and its filters
 - [x] **S4** — Seasons
-- [ ] **S5** — The stay plan
+- [x] **S5** — The stay plan
 - [ ] **S6** — Errands from Reminders
 
 Each slice is one dispatch, in this order. S1 and S2 are expanded below. The architect expands each later slice

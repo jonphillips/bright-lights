@@ -3,6 +3,12 @@
 History, newest first. The PR that completes a dispatch adds its entry naming its branch
 (jon-platform ADR-0005 D5). No dispatch reads this file.
 
+## 2026-11-27 — M4 · S5 — The stay plan (`m4/s5-stay-plan`)
+
+- **Result:** Added the synced stayPlanItems table with one pin per place and stay, the stay plan projection (days with booked listings and pinned places, This stay, On only now, and Didn't get to on an ended stay), Add to stay from place details, Went from a plan item, and Move to next stay. The architect's review fixes keep a move from overwriting pins already in the next stay, make changing a pin's stay move it, and keep a chosen day inside its stay.
+- **Verification:** scripts/check-drift.sh passed on the slice head: SwiftLint, package tests, check-report fixture, and iOS Simulator and macOS builds. On the review-fix head, swift test (three new stay plan tests), an unsigned iOS build, check-drift.sh, and CI lint and test passed.
+- **Owed:** M4 S5's device gate, in [device-passes.md](device-passes.md).
+
 ## 2026-11-26 — M4 S4 — Seasons (`m4/s4-seasons`)
 
 - **Result:** Added Always, yearly and one-time seasons to place details, season-aware place rows and filters, and ending-soon place deadlines in Coming up.
