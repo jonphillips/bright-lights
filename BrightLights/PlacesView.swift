@@ -722,12 +722,6 @@ private struct MonthDayPicker: View {
   let title: String
   @Binding var selection: MonthDay
   private let months = Calendar.newYork.monthSymbols
-  private var daysInMonth: Int {
-    var components = DateComponents()
-    components.year = 2024
-    components.month = selection.month
-    return Calendar.newYork.range(of: .day, in: .month, for: Calendar.newYork.date(from: components)!)!.count
-  }
 
   var body: some View {
     HStack {
@@ -740,12 +734,13 @@ private struct MonthDayPicker: View {
       Picker("\(title) day", selection: Binding(
         get: { selection.day }, set: { selection = MonthDay(month: selection.month, day: $0) }
       )) {
-        ForEach(1...daysInMonth, id: \.self) { day in Text("\(day)").tag(day) }
+        ForEach(1...daysIn(selection.month), id: \.self) { day in Text("\(day)").tag(day) }
       }
     }
     .accessibilityElement(children: .contain)
   }
 
+  // A leap year, so February offers the 29th.
   private func daysIn(_ month: Int) -> Int {
     var components = DateComponents()
     components.year = 2024

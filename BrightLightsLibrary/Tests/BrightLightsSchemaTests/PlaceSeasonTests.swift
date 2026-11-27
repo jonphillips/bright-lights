@@ -18,6 +18,7 @@ import Testing
     let summer = PlaceWhen.yearly(from: MonthDay(month: 6, day: 1), to: MonthDay(month: 8, day: 31))
     #expect(PlaceSeason.resolve(summer, today: date(2027, 5, 31)) == .outOfSeason(nextOn: date(2027, 6, 1)))
     #expect(PlaceSeason.resolve(summer, today: date(2027, 6, 1)) == .inSeason(endsOn: date(2027, 8, 31)))
+    #expect(PlaceSeason.resolve(summer, today: date(2027, 7, 15)) == .inSeason(endsOn: date(2027, 8, 31)))
     #expect(PlaceSeason.resolve(summer, today: date(2027, 8, 31)) == .inSeason(endsOn: date(2027, 8, 31)))
     #expect(PlaceSeason.resolve(summer, today: date(2027, 9, 1)) == .outOfSeason(nextOn: date(2028, 6, 1)))
   }
@@ -35,6 +36,7 @@ import Testing
     let once = PlaceWhen.once(from: date(2027, 3, 3), to: date(2027, 3, 5))
     #expect(PlaceSeason.resolve(once, today: date(2027, 3, 2)) == .outOfSeason(nextOn: date(2027, 3, 3)))
     #expect(PlaceSeason.resolve(once, today: date(2027, 3, 3)) == .inSeason(endsOn: date(2027, 3, 5)))
+    #expect(PlaceSeason.resolve(once, today: date(2027, 3, 4)) == .inSeason(endsOn: date(2027, 3, 5)))
     #expect(PlaceSeason.resolve(once, today: date(2027, 3, 5)) == .inSeason(endsOn: date(2027, 3, 5)))
     #expect(PlaceSeason.resolve(once, today: date(2027, 3, 6)) == .ended(on: date(2027, 3, 5)))
   }

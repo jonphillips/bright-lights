@@ -194,9 +194,11 @@ struct WhatsOnProjectionTests {
     var outOfSeason = Place(id: UUID(), householdID: UUID(), name: "Summer", latitude: 40, longitude: -73)
     outOfSeason.when = .yearly(from: MonthDay(month: 6, day: 1), to: MonthDay(month: 8, day: 31))
     let always = Place(id: UUID(), householdID: UUID(), name: "Always", latitude: 40, longitude: -73)
+    var afterWindow = Place(id: UUID(), householdID: UUID(), name: "Late", latitude: 40, longitude: -73)
+    afterWindow.when = .yearly(from: MonthDay(month: 11, day: 1), to: MonthDay(month: 3, day: 31))
     let closing = listing("Closing", start: date(2026, 12, 1), close: date(2027, 1, 5))
     let result = WhatsOnProjection(
-      listings: [closing], sources: [], stays: stays, reactions: [], places: [ending, tried, outOfSeason, always],
+      listings: [closing], sources: [], stays: stays, reactions: [], places: [ending, tried, outOfSeason, always, afterWindow],
       now: now, calendar: ny
     )
     #expect(result.deadlines.ending.map(\.place.id) == [ending.id])

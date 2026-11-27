@@ -279,6 +279,44 @@ struct SchemaTests {
     }
   }
 
+  @Test func placeWhenEditClearsTheColumnsTheNewCaseDoesNotUse() async throws {
+    var nyCalendar = Calendar(identifier: .gregorian)
+    nyCalendar.timeZone = TimeZone(identifier: "America/New_York")!
+    let start = nyCalendar.date(from: DateComponents(year: 2027, month: 3, day: 3))!
+    let end = nyCalendar.date(from: DateComponents(year: 2027, month: 3, day: 5))!
+    try await database.write { db in
+      let householdID = UUID()
+      try Household.insert { Household.Draft(Household(id: householdID)) }.execute(db)
+      let place = try PlaceOperations.add(
+        MapPlace(id: UUID(), name: "Pop-up", latitude: 40.7, longitude: -73.9),
+        kind: .shop, householdID: householdID, in: db
+      )
+      func update(_ when: PlaceWhen, basedOn original: Place) throws -> Place {
+        try PlaceOperations.updateDetails(
+          name: original.name, kind: original.kind, meals: original.meals, address: original.address,
+          websiteURL: original.websiteURL, note: original.note, when: when, basedOn: original,
+          updatedAt: original.updatedAt, for: place.id, in: db
+        )
+        return try #require(try Place.find(place.id).fetchOne(db))
+      }
+
+      let once = try update(.once(from: start, to: end), basedOn: place)
+      #expect(once.whenKind == .once)
+      #expect(once.onceStart == start && once.onceEnd == end)
+      #expect(once.seasonStart == nil && once.seasonEnd == nil)
+
+      let yearly = try update(.yearly(from: MonthDay(month: 6, day: 1), to: MonthDay(month: 8, day: 31)), basedOn: once)
+      #expect(yearly.whenKind == .yearly)
+      #expect(yearly.seasonStart == 601 && yearly.seasonEnd == 831)
+      #expect(yearly.onceStart == nil && yearly.onceEnd == nil)
+
+      let always = try update(.always, basedOn: yearly)
+      #expect(always.whenKind == .always)
+      #expect(always.seasonStart == nil && always.seasonEnd == nil)
+      #expect(always.onceStart == nil && always.onceEnd == nil)
+    }
+  }
+
   @Test func householdConvergenceRepointsPrivatePlacesAndCascadesSharedOnes() async throws {
     try await database.write { db in
       let survivor = Household(id: UUID(), createdAt: Date(timeIntervalSince1970: 1))
