@@ -12,6 +12,7 @@ public enum BrightLightsDatabaseMigrations {
     registerTasteNotesV7(on: &migrator)
     registerTasteSuggestionV8(on: &migrator)
     registerPlacesV8(on: &migrator)
+    registerStayPlanItemsV9(on: &migrator)
     return migrator
   }
 
@@ -102,6 +103,20 @@ public enum BrightLightsDatabaseMigrations {
         CREATE INDEX "index_places_on_householdID" ON "places"("householdID");
         CREATE INDEX "index_places_on_mapItemIdentifier" ON "places"("mapItemIdentifier");
         CREATE INDEX "index_placeVisits_on_placeID" ON "placeVisits"("placeID");
+        """)
+    }
+  }
+
+  private static func registerStayPlanItemsV9(on migrator: inout DatabaseMigrator) {
+    migrator.registerMigration("Add stay plan items v9") { db in
+      try db.execute(sql: """
+        CREATE TABLE "stayPlanItems" (
+          "id" TEXT PRIMARY KEY NOT NULL,
+          "stayID" TEXT NOT NULL REFERENCES "stays"("id") ON DELETE CASCADE,
+          "placeID" TEXT NOT NULL, "day" TEXT, "meal" TEXT, "authorID" TEXT,
+          "createdAt" TEXT NOT NULL, "updatedAt" TEXT NOT NULL
+        ) STRICT;
+        CREATE INDEX "index_stayPlanItems_on_stayID" ON "stayPlanItems"("stayID");
         """)
     }
   }

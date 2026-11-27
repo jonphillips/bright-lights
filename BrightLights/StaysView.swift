@@ -54,7 +54,7 @@ struct StaysView: View {
   }
 
   private func stayRow(_ stay: Stay) -> some View {
-    Button { editingStay = stay } label: {
+    NavigationLink { StayPlanView(stay: stay) } label: {
       VStack(alignment: .leading, spacing: 4) {
         Text(stayTitle(stay)).font(.headline)
         Text(stay.departureKind == .booked ? "Booked" : stay.departureKind == .tentative ? "Tentative" : "Open departure")
@@ -63,7 +63,6 @@ struct StaysView: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
     .contextMenu {
       Button("Edit stay", systemImage: "pencil") { editingStay = stay }
       Button("Delete stay", systemImage: "trash", role: .destructive) {
