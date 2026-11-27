@@ -24,7 +24,7 @@ struct StayPlanView: View {
   init(stay: Stay) { initialStay = stay }
 
   private var stay: Stay { stays.first(where: { $0.id == initialStay.id }) ?? initialStay }
-  private var projection: StayPlanProjection {
+  private func makeProjection() -> StayPlanProjection {
     StayPlanProjection(
       stay: stay, stays: stays, places: places, planItems: planItems, visits: visits,
       listings: listings, sources: sources, reactions: reactions, now: dateNow, calendar: .newYork
@@ -32,6 +32,7 @@ struct StayPlanView: View {
   }
 
   var body: some View {
+    let projection = makeProjection()
     List {
       ForEach(projection.days) { day in
         Section(dayTitle(day.date)) {
@@ -93,12 +94,15 @@ struct StayPlanView: View {
     .navigationTitle("Plan · \(stayTitle(stay))")
     .sheet(item: $editingPin) { planned in
       NavigationStack {
-        AddPlaceToStayView(place: planned.place, stay: stay, day: planned.item.day, meal: planned.item.meal)
+        AddPlaceToStayView(place: planned.place, editing: stay, day: planned.item.day, meal: planned.item.meal)
       }
     }
     .sheet(item: $visitingPlace) { planned in
       NavigationStack {
-        LogPlaceVisitView(place: planned.place, initialDay: planned.day, initialMeal: planned.item.meal) {
+        LogPlaceVisitView(
+          place: planned.place, initialDay: planned.day ?? stay.clampedDay(dateNow, calendar: .newYork),
+          initialMeal: planned.item.meal
+        ) {
           logVisit(planned.place, day: $0, meal: $1, note: $2, verdict: $3)
         }
       }
@@ -148,7 +152,9 @@ struct StayPlanView: View {
     Task {
       do {
         try await database.write { db in
-          _ = try StayPlanOperations.pin(placeID: placeID, to: stayID, day: day, meal: meal, authorID: authorID, now: now, in: db)
+          guard try StayPlanOperations.pin(
+            placeID: placeID, to: stayID, day: day, meal: meal, authorID: authorID, now: now, in: db
+          ) != nil else { throw StayPlanError.placeOrStayUnavailable }
         }
       } catch { errorMessage = error.localizedDescription }
     }
@@ -201,23 +207,25 @@ struct AddPlaceToStayView: View {
   @Dependency(\.defaultDatabase) private var database
   @Dependency(\.date.now) private var dateNow
   @Shared(.currentPersonID) private var currentPersonIDString
-  @State private var selectedStayID: UUID
+  /// The stay the pin is in when editing an existing pin; nil when adding a new one.
+  private let originalStayID: UUID?
+  @State private var selectedStayID: UUID?
   @State private var includesDay: Bool
   @State private var day: Date
   @State private var meal: Meal?
   @State private var errorMessage: String?
 
-  init(place: Place, stay: Stay? = nil, day: Date? = nil, meal: Meal? = nil) {
+  init(place: Place, editing stay: Stay? = nil, day: Date? = nil, meal: Meal? = nil) {
     self.place = place
     @Dependency(\.date.now) var dateNow
-    let calendar = Calendar.newYork
-    let reference = dateNow
-    let defaultStay = stay ?? Self.defaultStay(in: [], now: reference, calendar: calendar)
-    _selectedStayID = State(initialValue: defaultStay?.id ?? UUID())
+    originalStayID = stay?.id
+    _selectedStayID = State(initialValue: stay?.id)
     _includesDay = State(initialValue: day != nil)
-    _day = State(initialValue: day ?? reference)
+    _day = State(initialValue: day ?? dateNow)
     _meal = State(initialValue: meal)
   }
+
+  private var selectedStay: Stay? { stays.first { $0.id == selectedStayID } }
 
   var body: some View {
     Form {
@@ -225,11 +233,13 @@ struct AddPlaceToStayView: View {
         ContentUnavailableView("No stays planned", systemImage: "house", description: Text("Add a stay before pinning a place."))
       } else {
         Picker("Stay", selection: $selectedStayID) {
-          ForEach(stays) { stay in Text(stayTitle(stay)).tag(stay.id) }
+          ForEach(stays) { stay in Text(stayTitle(stay)).tag(Optional(stay.id)) }
         }
         Toggle("Choose a day", isOn: $includesDay)
-        if includesDay {
-          DatePicker("Day", selection: $day, displayedComponents: .date)
+        if includesDay, let selectedStay {
+          DatePicker(
+            "Day", selection: $day, in: selectedStay.dayRange(calendar: .newYork), displayedComponents: .date
+          )
         }
         Picker("Meal", selection: $meal) {
           Text("Any meal").tag(Meal?.none)
@@ -243,30 +253,43 @@ struct AddPlaceToStayView: View {
     .toolbar {
       ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
       ToolbarItem(placement: .confirmationAction) {
-        Button("Save", action: save).disabled(stays.isEmpty || !stays.contains(where: { $0.id == selectedStayID }))
+        Button("Save", action: save).disabled(selectedStay == nil)
       }
     }
     .alert("Couldn't pin place", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
       Button("OK", role: .cancel) {}
     } message: { Text(errorMessage ?? "") }
-    .onAppear {
-      guard !stays.isEmpty, !stays.contains(where: { $0.id == selectedStayID }),
-        let first = Self.defaultStay(in: stays, now: dateNow, calendar: .newYork) ?? stays.first else { return }
-      selectedStayID = first.id
+    // Stays can arrive after the sheet opens (first load, or sync from the other device), so re-check each time.
+    .onChange(of: stays.map(\.id), initial: true) {
+      if selectedStay == nil {
+        selectedStayID = (Self.defaultStay(in: stays, now: dateNow, calendar: .newYork) ?? stays.first)?.id
+      }
+      clampDayToSelectedStay()
     }
+    .onChange(of: selectedStayID) { clampDayToSelectedStay() }
+  }
+
+  private func clampDayToSelectedStay() {
+    guard let selectedStay else { return }
+    let clamped = selectedStay.clampedDay(day, calendar: .newYork)
+    if clamped != Calendar.newYork.startOfDay(for: day) { day = clamped }
   }
 
   private func save() {
+    guard let selectedStay else { return }
     let authorID = UUID(uuidString: currentPersonIDString)
     let now = dateNow
-    let selectedDay = includesDay ? day : nil
-    let selectedStayID = self.selectedStayID
+    let selectedDay = includesDay ? selectedStay.clampedDay(day, calendar: .newYork) : nil
+    let selectedStayID = selectedStay.id
+    let originalStayID = originalStayID ?? selectedStayID
     let selectedMeal = meal
+    let placeID = place.id
     Task {
       do {
         try await database.write { db in
-          guard try StayPlanOperations.pin(
-            placeID: place.id, to: selectedStayID, day: selectedDay, meal: selectedMeal, authorID: authorID, now: now, in: db
+          guard try StayPlanOperations.repin(
+            placeID: placeID, from: originalStayID, to: selectedStayID, day: selectedDay, meal: selectedMeal,
+            authorID: authorID, now: now, in: db
           ) != nil else { throw StayPlanError.placeOrStayUnavailable }
         }
         dismiss()

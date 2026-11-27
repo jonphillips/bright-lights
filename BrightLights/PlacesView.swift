@@ -776,8 +776,6 @@ struct LogPlaceVisitView: View {
   @Environment(\.dismiss) private var dismiss
   let place: Place
   let onSave: (Date, Meal?, String, Verdict?) -> Void
-  private let initialDay: Date
-  private let initialMeal: Meal?
   @State private var day: Date
   @State private var meal: Meal?
   @State private var note = ""
@@ -790,8 +788,6 @@ struct LogPlaceVisitView: View {
     @Dependency(\.date.now) var dateNow
     self.place = place
     self.onSave = onSave
-    self.initialDay = initialDay ?? dateNow
-    self.initialMeal = initialMeal
     _day = State(initialValue: initialDay ?? dateNow)
     _meal = State(initialValue: initialMeal)
   }

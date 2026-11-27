@@ -60,6 +60,18 @@ public enum StayPlanOperations {
     try StayPlanItem.find(StayPlanItem.id(stayID: stayID, placeID: placeID)).delete().execute(db)
   }
 
+  /// Pins the place to `stayID` and, when it came from a different stay, removes the old pin in the same write.
+  @discardableResult
+  public static func repin(
+    placeID: UUID, from oldStayID: UUID, to stayID: UUID, day: Date? = nil, meal: Meal? = nil,
+    authorID: UUID? = nil, now: Date = .now, in db: Database
+  ) throws -> StayPlanItem? {
+    guard let item = try pin(placeID: placeID, to: stayID, day: day, meal: meal, authorID: authorID, now: now, in: db)
+    else { return nil }
+    if oldStayID != stayID { try remove(placeID: placeID, from: oldStayID, in: db) }
+    return item
+  }
+
   @discardableResult
   public static func moveNotGotToNextStay(
     from stayID: UUID, visits: [PlaceVisit], authorID: UUID?, now: Date = .now, in db: Database
@@ -79,11 +91,29 @@ public enum StayPlanOperations {
       guard !visits.contains(where: {
         $0.placeID == row.placeID && calendar.startOfDay(for: $0.day) >= start && calendar.startOfDay(for: $0.day) <= end
       }),
-        try Place.find(row.placeID).fetchOne(db) != nil else { continue }
-      _ = try pin(placeID: row.placeID, to: next.id, meal: row.meal, authorID: authorID, now: now, in: db)
-      moved += 1
+        try Place.find(row.placeID).fetchOne(db) != nil,
+        try StayPlanItem.find(StayPlanItem.id(stayID: next.id, placeID: row.placeID)).fetchOne(db) == nil
+      else { continue }
+      if try pin(placeID: row.placeID, to: next.id, meal: row.meal, authorID: authorID, now: now, in: db) != nil {
+        moved += 1
+      }
     }
     return moved
+  }
+}
+
+public extension Stay {
+  /// The stay's first through last day, as start-of-day dates in `calendar`.
+  func dayRange(calendar: Calendar) -> ClosedRange<Date> {
+    let start = calendar.startOfDay(for: arrivesOn)
+    let end = calendar.startOfDay(for: StayRules.departureDate(departure, arrival: start, calendar: calendar))
+    return start...Swift.max(start, end)
+  }
+
+  /// The day of `date` when it falls within the stay, otherwise the nearest day of the stay.
+  func clampedDay(_ date: Date, calendar: Calendar) -> Date {
+    let range = dayRange(calendar: calendar)
+    return Swift.min(Swift.max(calendar.startOfDay(for: date), range.lowerBound), range.upperBound)
   }
 }
 

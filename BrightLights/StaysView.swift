@@ -47,7 +47,7 @@ struct StaysView: View {
     .confirmationDialog("Delete this stay?", isPresented: $showingDeleteConfirmation, presenting: deletingStay) { stay in
       Button("Delete Stay", role: .destructive) { delete(stay) }
       Button("Cancel", role: .cancel) {}
-    } message: { stay in Text("Listings and reactions will stay in Bright Lights.") }
+    } message: { stay in Text("This stay's plan of pinned places is deleted too. Listings and reactions will stay in Bright Lights.") }
     .alert("Couldn't delete stay", isPresented: $showingDeleteError) {
       Button("OK", role: .cancel) {}
     } message: { Text(deleteError) }
