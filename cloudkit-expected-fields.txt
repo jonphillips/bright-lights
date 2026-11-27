@@ -184,7 +184,6 @@ tasteNotes sqlitedata_icloud_userModificationTime_body
 tasteNotes sqlitedata_icloud_userModificationTime_createdAt
 tasteNotes sqlitedata_icloud_userModificationTime_updatedAt
 tasteNotes sqlitedata_icloud_userModificationTime
-
 places id
 places householdID
 places name
@@ -226,7 +225,6 @@ places sqlitedata_icloud_userModificationTime_onceEnd
 places sqlitedata_icloud_userModificationTime_createdAt
 places sqlitedata_icloud_userModificationTime_updatedAt
 places sqlitedata_icloud_userModificationTime
-
 placeVisits id
 placeVisits placeID
 placeVisits day
