@@ -47,14 +47,14 @@ struct StaysView: View {
     .confirmationDialog("Delete this stay?", isPresented: $showingDeleteConfirmation, presenting: deletingStay) { stay in
       Button("Delete Stay", role: .destructive) { delete(stay) }
       Button("Cancel", role: .cancel) {}
-    } message: { stay in Text("Listings and reactions will stay in Bright Lights.") }
+    } message: { stay in Text("This stay's plan of pinned places is deleted too. Listings and reactions will stay in Bright Lights.") }
     .alert("Couldn't delete stay", isPresented: $showingDeleteError) {
       Button("OK", role: .cancel) {}
     } message: { Text(deleteError) }
   }
 
   private func stayRow(_ stay: Stay) -> some View {
-    Button { editingStay = stay } label: {
+    NavigationLink { StayPlanView(stay: stay) } label: {
       VStack(alignment: .leading, spacing: 4) {
         Text(stayTitle(stay)).font(.headline)
         Text(stay.departureKind == .booked ? "Booked" : stay.departureKind == .tentative ? "Tentative" : "Open departure")
@@ -63,7 +63,6 @@ struct StaysView: View {
       .frame(maxWidth: .infinity, alignment: .leading)
       .contentShape(Rectangle())
     }
-    .buttonStyle(.plain)
     .contextMenu {
       Button("Edit stay", systemImage: "pencil") { editingStay = stay }
       Button("Delete stay", systemImage: "trash", role: .destructive) {

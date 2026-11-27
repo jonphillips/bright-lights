@@ -233,6 +233,13 @@ private struct WhatsOnScreen: View {
     }
     .navigationTitle(mode == .whileHere ? "While we're here" : "Coming up")
     .toolbar {
+      if mode == .whileHere, let currentStay = projection.currentStay {
+        ToolbarItem(placement: .navigation) {
+          NavigationLink(destination: StayPlanView(stay: currentStay)) {
+            Label("Plan", systemImage: "calendar.day.timeline.left")
+          }
+        }
+      }
       ToolbarItem(placement: .primaryAction) {
         Menu {
           Picker("Show", selection: $filter) {
@@ -424,7 +431,7 @@ private struct ListingRow: View {
   }
 }
 
-private struct ListingDetailView: View {
+struct ListingDetailView: View {
   @Environment(AppRouter.self) private var router
   let item: WhatsOnItem
   @FetchAll private var reactions: [Reaction]

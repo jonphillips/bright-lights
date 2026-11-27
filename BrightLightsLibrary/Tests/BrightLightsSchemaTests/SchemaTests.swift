@@ -127,7 +127,7 @@ struct SchemaTests {
     }
     #expect(fields.count == rows.count)
     let tables = Set(fields.map(\.0))
-    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords", "people", "tasteNotes", "places", "placeVisits"])
+    #expect(tables == ["households", "sources", "listings", "stays", "reactions", "tasteRecords", "people", "tasteNotes", "places", "placeVisits", "stayPlanItems"])
     try await database.read { db in
       for table in tables {
         let listed = Set(fields.filter { $0.0 == table }.map(\.1))
@@ -178,6 +178,146 @@ struct SchemaTests {
       #expect(placeIndexes.contains { $0.name == "index_places_on_mapItemIdentifier" && $0.columns == ["mapItemIdentifier"] })
       #expect(visitIndexes.contains { $0.name == "index_placeVisits_on_placeID" && $0.columns == ["placeID"] })
     }
+  }
+
+  @Test func stayPlanMigrationAndOperationsPreserveOnePinPerPlaceAndStay() async throws {
+    let household = Household(id: UUID())
+    let stay = Stay(id: UUID(), householdID: household.id, arrivesOn: Date(timeIntervalSince1970: 1_800_000_000), departure: .open)
+    let place = Place(id: UUID(), householdID: household.id, name: "Fixture", latitude: 1, longitude: 2)
+    try await database.read { db in
+      #expect(Set(try db.columns(in: "stayPlanItems").map(\.name)) == [
+        "id", "stayID", "placeID", "day", "meal", "authorID", "createdAt", "updatedAt"
+      ])
+      let index = try db.indexes(on: "stayPlanItems").first { $0.name == "index_stayPlanItems_on_stayID" }
+      #expect(index?.columns == ["stayID"])
+      #expect(index?.isUnique == false)
+    }
+    let day = Date(timeIntervalSince1970: 1_800_086_400)
+    try await database.write { db in
+      try Household.insert { Household.Draft(household) }.execute(db)
+      try Stay.insert { Stay.Draft(stay) }.execute(db)
+      try Place.insert { Place.Draft(place) }.execute(db)
+      let firstOptional = try StayPlanOperations.pin(placeID: place.id, to: stay.id, day: day, meal: .dinner, in: db)
+      let first = try #require(firstOptional)
+      let secondOptional = try StayPlanOperations.pin(placeID: place.id, to: stay.id, meal: .lunch, in: db)
+      let second = try #require(secondOptional)
+      #expect(first.id == second.id)
+      #expect(try StayPlanItem.fetchCount(db) == 1)
+      #expect(try StayPlanItem.find(first.id).fetchOne(db)?.meal == .lunch)
+      try PlaceOperations.deletePlace(place.id, in: db)
+      #expect(try StayPlanItem.fetchCount(db) == 0)
+    }
+  }
+
+  @Test func movingNotGotToCopiesUnvisitedPlacesToTheNextStayAndKeepsHistory() async throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "America/New_York")!
+    let march1 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 1))!
+    let march3 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 3))!
+    let march10 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 10))!
+    let march12 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 12))!
+    let march14 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 14))!
+    let household = Household(id: UUID())
+    let old = Stay(id: UUID(), householdID: household.id, arrivesOn: march1, departure: .booked(march3))
+    let next = Stay(id: UUID(), householdID: household.id, arrivesOn: march12, departure: .booked(march14))
+    let unvisited = Place(id: UUID(), householdID: household.id, name: "Unvisited", latitude: 1, longitude: 2)
+    let visited = Place(id: UUID(), householdID: household.id, name: "Visited", latitude: 1, longitude: 2)
+    try await database.write { db in
+      try Household.insert { Household.Draft(household) }.execute(db)
+      try Stay.insert { Stay.Draft(old) }.execute(db)
+      try Stay.insert { Stay.Draft(next) }.execute(db)
+      try Place.insert { Place.Draft(unvisited) }.execute(db)
+      try Place.insert { Place.Draft(visited) }.execute(db)
+      let unvisitedItem = StayPlanItem(id: StayPlanItem.id(stayID: old.id, placeID: unvisited.id), stayID: old.id, placeID: unvisited.id, meal: .dinner)
+      let visitedItem = StayPlanItem(id: StayPlanItem.id(stayID: old.id, placeID: visited.id), stayID: old.id, placeID: visited.id)
+      try StayPlanItem.insert { StayPlanItem.Draft(unvisitedItem) }.execute(db)
+      try StayPlanItem.insert { StayPlanItem.Draft(visitedItem) }.execute(db)
+      let visits = [PlaceVisit(id: UUID(), placeID: visited.id, day: march3)]
+      let moved = try StayPlanOperations.moveNotGotToNextStay(
+        from: old.id, visits: visits, authorID: nil, now: march10, in: db
+      )
+      #expect(moved == 1)
+      #expect(try StayPlanItem.find(unvisitedItem.id).fetchOne(db) != nil)
+      #expect(try StayPlanItem.find(visitedItem.id).fetchOne(db) != nil)
+      let newItemOptional = try StayPlanItem.find(StayPlanItem.id(stayID: next.id, placeID: unvisited.id)).fetchOne(db)
+      let newItem = try #require(newItemOptional)
+      #expect(newItem.day == nil)
+      #expect(newItem.meal == .dinner)
+    }
+  }
+
+  @Test func movingNotGotToKeepsPinsAlreadyInTheNextStay() async throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "America/New_York")!
+    let march1 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 1))!
+    let march3 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 3))!
+    let march10 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 10))!
+    let march12 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 12))!
+    let march13 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 13))!
+    let march14 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 14))!
+    let household = Household(id: UUID())
+    let old = Stay(id: UUID(), householdID: household.id, arrivesOn: march1, departure: .booked(march3))
+    let next = Stay(id: UUID(), householdID: household.id, arrivesOn: march12, departure: .booked(march14))
+    let place = Place(id: UUID(), householdID: household.id, name: "Already planned", latitude: 1, longitude: 2)
+    try await database.write { db in
+      try Household.insert { Household.Draft(household) }.execute(db)
+      try Stay.insert { Stay.Draft(old) }.execute(db)
+      try Stay.insert { Stay.Draft(next) }.execute(db)
+      try Place.insert { Place.Draft(place) }.execute(db)
+      try StayPlanOperations.pin(placeID: place.id, to: old.id, meal: .lunch, in: db)
+      try StayPlanOperations.pin(placeID: place.id, to: next.id, day: march13, meal: .dinner, in: db)
+      for _ in 0..<2 {
+        let moved = try StayPlanOperations.moveNotGotToNextStay(
+          from: old.id, visits: [], authorID: nil, now: march10, in: db
+        )
+        #expect(moved == 0)
+      }
+      let kept = try #require(try StayPlanItem.find(StayPlanItem.id(stayID: next.id, placeID: place.id)).fetchOne(db))
+      #expect(kept.day == march13)
+      #expect(kept.meal == .dinner)
+    }
+  }
+
+  @Test func repinningToAnotherStayMovesThePin() async throws {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "America/New_York")!
+    let march1 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 1))!
+    let march3 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 3))!
+    let march12 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 12))!
+    let march14 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 14))!
+    let household = Household(id: UUID())
+    let first = Stay(id: UUID(), householdID: household.id, arrivesOn: march1, departure: .booked(march3))
+    let second = Stay(id: UUID(), householdID: household.id, arrivesOn: march12, departure: .booked(march14))
+    let place = Place(id: UUID(), householdID: household.id, name: "Moving", latitude: 1, longitude: 2)
+    try await database.write { db in
+      try Household.insert { Household.Draft(household) }.execute(db)
+      try Stay.insert { Stay.Draft(first) }.execute(db)
+      try Stay.insert { Stay.Draft(second) }.execute(db)
+      try Place.insert { Place.Draft(place) }.execute(db)
+      try StayPlanOperations.pin(placeID: place.id, to: first.id, meal: .lunch, in: db)
+      try StayPlanOperations.repin(placeID: place.id, from: first.id, to: first.id, meal: .dinner, in: db)
+      #expect(try StayPlanItem.find(StayPlanItem.id(stayID: first.id, placeID: place.id)).fetchOne(db)?.meal == .dinner)
+      try StayPlanOperations.repin(placeID: place.id, from: first.id, to: second.id, meal: .dinner, in: db)
+      #expect(try StayPlanItem.find(StayPlanItem.id(stayID: first.id, placeID: place.id)).fetchOne(db) == nil)
+      #expect(try StayPlanItem.find(StayPlanItem.id(stayID: second.id, placeID: place.id)).fetchOne(db)?.meal == .dinner)
+      #expect(try StayPlanItem.fetchCount(db) == 1)
+    }
+  }
+
+  @Test func clampedDayKeepsADayInsideTheStay() {
+    var calendar = Calendar(identifier: .gregorian)
+    calendar.timeZone = TimeZone(identifier: "America/New_York")!
+    let march1 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 1))!
+    let march12 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 12))!
+    let march13Evening = calendar.date(from: DateComponents(year: 2027, month: 3, day: 13, hour: 20))!
+    let march13 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 13))!
+    let march14 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 14))!
+    let march20 = calendar.date(from: DateComponents(year: 2027, month: 3, day: 20))!
+    let stay = Stay(id: UUID(), householdID: UUID(), arrivesOn: march12, departure: .booked(march14))
+    #expect(stay.dayRange(calendar: calendar) == march12...march14)
+    #expect(stay.clampedDay(march1, calendar: calendar) == march12)
+    #expect(stay.clampedDay(march13Evening, calendar: calendar) == march13)
+    #expect(stay.clampedDay(march20, calendar: calendar) == march14)
   }
 
   @Test func placeStandingAndMealsRoundTrip() {

@@ -305,6 +305,9 @@ public enum PlaceOperations {
   }
 
   public static func deletePlace(_ id: UUID, in db: Database) throws {
+    for item in try StayPlanItem.where({ $0.placeID.eq(id) }).fetchAll(db) {
+      try StayPlanItem.find(item.id).delete().execute(db)
+    }
     try Place.find(id).delete().execute(db)
   }
 }

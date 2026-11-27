@@ -513,6 +513,7 @@ struct PlaceDetailView: View {
   @State private var onceStart: Date
   @State private var onceEnd: Date
   @State private var showingVisit = false
+  @State private var showingAddToStay = false
   @State private var showingDelete = false
   @State private var errorMessage: String?
   @State private var hasEditedStanding = false
@@ -605,6 +606,9 @@ struct PlaceDetailView: View {
           }
         }
       }
+      Section("Stay plan") {
+        Button("Add to stay", systemImage: "calendar.badge.plus") { showingAddToStay = true }
+      }
       Section { Button("Delete place", role: .destructive) { showingDelete = true } }
     }
     .navigationTitle(livePlace?.name ?? place.name)
@@ -622,6 +626,9 @@ struct PlaceDetailView: View {
           ProgressView("Loading place…")
         }
       }
+    }
+    .sheet(isPresented: $showingAddToStay) {
+      NavigationStack { AddPlaceToStayView(place: livePlace ?? place) }
     }
     .onChange(of: standing) { _, value in
       hasEditedStanding = value != (livePlace?.standing ?? place.standing)
@@ -765,7 +772,7 @@ private struct PlaceStandingPicker: View {
   }
 }
 
-private struct LogPlaceVisitView: View {
+struct LogPlaceVisitView: View {
   @Environment(\.dismiss) private var dismiss
   let place: Place
   let onSave: (Date, Meal?, String, Verdict?) -> Void
@@ -774,11 +781,15 @@ private struct LogPlaceVisitView: View {
   @State private var note = ""
   @State private var verdict: Verdict?
 
-  init(place: Place, onSave: @escaping (Date, Meal?, String, Verdict?) -> Void) {
+  init(
+    place: Place, initialDay: Date? = nil, initialMeal: Meal? = nil,
+    onSave: @escaping (Date, Meal?, String, Verdict?) -> Void
+  ) {
     @Dependency(\.date.now) var dateNow
     self.place = place
     self.onSave = onSave
-    _day = State(initialValue: dateNow)
+    _day = State(initialValue: initialDay ?? dateNow)
+    _meal = State(initialValue: initialMeal)
   }
 
   var body: some View {
